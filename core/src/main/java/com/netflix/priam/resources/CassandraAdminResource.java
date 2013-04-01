@@ -124,6 +124,16 @@ public class CassandraAdminResource {
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
     }
 
+    // Note: only supported when using SizeTieredCompactionStrategy.  LeveledCompactionStrategy will throw UnsupportedOperationException.
+    @GET
+    @Path ("/compactsstables")
+    public Response cassCompactSSTables(String keyspace, String datafiles) throws IOException, ExecutionException, InterruptedException {
+        JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
+        logger.info("node tool compact being called for specific sstables: {}, {}", keyspace, datafiles);
+        nodetool.compactSSTables(keyspace, datafiles);
+        return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
+    }
+
     @GET
     @Path ("/cleanup")
     public Response cassCleanup() throws IOException, ExecutionException, InterruptedException {

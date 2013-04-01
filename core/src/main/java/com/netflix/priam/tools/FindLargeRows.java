@@ -24,7 +24,7 @@ import static org.apache.cassandra.utils.ByteBufferUtil.hexToBytes;
 
 /**
  * Example:
- *  java  -Dcassandra.config=file:///etc/cassandra/conf/cassandra.yaml -jar priam.jar /var/lib/cassandra/data
+ *  java -jar priam.jar find-large-rows /var/lib/cassandra/data --config /etc/cassandra/conf/cassandra.yaml
  */
 public class FindLargeRows extends Command {
 
@@ -37,6 +37,7 @@ public class FindLargeRows extends Command {
         subparser.addArgument("sstable").nargs("+").help("File or directory containing SSTable data");
         subparser.addArgument("--columns").setDefault(100).type(Integer.class);
         subparser.addArgument("--bytes").setDefault(0x100000L).type(Long.class);
+        subparser.addArgument("--config").setDefault("/etc/cassandra/conf/cassandra.yaml").help("Path to cassandra.yaml");
     }
 
     @Override
@@ -44,10 +45,16 @@ public class FindLargeRows extends Command {
         List<String> ssTableFilenames = namespace.getList("sstable");
         int thresholdColumns = namespace.getInt("columns");
         long thresholdBytes = namespace.getLong("bytes");
+        String config = namespace.getString("config");
 
         List<File> ssTableFiles = expand(ssTableFilenames);
+        if (ssTableFiles.isEmpty()) {
+            System.err.println("No sstable files specified");
+            System.exit(2);
+        }
 
-        // Assumes specific system properties are set: TODO
+        // Initialize Cassandra, read cassandra.yaml and load metadata about the active SSTables.
+        System.setProperty("cassandra.config", new File(config).toURI().toString());
         DatabaseDescriptor.loadSchemas();
 
         if (Schema.instance.getNonSystemTables().size() < 1) {

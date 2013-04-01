@@ -237,6 +237,15 @@ public class JMXNodeTool extends NodeProbe {
         }
     }
 
+    /**
+     * Triggers the compaction of user specified SSTables.
+     * @param keyspace the keyspace for the SSTables to compact
+     * @param sstables a comma separated list of SSTable filename to compact (*-Data.db)
+     */
+    public void compactSSTables(String keyspace, String sstables) {
+        getCompactionManagerProxy().forceUserDefinedCompaction(keyspace, sstables);
+    }
+
     public void repair(boolean isSequential) throws IOException {
         for (String keyspace : getKeyspaces()) {
             forceTableRepair(keyspace, isSequential);

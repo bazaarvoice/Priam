@@ -26,6 +26,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
+import java.text.NumberFormat;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -284,5 +285,18 @@ public class SystemUtils {
         cal.set(Calendar.SECOND, 59);
         cal.set(Calendar.MILLISECOND, 0);
         return cal.getTime();
+    }
+
+    /** Formats a number as a 1-4 character string for values w/magnitude < 1 trillion, not including optional sign. */
+    public static String formatSize(double size) {
+        String[] suffixes = {"", "K", "M", "G"};
+        for (int i = 0; ; i++) {
+            if (Math.abs(size) < 1000 || i == suffixes.length - 1) {
+                NumberFormat fmt = NumberFormat.getInstance();
+                fmt.setMaximumFractionDigits(Math.abs(size) < 10 ? 1 : 0);
+                return fmt.format(size) + suffixes[i];
+            }
+            size /= 1000;
+        }
     }
 }
