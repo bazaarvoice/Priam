@@ -5,16 +5,18 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+import com.google.common.primitives.Ints;
 import com.netflix.priam.utils.SystemUtils;
 import com.yammer.dropwizard.cli.Command;
 import com.yammer.dropwizard.config.Bootstrap;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.Directories;
-import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.io.sstable.Component;
 import org.apache.cassandra.io.sstable.Descriptor;
+import org.apache.cassandra.io.sstable.SSTableIdentityIterator;
 import org.apache.cassandra.io.sstable.SSTableReader;
 import org.apache.cassandra.io.sstable.SSTableScanner;
 import org.apache.cassandra.service.StorageService;
@@ -22,6 +24,7 @@ import org.apache.cassandra.service.StorageService;
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import static java.lang.String.format;
 import static org.apache.cassandra.utils.ByteBufferUtil.bytesToHex;
@@ -52,29 +55,41 @@ public class GetSSTablesForKey extends Command {
         List<String> keys = namespace.getList("key");
         String config = namespace.getString("config");
 
-        // Initialize Cassandra, read cassandra.yaml.
+        // Initialize Cassandra, read cassandra.yaml and load metadata about the active SSTables.
         System.setProperty("cassandra.config", new File(config).toURI().toString());
-        final IPartitioner partitioner = StorageService.getPartitioner();
+        DatabaseDescriptor.loadSchemas();
 
         List<DecoratedKey<?>> decoratedKeys = Ordering.natural().sortedCopy(Iterables.transform(keys,
                 new Function<String, DecoratedKey<?>>() {
                     @Override
                     public DecoratedKey<?> apply(String key) {
-                        return partitioner.decorateKey(hexToBytes(key));
+                        return StorageService.getPartitioner().decorateKey(hexToBytes(key));
                     }
                 }));
 
-        Multimap<DecoratedKey<?>, String> ssTablesMap = ArrayListMultimap.create();
+        Multimap<DecoratedKey<?>, Info> ssTablesMap = ArrayListMultimap.create();
 
-        Directories.SSTableLister ssTableLister = Directories.create(keyspace, columnFamily)
-                .sstableLister().skipCompacted(true).skipTemporary(true);
-        for (Descriptor descriptor : ssTableLister.list().keySet()) {
+        Set<Descriptor> descriptors = Directories.create(keyspace, columnFamily)
+                .sstableLister().skipCompacted(true).skipTemporary(true).list().keySet();
+        if (descriptors.isEmpty()) {
+            System.err.println(format("Invalid keyspace/columnfamily: %s/%s", keyspace, columnFamily));
+            System.exit(2);
+        }
+
+        for (Descriptor descriptor : descriptors) {
             SSTableReader reader = SSTableReader.open(descriptor);
             SSTableScanner scanner = reader.getDirectScanner();
             for (DecoratedKey<?> decoratedKey : decoratedKeys) {
-                if (reader.getPosition(decoratedKey, SSTableReader.Operator.EQ, false) > -1) {
-                    ssTablesMap.put(decoratedKey, descriptor.filenameFor(Component.DATA));
-                }
+                scanner.seekTo(decoratedKey);
+                if (!scanner.hasNext())
+                    continue;
+                SSTableIdentityIterator row = (SSTableIdentityIterator) scanner.next();
+                if (!row.getKey().equals(decoratedKey))
+                    continue;
+                int numColumns = row.getColumnCount();
+                long numBytes = row.dataSize;
+                boolean delete = row.getColumnFamily().isMarkedForDelete();
+                ssTablesMap.put(decoratedKey, new Info(descriptor, numColumns, numBytes, delete));
             }
             scanner.close();
         }
@@ -82,9 +97,15 @@ public class GetSSTablesForKey extends Command {
         for (DecoratedKey<?> decoratedKey : decoratedKeys) {
             System.out.println("Key: " + bytesToHex(decoratedKey.key));
 
-            Collection<String> ssTables = ssTablesMap.get(decoratedKey);
-            for (String ssTable : Ordering.natural().sortedCopy(ssTables)) {
-                System.out.println(format("    %s (%s)", ssTable, SystemUtils.formatSize(new File(ssTable).length())));
+            Collection<Info> ssTables = ssTablesMap.get(decoratedKey);
+            for (Info info : Ordering.natural().sortedCopy(ssTables)) {
+                String dataFile = info.ssTable.filenameFor(Component.DATA);
+                System.out.println(format("    %s (file=%s, row=%s, cols=%d%s)",
+                        dataFile,
+                        SystemUtils.formatSize(new File(dataFile).length()),
+                        SystemUtils.formatSize(info.numBytes),
+                        info.numColumns,
+                        info.delete ? ", deleted" : ""));
             }
             if (ssTables.isEmpty()) {
                 System.out.println("    <not-found>");
@@ -92,4 +113,22 @@ public class GetSSTablesForKey extends Command {
         }
     }
 
+    private static class Info implements Comparable<Info> {
+        final Descriptor ssTable;
+        final int numColumns;
+        final long numBytes;
+        final boolean delete;
+
+        Info(Descriptor ssTable, int numColumns, long numBytes, boolean delete) {
+            this.ssTable = ssTable;
+            this.numColumns = numColumns;
+            this.numBytes = numBytes;
+            this.delete = delete;
+        }
+
+        @Override
+        public int compareTo(Info info) {
+            return Ints.compare(ssTable.generation, info.ssTable.generation);
+        }
+    }
 }

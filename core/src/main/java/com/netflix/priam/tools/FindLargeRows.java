@@ -34,7 +34,7 @@ public class FindLargeRows extends Command {
 
     @Override
     public void configure(Subparser subparser) {
-        subparser.addArgument("sstable").nargs("+").help("File or directory containing SSTable data");
+        subparser.addArgument("sstables").nargs("+").help("File or directory containing SSTable data");
         subparser.addArgument("--columns").setDefault(100).type(Integer.class);
         subparser.addArgument("--bytes").setDefault(0x100000L).type(Long.class);
         subparser.addArgument("--config").setDefault("/etc/cassandra/conf/cassandra.yaml").help("Path to cassandra.yaml");
@@ -42,7 +42,7 @@ public class FindLargeRows extends Command {
 
     @Override
     public void run(Bootstrap<?> bootstrap, Namespace namespace) throws Exception {
-        List<String> ssTableFilenames = namespace.getList("sstable");
+        List<String> ssTableFilenames = namespace.getList("sstables");
         int thresholdColumns = namespace.getInt("columns");
         long thresholdBytes = namespace.getLong("bytes");
         String config = namespace.getString("config");
