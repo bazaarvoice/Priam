@@ -1,10 +1,14 @@
 package com.netflix.priam.tools;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import com.netflix.priam.utils.SystemUtils;
 import com.yammer.dropwizard.cli.Command;
@@ -69,15 +73,42 @@ public class GetSSTablesForKey extends Command {
 
         Multimap<DecoratedKey<?>, Info> ssTablesMap = ArrayListMultimap.create();
 
-        Set<Descriptor> descriptors = Directories.create(keyspace, columnFamily)
+        // Find all SSTables
+        Collection<Descriptor> descriptors = Directories.create(keyspace, columnFamily)
                 .sstableLister().skipCompacted(true).skipTemporary(true).list().keySet();
         if (descriptors.isEmpty()) {
             System.err.println(format("Invalid keyspace/columnfamily: %s/%s", keyspace, columnFamily));
             System.exit(2);
         }
 
+        // Sort SSTables by generation
+        descriptors = new Ordering<Descriptor>() {
+            @Override
+            public int compare(Descriptor left, Descriptor right) {
+                return Ints.compare(left.generation, right.generation);
+            }
+        }.sortedCopy(descriptors);
+
+        // Open all SSTables
+        List<SSTableReader> readers = Lists.newArrayList();
         for (Descriptor descriptor : descriptors) {
-            SSTableReader reader = SSTableReader.open(descriptor);
+            readers.add(SSTableReader.open(descriptor));
+        }
+
+        // Filter down to live SSTables only
+        final Set<Integer> compactedSSTables = Sets.newHashSet();
+        for (SSTableReader reader : readers) {
+            compactedSSTables.addAll(reader.getAncestors());
+        }
+        Collection<SSTableReader> liveReaders = Collections2.filter(readers, new Predicate<SSTableReader>() {
+            @Override
+            public boolean apply(SSTableReader reader) {
+                return !compactedSSTables.contains(reader.descriptor.generation);
+            }
+        });
+
+        // Find keys in live SSTables
+        for (SSTableReader reader : liveReaders) {
             SSTableScanner scanner = reader.getDirectScanner();
             for (DecoratedKey<?> decoratedKey : decoratedKeys) {
                 scanner.seekTo(decoratedKey);
@@ -89,11 +120,12 @@ public class GetSSTablesForKey extends Command {
                 int numColumns = row.getColumnCount();
                 long numBytes = row.dataSize;
                 boolean delete = row.getColumnFamily().isMarkedForDelete();
-                ssTablesMap.put(decoratedKey, new Info(descriptor, numColumns, numBytes, delete));
+                ssTablesMap.put(decoratedKey, new Info(reader.descriptor, numColumns, numBytes, delete));
             }
             scanner.close();
         }
 
+        // Print formatted output
         for (DecoratedKey<?> decoratedKey : decoratedKeys) {
             System.out.println("Key: " + bytesToHex(decoratedKey.key));
 
