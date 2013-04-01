@@ -16,6 +16,7 @@ import com.netflix.priam.resources.MonitoringEnablementResource;
 import com.netflix.priam.resources.PriamInstanceResource;
 import com.netflix.priam.tools.CopyInstanceData;
 import com.netflix.priam.tools.DeleteInstanceData;
+import com.netflix.priam.tools.FindLargeRows;
 import com.netflix.priam.tools.ListClusters;
 import com.netflix.priam.tools.ListInstanceData;
 import com.yammer.dropwizard.Service;
@@ -38,6 +39,7 @@ public class PriamService extends Service<PriamConfiguration> {
         bootstrap.addCommand(new ListInstanceData());
         bootstrap.addCommand(new CopyInstanceData());
         bootstrap.addCommand(new DeleteInstanceData());
+        bootstrap.addCommand(new FindLargeRows());
     }
 
     @Override
