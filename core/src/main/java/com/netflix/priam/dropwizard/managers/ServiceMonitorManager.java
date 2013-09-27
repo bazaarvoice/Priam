@@ -5,7 +5,7 @@ import com.bazaarvoice.badger.api.BadgerRegistrationBuilder;
 import com.google.common.base.Optional;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.netflix.curator.framework.CuratorFramework;
+import org.apache.curator.framework.CuratorFramework;
 import com.netflix.priam.config.MonitoringConfiguration;
 import com.yammer.dropwizard.config.HttpConfiguration;
 import com.yammer.dropwizard.lifecycle.Managed;
@@ -15,7 +15,8 @@ import java.util.concurrent.TimeUnit;
 import static java.lang.String.format;
 
 @Singleton
-public class ServiceMonitorManager implements Managed {
+public class
+        ServiceMonitorManager implements Managed {
 
     private MonitoringConfiguration monitoringConfiguration;
     private CuratorFramework curator;

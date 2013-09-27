@@ -66,7 +66,7 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
         String rpath = new File(cassandraConfiguration.getDataLocation()).toURI().relativize(file.toURI()).getPath();
         String[] elements = rpath.split("" + PATH_SEP);
         this.clusterName = cassandraConfiguration.getClusterName();
-        this.baseDir = backupConfiguration.getS3BaseDir();
+        this.baseDir = backupConfiguration.getBaseDir();
         this.region = amazonConfiguration.getRegionName();
         this.token = instanceIdentity.getInstance().getToken();
         this.type = type;

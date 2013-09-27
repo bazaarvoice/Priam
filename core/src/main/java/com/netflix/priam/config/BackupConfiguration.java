@@ -16,6 +16,9 @@ public class BackupConfiguration {
     private int chunkSizeMB;
 
     @JsonProperty
+    private String backupTarget;
+
+    @JsonProperty
     private List<String> availabilityZonesToBackup;
 
     @JsonProperty
@@ -31,7 +34,7 @@ public class BackupConfiguration {
     private String s3BucketName;
 
     @JsonProperty
-    private String s3BaseDir;
+    private String baseDir;
 
     @JsonProperty
     private boolean commitLogEnabled;
@@ -66,6 +69,10 @@ public class BackupConfiguration {
     @JsonProperty
     private String snapShotBackupCronTime;
 
+    public String getBackupTarget() {
+        return backupTarget;
+    }
+
     public String getAutoRestoreSnapshotName() {
         return autoRestoreSnapshotName;
     }
@@ -94,8 +101,8 @@ public class BackupConfiguration {
         return s3BucketName;
     }
 
-    public String getS3BaseDir() {
-        return s3BaseDir;
+    public String getBaseDir() {
+        return baseDir;
     }
 
     public boolean isCommitLogEnabled() {
@@ -142,6 +149,11 @@ public class BackupConfiguration {
         return snapShotBackupCronTime;
     }
 
+    public void setBackupTarget(String backupTarget){
+        checkState(!backupTarget.equals("ebs") || !backupTarget.equals("s3"), "The backup target must be either \"ebs\" or \"s3\"");
+        this.backupTarget = backupTarget;
+    }
+
     public void setAutoRestoreSnapshotName(String autoRestoreSnapshotName) {
         this.autoRestoreSnapshotName = autoRestoreSnapshotName;
     }
@@ -170,9 +182,9 @@ public class BackupConfiguration {
         this.s3BucketName = s3BucketName;
     }
 
-    public void setS3BaseDir(String s3BaseDir) {
-        checkState(!s3BaseDir.contains("/"), "The S3 base dir can not contain multiple directories");
-        this.s3BaseDir = s3BaseDir;
+    public void setBaseDir(String baseDir) {
+        checkState(!baseDir.contains("/"), "The base dir can not contain multiple directories");
+        this.baseDir = baseDir;
     }
 
     public void setCommitLogEnabled(boolean commitLogEnabled) {

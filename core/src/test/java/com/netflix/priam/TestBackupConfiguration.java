@@ -6,8 +6,9 @@ import com.netflix.priam.config.BackupConfiguration;
 public class TestBackupConfiguration extends BackupConfiguration {
 
     public TestBackupConfiguration() {
+        setBackupTarget("s3");
         setRestorePrefix("");
-        setS3BaseDir("casstestbackup");
+        setBaseDir("casstestbackup");
         setS3BucketName("TEST-netflix.platform.S3");
         setCommitLogEnabled(false);
         setCommitLogLocation("cass/backup/cl/");

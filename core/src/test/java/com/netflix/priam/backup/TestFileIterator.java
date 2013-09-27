@@ -144,7 +144,7 @@ public class TestFileIterator
         cal.add(Calendar.HOUR, 5);
         Date etime = cal.getTime();
         MockAmazonS3Client.bucketName = "TESTBUCKET";
-        MockAmazonS3Client.prefix = backupConfiguration.getS3BaseDir() + "/" + amazonConfiguration.getRegionName() + "/" + cassandraConfiguration.getClusterName() + "/" + factory.getInstance().getToken();
+        MockAmazonS3Client.prefix = backupConfiguration.getBaseDir() + "/" + amazonConfiguration.getRegionName() + "/" + cassandraConfiguration.getClusterName() + "/" + factory.getInstance().getToken();
         MockAmazonS3Client.prefix += "/20110811";
         
         S3FileIterator fileIterator = new S3FileIterator(injector.getProvider(AbstractBackupPath.class), s3client, "TESTBUCKET", stime, etime);
@@ -161,7 +161,7 @@ public class TestFileIterator
         MockObjectListing.firstcall = true;
         MockObjectListing.simfilter = false;
         MockAmazonS3Client.bucketName = "TESTBUCKET";
-        MockAmazonS3Client.prefix = backupConfiguration.getS3BaseDir() + "/" + amazonConfiguration.getRegionName() + "/" + cassandraConfiguration.getClusterName() + "/" + factory.getInstance().getToken();
+        MockAmazonS3Client.prefix = backupConfiguration.getBaseDir() + "/" + amazonConfiguration.getRegionName() + "/" + cassandraConfiguration.getClusterName() + "/" + factory.getInstance().getToken();
         MockAmazonS3Client.prefix += "/20110811";
         
         S3FileIterator fileIterator = new S3FileIterator(injector.getProvider(AbstractBackupPath.class), s3client, "TESTBUCKET", startTime, endTime);
@@ -182,7 +182,7 @@ public class TestFileIterator
         MockObjectListing.firstcall = true;
         MockObjectListing.simfilter = false;
         MockAmazonS3Client.bucketName = "TESTBUCKET";
-        MockAmazonS3Client.prefix = backupConfiguration.getS3BaseDir() + "/" + amazonConfiguration.getRegionName() + "/" + cassandraConfiguration.getClusterName() + "/" + factory.getInstance().getToken();
+        MockAmazonS3Client.prefix = backupConfiguration.getBaseDir() + "/" + amazonConfiguration.getRegionName() + "/" + cassandraConfiguration.getClusterName() + "/" + factory.getInstance().getToken();
         MockAmazonS3Client.prefix += "/20110811";
 
         S3FileIterator fileIterator = new S3FileIterator(injector.getProvider(AbstractBackupPath.class), s3client, "TESTBUCKET", startTime, endTime);
@@ -208,7 +208,7 @@ public class TestFileIterator
         MockObjectListing.firstcall = true;
         MockObjectListing.simfilter = true;
         MockAmazonS3Client.bucketName = "TESTBUCKET";
-        MockAmazonS3Client.prefix = backupConfiguration.getS3BaseDir() + "/" + amazonConfiguration.getRegionName() + "/" + cassandraConfiguration.getClusterName() + "/" + factory.getInstance().getToken();
+        MockAmazonS3Client.prefix = backupConfiguration.getBaseDir() + "/" + amazonConfiguration.getRegionName() + "/" + cassandraConfiguration.getClusterName() + "/" + factory.getInstance().getToken();
         MockAmazonS3Client.prefix += "/20110811";
 
         S3FileIterator fileIterator = new S3FileIterator(injector.getProvider(AbstractBackupPath.class), s3client, "TESTBUCKET", startTime, endTime);

@@ -357,7 +357,7 @@ public class BackupResourceTest {
             cassandraConfiguration.getMaxHeapSize(); result = ImmutableMap.of("m1.xlarge", "8G");
             cassandraConfiguration.getDataLocation(); result = "/var/lib/cassandra/data";
             backupConfiguration.getCommitLogLocation(); result = "/var/lib/cassandra/commitlog";
-            backupConfiguration.getS3BaseDir(); result = "backup";
+            backupConfiguration.getBaseDir(); result = "backup";
             cassandraConfiguration.getCacheLocation(); result = "/var/lib/cassandra/saved_caches";
             cassandraConfiguration.getHeapDumpLocation(); result = "/var/log/cassandra/heaps";
             cassandraConfiguration.getJmxPort(); result = 7199;

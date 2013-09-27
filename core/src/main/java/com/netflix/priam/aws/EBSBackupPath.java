@@ -14,11 +14,11 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Represents an S3 object key
+ * Represents an EBS filesystem object key
  */
-public class S3BackupPath extends AbstractBackupPath {
+public class EBSBackupPath extends AbstractBackupPath {
     @Inject
-    public S3BackupPath(CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration, BackupConfiguration backupConfiguration, InstanceIdentity factory) {
+    public EBSBackupPath(CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration, BackupConfiguration backupConfiguration, InstanceIdentity factory) {
         super(cassandraConfiguration, amazonConfiguration, backupConfiguration, factory);
     }
 
@@ -29,16 +29,16 @@ public class S3BackupPath extends AbstractBackupPath {
     @Override
     public String getRemotePath() {
         StringBuffer buff = new StringBuffer();
-        buff.append(baseDir).append(S3BackupPath.PATH_SEP); // Base dir
-        buff.append(region).append(S3BackupPath.PATH_SEP);
-        buff.append(clusterName).append(S3BackupPath.PATH_SEP);// Cluster name
-        buff.append(token).append(S3BackupPath.PATH_SEP);
-        buff.append(getFormat().format(time)).append(S3BackupPath.PATH_SEP);
-        buff.append(type).append(S3BackupPath.PATH_SEP);
+        buff.append(baseDir).append(EBSBackupPath.PATH_SEP); // Base dir
+        buff.append(region).append(EBSBackupPath.PATH_SEP);
+        buff.append(clusterName).append(EBSBackupPath.PATH_SEP);// Cluster name
+        buff.append(token).append(EBSBackupPath.PATH_SEP);
+        buff.append(getFormat().format(time)).append(EBSBackupPath.PATH_SEP);
+        buff.append(type).append(EBSBackupPath.PATH_SEP);
         if (type != BackupFileType.META
                 && type != BackupFileType.CL) {
-            buff.append(keyspace).append(S3BackupPath.PATH_SEP);
-            buff.append(columnFamily).append(S3BackupPath.PATH_SEP);
+            buff.append(keyspace).append(EBSBackupPath.PATH_SEP);
+            buff.append(columnFamily).append(EBSBackupPath.PATH_SEP);
         }
         buff.append(fileName);
         return buff.toString();
@@ -47,7 +47,7 @@ public class S3BackupPath extends AbstractBackupPath {
     @Override
     public void parseRemote(String remoteFilePath) {
         try {
-            String[] elements = remoteFilePath.split(String.valueOf(S3BackupPath.PATH_SEP));
+            String[] elements = remoteFilePath.split(String.valueOf(EBSBackupPath.PATH_SEP));
             // parse out things which are empty
             List<String> pieces = Lists.newArrayList();
             for (String ele : elements) {
@@ -77,7 +77,7 @@ public class S3BackupPath extends AbstractBackupPath {
 
     @Override
     public void parsePartialPrefix(String remoteFilePath) {
-        String[] elements = remoteFilePath.split(String.valueOf(S3BackupPath.PATH_SEP));
+        String[] elements = remoteFilePath.split(String.valueOf(EBSBackupPath.PATH_SEP));
         // parse out things which are empty
         List<String> pieces = Lists.newArrayList();
         for (String ele : elements) {
@@ -96,7 +96,7 @@ public class S3BackupPath extends AbstractBackupPath {
     @Override
     public String remotePrefix(Date start, Date end, String location) {
         StringBuffer buff = new StringBuffer();
-        String[] elements = location.split(String.valueOf(S3BackupPath.PATH_SEP));
+        String[] elements = location.split(String.valueOf(EBSBackupPath.PATH_SEP));
         if (elements.length <= 1) {
             baseDir = backupConfiguration.getBaseDir();
             region = amazonConfiguration.getRegionName();
@@ -107,12 +107,12 @@ public class S3BackupPath extends AbstractBackupPath {
             region = elements[2];
             clusterName = elements[3];
         }
-        buff.append(baseDir).append(S3BackupPath.PATH_SEP);
-        buff.append(region).append(S3BackupPath.PATH_SEP);
-        buff.append(clusterName).append(S3BackupPath.PATH_SEP);
+        buff.append(baseDir).append(EBSBackupPath.PATH_SEP);
+        buff.append(region).append(EBSBackupPath.PATH_SEP);
+        buff.append(clusterName).append(EBSBackupPath.PATH_SEP);
 
         token = instanceIdentity.getInstance().getToken();
-        buff.append(token).append(S3BackupPath.PATH_SEP);
+        buff.append(token).append(EBSBackupPath.PATH_SEP);
         // match the common characters to prefix.
         buff.append(match(start, end));
         return buff.toString();
@@ -121,7 +121,7 @@ public class S3BackupPath extends AbstractBackupPath {
     @Override
     public String clusterPrefix(String location) {
         StringBuffer buff = new StringBuffer();
-        String[] elements = location.split(String.valueOf(S3BackupPath.PATH_SEP));
+        String[] elements = location.split(String.valueOf(EBSBackupPath.PATH_SEP));
         if (elements.length <= 1) {
             baseDir = backupConfiguration.getBaseDir();
             region = amazonConfiguration.getRegionName();
@@ -132,9 +132,9 @@ public class S3BackupPath extends AbstractBackupPath {
             region = elements[2];
             clusterName = elements[3];
         }
-        buff.append(baseDir).append(S3BackupPath.PATH_SEP);
-        buff.append(region).append(S3BackupPath.PATH_SEP);
-        buff.append(clusterName).append(S3BackupPath.PATH_SEP);
+        buff.append(baseDir).append(EBSBackupPath.PATH_SEP);
+        buff.append(region).append(EBSBackupPath.PATH_SEP);
+        buff.append(clusterName).append(EBSBackupPath.PATH_SEP);
 
         return buff.toString();
     }
