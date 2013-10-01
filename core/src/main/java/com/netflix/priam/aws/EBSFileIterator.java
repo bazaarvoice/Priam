@@ -39,15 +39,19 @@ public class EBSFileIterator implements Iterator<AbstractBackupPath> {
 
     private Iterator<AbstractBackupPath> createIterator() {
         List<AbstractBackupPath> temp = Lists.newArrayList();
+
+        assert null != objectListing.listFiles() : "No files to yielded from your EBS volume!";
+
         for ( File nextFile : objectListing.listFiles() ) {
             AbstractBackupPath path = pathProvider.get();
             path.parseRemote(nextFile.getName());
-            // logger.debug("New key " + summary.getKey() + " path = " + path.getRemotePath() + " " + start + " end: " + till + " my " + path.getTime());
+            logger.info("New file " + nextFile.getName() + " path = " + path.getRemotePath() + " " + start + " end: " + till + " my " + path.getTime());
             if ((path.getTime().after(start) && path.getTime().before(till)) || path.getTime().equals(start)) {
                 temp.add(path);
-                // logger.debug("Added key " + summary.getKey());
+                logger.debug("Added file " + nextFile.getName());
             }
         }
+
         return temp.iterator();
     }
 

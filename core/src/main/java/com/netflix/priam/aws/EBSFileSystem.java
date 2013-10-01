@@ -2,6 +2,7 @@ package com.netflix.priam.aws;
 
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.*;
+import com.google.common.base.Throwables;
 import com.google.common.io.CharStreams;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
@@ -37,6 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
     private static final Logger logger = LoggerFactory.getLogger(EBSFileSystem.class);
     private static final long UPLOAD_TIMEOUT = (2 * 60 * 60 * 1000L);
+    private static final long AWS_API_POLL_INTERVAL = (30 * 1000L);
 
     private final Provider<AbstractBackupPath> pathProvider;
     private final BackupConfiguration backupConfiguration;
@@ -49,15 +51,7 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
     private AtomicLong bytesUploaded = new AtomicLong();
     private AtomicInteger uploadCount = new AtomicInteger();
     private AtomicInteger downloadCount = new AtomicInteger();
-
-    private HashMap<String, String> EBSVolume;
     private AmazonEC2Client ec2client;
-
-//    @Inject
-//    PriamServer priamServer;
-
-//    @Inject
-//    private InstanceIdentity instanceIdentity;
 
     @Inject
     public EBSFileSystem(Provider<AbstractBackupPath> pathProvider, final BackupConfiguration backupConfiguration, CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration, InstanceIdentity instanceIdentity, ICredential cred)
@@ -138,14 +132,16 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
                 logger.error("Failed to mount EBS volume {} because there were too many attachments for this volume. ", volume.getVolumeId());
             }
 
-            // @TODO: make this script somewhere we can rely on it? or get rid of it...
             // @TODO: make this platform-agnostic somehow
+            // @TODO: bundle this with the jar!
             Process mountVolumeCmd = Runtime.getRuntime().exec("/opt/bazaarvoice/bin/mountEbsVolume.sh " + volume.getAttachments().get(0).getDevice() + " backup");
 
             logger.info("{}", CharStreams.toString(new InputStreamReader(mountVolumeCmd.getInputStream())));
 
         } catch (Exception e){ // runtime or IO
             logger.info("Failed to mount EBS volume. ", e.getMessage());
+            logger.info(e.getMessage(), e);
+            Throwables.propagate(e);
         }
     }
 
@@ -199,6 +195,7 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
 
             } catch (Exception e){
                 logger.error("Error figuring out device name", e);
+                Throwables.propagate(e);
             }
 
             logger.info("Attaching volume {} on {}", volume, nextDeviceName);
@@ -209,21 +206,36 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
                     .withDevice(nextDeviceName);
             AttachVolumeResult volumeAttachment = ec2client.attachVolume(attachVolumeRequest);
 
+            String attachmentStatus = volumeAttachment.getAttachment().getState();
 
-            while (volumeAttachment.getAttachment().getState().contentEquals("attaching")) {
+            while ("attaching".equals(attachmentStatus)) {
                 try {
-                    if (volumeAttachment.getAttachment().getState().contentEquals("error")){
+
+                    List<Volume> attachmentVolumes = ec2client.describeVolumes().withVolumes(volume).getVolumes();
+                    // ensure our List is not null, not empty, and that getAttachments().get(0) doesn't throw an Index Out of Bounds exception
+                    if (null != attachmentVolumes && attachmentVolumes.size() > 0
+                            && null != attachmentVolumes.get(0).getAttachments() && attachmentVolumes.get(0).getAttachments().size() > 0) {
+                        // seem weird? it is. You can't have more than 1 attachment, but Amazon provides a List instead of an Attachment object for some reason
+                        attachmentStatus = attachmentVolumes.get(0).getAttachments().get(0).getState();
+                    }
+
+                    logger.info("Attachment status: " + attachmentStatus);
+
+                    if ("error".equals(attachmentStatus)){
                         logger.error("Error attaching EBS volume.");
                         break;
                     }
+
                     logger.info("Waiting for attachment...");
-                    Thread.sleep(30000);
+                    Thread.sleep(AWS_API_POLL_INTERVAL);
+
                 } catch (InterruptedException e) {
                     logger.info("Failed to attach volume {}.", volume);
+                    Throwables.propagate(e);
                 }
             }
 
-            if ("attached".equals(volumeAttachment.getAttachment().getState())) {
+            if ("attached".equals(attachmentStatus)) {
                 logger.info("Attached successfully on {}", volume.getAttachments().get(0).getDevice());
             }
         }
@@ -270,18 +282,29 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
                     .withAvailabilityZone(amazonConfiguration.getAvailabilityZone());
             CreateVolumeResult createVolumeResult = ec2client.createVolume(createVolumeRequest);
 
-            logger.info("Creating volume...");
-            logger.info(createVolumeResult.getVolume().getState());
-            logger.info(createVolumeResult.getVolume().getVolumeId());
-            logger.info("getEbsVolumes method: " + getEbsVolumes().get(0).getVolumeId());
+            String createState = "";
 
-            while (getEbsVolumes().get(0).getState().contentEquals("creating")) {
+            logger.info("Creating volume... {}", createVolumeResult.getVolume());
+
+            while ("creating".equals(createState)) {
                 try {
+
+                    // this is because Amazon provides a List of volumes, even if the list is empty
+                    List<Volume> createdVolumes = ec2client.describeVolumes().withVolumes(createVolumeResult.getVolume()).getVolumes();
+                    if (null != createdVolumes && createdVolumes.size() > 0) {
+                        createState = createdVolumes.get(0).getState();
+                    }
+
+//                    createState = ec2client.describeVolumes()
+//                            .withVolumes(createVolumeResult.getVolume())
+//                            .getVolumes().get(0).getState();
+
                     logger.info("State: " + createVolumeResult.getVolume().getState());
                     logger.info("Real state: " + getEbsVolumes().get(0).getState());
-                    Thread.sleep(30000);
+                    Thread.sleep(AWS_API_POLL_INTERVAL);
                 } catch (InterruptedException e){
                     logger.info("Failed to create volume: " + e.getMessage());
+                    Throwables.propagate(e);
                 }
             }
 
