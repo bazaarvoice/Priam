@@ -223,6 +223,11 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
         return new AmazonS3Client(cred.getCredentials());
     }
 
+    @Override
+    public void finalizeBackup() {
+        // noop
+    }
+
     /**
      * Get S3 prefix which will be used to locate S3 files
      */

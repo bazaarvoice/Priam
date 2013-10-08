@@ -1,7 +1,5 @@
 package com.netflix.priam.aws;
 
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
@@ -13,6 +11,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
@@ -31,10 +30,10 @@ public class EBSPrefixIterator implements Iterator<AbstractBackupPath> {
     private final Provider<AbstractBackupPath> pathProvider;
     private Iterator<AbstractBackupPath> iterator;
 
-    private String bucket = "";
+    private String backupRoot = "";
     private String clusterPath = "";
     private SimpleDateFormat datefmt = new SimpleDateFormat("yyyyMMdd");
-    private ObjectListing objectListing;
+    private File[] fileListing;
     Date date;
 
     @Inject
@@ -44,38 +43,36 @@ public class EBSPrefixIterator implements Iterator<AbstractBackupPath> {
         this.backupConfiguration = backupConfiguration;
         this.pathProvider = pathProvider;
         this.date = date;
-        String path = "/mnt/backup";
+        String path = "";
+
         if (StringUtils.isNotBlank(backupConfiguration.getRestorePrefix())) {
             path = backupConfiguration.getRestorePrefix();
         }
 
-        String[] paths = path.split(String.valueOf(S3BackupPath.PATH_SEP));
-        bucket = paths[0];
+        String[] paths = path.split(String.valueOf(EBSBackupPath.PATH_SEP));
+        backupRoot = paths[0];
         this.clusterPath = remotePrefix(path);
-        objectListing = null;
         iterator = createIterator();
     }
 
     private void initListing() {
-        ListObjectsRequest listReq = new ListObjectsRequest();
-        // Get list of tokens
-        listReq.setBucketName(bucket);
-        listReq.setPrefix(clusterPath);
-        listReq.setDelimiter(String.valueOf(AbstractBackupPath.PATH_SEP));
+
+        File listing = new File(backupRoot + clusterPath);
         logger.info("Using cluster prefix for searching tokens: " + clusterPath);
-//        objectListing = s3Client.listObjects(listReq);
+        fileListing = listing.listFiles();
 
     }
 
     private Iterator<AbstractBackupPath> createIterator() {
-        if (objectListing == null) {
+        if (null == fileListing) {
             initListing();
         }
+
         List<AbstractBackupPath> temp = Lists.newArrayList();
-        for (String summary : objectListing.getCommonPrefixes()) {
-            if (pathExistsForDate(summary, datefmt.format(date))) {
+        for (File file : fileListing ) {
+            if (pathExistsForDate(file.getPath(), datefmt.format(date))) {
                 AbstractBackupPath path = pathProvider.get();
-                path.parsePartialPrefix(summary);
+                path.parsePartialPrefix(file.getPath());
                 temp.add(path);
             }
         }
@@ -84,14 +81,6 @@ public class EBSPrefixIterator implements Iterator<AbstractBackupPath> {
 
     @Override
     public boolean hasNext() {
-        if (iterator.hasNext()) {
-            return true;
-        } else {
-            while (objectListing.isTruncated() && !iterator.hasNext()) {
-//                objectListing = s3Client.listNextBatchOfObjects(objectListing);
-                iterator = createIterator();
-            }
-        }
         return iterator.hasNext();
     }
 
@@ -105,20 +94,20 @@ public class EBSPrefixIterator implements Iterator<AbstractBackupPath> {
     }
 
     /**
-     * Get remote prefix upto the token
+     * Get remote prefix up to the token
      */
     private String remotePrefix(String location) {
         StringBuffer buff = new StringBuffer();
-        String[] elements = location.split(String.valueOf(S3BackupPath.PATH_SEP));
+        String[] elements = location.split(String.valueOf(EBSBackupPath.PATH_SEP));
         if (elements.length <= 1) {
-            buff.append(backupConfiguration.getBaseDir()).append(S3BackupPath.PATH_SEP);
-            buff.append(amazonConfiguration.getRegionName()).append(S3BackupPath.PATH_SEP);
-            buff.append(cassandraConfiguration.getClusterName()).append(S3BackupPath.PATH_SEP);
+            buff.append(backupConfiguration.getBaseDir()).append(EBSBackupPath.PATH_SEP);
+            buff.append(amazonConfiguration.getRegionName()).append(EBSBackupPath.PATH_SEP);
+            buff.append(cassandraConfiguration.getClusterName()).append(EBSBackupPath.PATH_SEP);
         } else {
             assert elements.length >= 4 : "Too few elements in path " + location;
-            buff.append(elements[1]).append(S3BackupPath.PATH_SEP);
-            buff.append(elements[2]).append(S3BackupPath.PATH_SEP);
-            buff.append(elements[3]).append(S3BackupPath.PATH_SEP);
+            buff.append(elements[1]).append(EBSBackupPath.PATH_SEP);
+            buff.append(elements[2]).append(EBSBackupPath.PATH_SEP);
+            buff.append(elements[3]).append(EBSBackupPath.PATH_SEP);
         }
         return buff.toString();
     }
@@ -127,16 +116,11 @@ public class EBSPrefixIterator implements Iterator<AbstractBackupPath> {
      * Check to see if the path exists for the date
      */
     private boolean pathExistsForDate(String tprefix, String datestr) {
-        ListObjectsRequest listReq = new ListObjectsRequest();
-        // Get list of tokens
-        listReq.setBucketName(bucket);
-        listReq.setPrefix(tprefix + datestr);
-        ObjectListing listing;
-//        listing = s3Client.listObjects(listReq);
-//        if (listing.getObjectSummaries().size() > 0) {
-//            return true;
-//        }
-        return false;
+
+        boolean pathExists = new File(backupRoot + tprefix + datestr).exists();
+
+        return pathExists;
+
     }
 
 }

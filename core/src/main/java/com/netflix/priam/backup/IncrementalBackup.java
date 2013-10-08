@@ -44,6 +44,7 @@ public class IncrementalBackup extends AbstractBackup {
                 upload(backupDir, BackupFileType.SST);
             }
         }
+        fs.finalizeBackup();
     }
 
 

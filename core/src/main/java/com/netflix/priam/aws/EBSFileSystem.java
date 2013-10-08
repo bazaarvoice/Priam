@@ -2,6 +2,8 @@ package com.netflix.priam.aws;
 
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.*;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.io.CharStreams;
 import com.google.inject.Inject;
@@ -16,16 +18,14 @@ import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.identity.InstanceIdentity;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -141,11 +141,11 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
         } catch (Exception e){ // runtime or IO
             logger.info("Failed to mount EBS volume. ", e.getMessage());
             logger.info(e.getMessage(), e);
-            Throwables.propagate(e);
+            throw Throwables.propagate(e);
         }
     }
 
-    // ideally, this list should always be of size 1
+    // ideally, this list should always be of size 1 or 0
     // otherwise, what do we do with the other volumes??
     // leave it open in case for some reason we want to use multiple EBS volumes
     // but for now, just process the 1st volume only
@@ -195,7 +195,7 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
 
             } catch (Exception e){
                 logger.error("Error figuring out device name", e);
-                Throwables.propagate(e);
+                throw Throwables.propagate(e);
             }
 
             logger.info("Attaching volume {} on {}", volume, nextDeviceName);
@@ -231,7 +231,7 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
 
                 } catch (InterruptedException e) {
                     logger.info("Failed to attach volume {}.", volume);
-                    Throwables.propagate(e);
+                    throw Throwables.propagate(e);
                 }
             }
 
@@ -241,9 +241,72 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
         }
     }
 
+    // create a new volume based on a snapshot
+    public Volume createVolume(Optional<Snapshot> snapshot) throws RuntimeException {
+
+        CreateVolumeRequest createVolumeRequest = new CreateVolumeRequest();
+
+        // if a snapshot is supplied, use that for createVolumeRequest
+        if (snapshot.isPresent()) {
+            logger.info("Creating volume from snapshot: {}", snapshot);
+            createVolumeRequest.setSize(snapshot.get().getVolumeSize());
+            createVolumeRequest.setSnapshotId(snapshot.get().getSnapshotId());
+        } else {
+            logger.info("Creating volume from scratch");
+
+            // figure out what disk size we need
+            long raidSize = new File(cassandraConfiguration.getDataLocation()).getTotalSpace();
+
+            // convert from bytes to gigabytes
+            long volSize = (raidSize / 1024 / 1024 / 1024);
+
+            // @TODO: potentially support striping volumes for nodes that need more than 1TiB of data on disk
+            Preconditions.checkArgument(volSize <= 1024, "You cannot create EBS volumes greater than 1TiB. Scale up your ring so each node has less than 1TiB of data, or start striping EBS volumes.");
+
+            logger.info("Create volume with size (GB): " + volSize);
+
+            createVolumeRequest.setSize((int) volSize); // casting long to integer like this *should* be safe since we'll never have a drive with a number of gigabytes bigger than Int MaxValue
+        }
+
+        // always set availability zone to current AZ
+        createVolumeRequest.setAvailabilityZone(amazonConfiguration.getAvailabilityZone());
+
+        CreateVolumeResult createVolumeResult = ec2client.createVolume(createVolumeRequest);
+        String createState = "creating";
+
+        logger.info ("Creating volume... {}", createVolumeResult.getVolume());
+
+        while ("creating".equals(createState)){
+
+            try {
+                DescribeVolumesResult createdVolumes = ec2client.describeVolumes(new DescribeVolumesRequest().withVolumeIds(createVolumeResult.getVolume().getVolumeId()));
+                if (null != createdVolumes && createdVolumes.getVolumes().size() > 0){
+                    createState = createdVolumes.getVolumes().get(0).getState();
+                }
+
+                logger.info("State: {}", createState);
+
+                Thread.sleep(AWS_API_POLL_INTERVAL);
+            } catch (Exception e){
+                logger.info("Failed to create volume: " + e.getMessage());
+                throw Throwables.propagate(e);
+            }
+        }
+
+        if ("available".equals(createState)) {
+            logger.info("Successfully created EBS volume from snapshot.");
+        } else {
+            logger.error("Failed to create EBS volume from snapshot.");
+            throw Throwables.propagate(new BackupRestoreException("Failed to create EBS volume from snapshot"));
+        }
+
+        return createVolumeResult.getVolume();
+
+    }
+
     public void ebsMountAndAttach() {
 
-        logger.info("Someone called ebsMountAndAttach!");
+        logger.info("ebsMountAndAttach evoked");
         List<Volume> ebsVolumes = getEbsVolumes();
 
         // if an EBS volume is already mounted, we don't need to do anything here
@@ -268,62 +331,55 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
 
             logger.info("Never found a volume to attach, so creating one...");
 
-            // figure out what disk size we need
-            // @TODO: don't hard code this :(
-            long raidSize = new File("/mnt/ephemeral").getTotalSpace();
+            logger.info("Looking for the latest snapshot...");
 
-            // convert from bytes to gigabytes
-            long volSize = raidSize / 1024 / 1024 / 1024;
+            Snapshot useSnapshot = null;
 
-            logger.info("Create volume with size (GB): " + volSize);
+            Filter[] snapshotFilters = new Filter[2];
+            snapshotFilters[0] = new Filter()
+                    .withName("tag:Name")
+                    .withValues(cassandraConfiguration.getClusterName() + "-" + instanceIdentity.getInstance().getToken() + "-snap");
+            snapshotFilters[1] = new Filter()
+                    .withName("status")
+                    .withValues("completed");
 
-            CreateVolumeRequest createVolumeRequest = new CreateVolumeRequest()
-                    .withSize((int) volSize) // casting long to integer like this *should* be safe since we'll never have a drive with a number of gigabytes bigger than Int MaxValue
-                    .withAvailabilityZone(amazonConfiguration.getAvailabilityZone());
-            CreateVolumeResult createVolumeResult = ec2client.createVolume(createVolumeRequest);
 
-            String createState = "";
+            DescribeSnapshotsResult describeSnapshotsResult = ec2client.describeSnapshots(
+                    new DescribeSnapshotsRequest()
+                            .withFilters(snapshotFilters)
+            );
 
-            logger.info("Creating volume... {}", createVolumeResult.getVolume());
+            List<Snapshot> snapshots = describeSnapshotsResult.getSnapshots();
 
-            while ("creating".equals(createState)) {
-                try {
+            Calendar cal = new GregorianCalendar();
+            cal.setTime(new Date());
+            Date newestSnapshotTime = cal.getTime();
 
-                    // this is because Amazon provides a List of volumes, even if the list is empty
-                    List<Volume> createdVolumes = ec2client.describeVolumes().withVolumes(createVolumeResult.getVolume()).getVolumes();
-                    if (null != createdVolumes && createdVolumes.size() > 0) {
-                        createState = createdVolumes.get(0).getState();
-                    }
+            for (Snapshot snapshot : snapshots ) {
 
-//                    createState = ec2client.describeVolumes()
-//                            .withVolumes(createVolumeResult.getVolume())
-//                            .getVolumes().get(0).getState();
+                Date currentSnapshotTime = snapshot.getStartTime();
 
-                    logger.info("State: " + createVolumeResult.getVolume().getState());
-                    logger.info("Real state: " + getEbsVolumes().get(0).getState());
-                    Thread.sleep(AWS_API_POLL_INTERVAL);
-                } catch (InterruptedException e){
-                    logger.info("Failed to create volume: " + e.getMessage());
-                    Throwables.propagate(e);
+                if (currentSnapshotTime.after(newestSnapshotTime)) {
+                    newestSnapshotTime = currentSnapshotTime;
+                    useSnapshot = snapshot;
                 }
+
+                logger.info("Newest snapshot time: ");
+                logger.info(newestSnapshotTime.toString());
             }
 
-            if ("created".equals(getEbsVolumes().get(0).getState())) {
-                logger.info("Successfully created EBS volume {}", getEbsVolumes().get(0));
+            Volume createdVolume;
+
+            if (null != useSnapshot) {
+                logger.info("Found snapshot: {}", useSnapshot);
+                createdVolume = createVolume(Optional.of(useSnapshot));
+            } else {
+                logger.info("Did not find snapshot, so creating an empty EBS volume.");
+                createdVolume = createVolume(Optional.<Snapshot>absent());
             }
-
-            // tag the volume
-            CreateTagsRequest createTagsRequest = new CreateTagsRequest()
-                    .withTags(new Tag()
-                            .withKey("Name")
-                            .withValue(cassandraConfiguration.getClusterName() + "-" + instanceIdentity.getInstance().getToken()))
-                    .withResources(createVolumeResult.getVolume().getVolumeId());
-
-            ec2client.createTags(createTagsRequest);
 
             // attach the volume
-            attachVolume(createVolumeResult.getVolume());
-
+            attachVolume(createdVolume);
         }
     }
 
@@ -335,9 +391,13 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
             downloadCount.incrementAndGet();
 
             // copy from ebs to ephemeral
+            logger.info("Remote path: {}", path.getRemotePath());
             File ebsPath = new File(path.getRemotePath());
+            logger.info("Prefix path: {}", getPrefix());
             File ephemeralPath = new File(getPrefix());
-            FileUtils.copyDirectory(ebsPath, ephemeralPath);
+
+            // write the file to outputstream
+            IOUtils.copy(new FileInputStream(new File("/mnt/ephemeral/" + getPrefix())), outputStream);
 
             bytesDownloaded.addAndGet(FileUtils.sizeOfDirectory(ebsPath));
         } catch (Exception e) {
@@ -355,7 +415,7 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
             // copy from ephemeral to EBS volume
             File ebsPath = new File(path.getRemotePath());
             File ephemeralPath = new File(getPrefix());
-            FileUtils.copyDirectory(ephemeralPath, ebsPath);
+            IOUtils.copy(in, new FileOutputStream(new File("/mnt/backup/" + path.getRemotePath())));
 
             bytesUploaded.addAndGet(FileUtils.sizeOfDirectory(ephemeralPath));
 
@@ -378,6 +438,28 @@ public class EBSFileSystem implements IBackupFileSystem, EBSFileSystemMBean {
     @Override
     public Iterator<AbstractBackupPath> listPrefixes(Date date) {
         return new EBSPrefixIterator(cassandraConfiguration, amazonConfiguration, backupConfiguration, pathProvider, date);
+    }
+
+    @Override
+    public void finalizeBackup() {
+        // create a snapshot of the attached EBS volume
+        // tag it with Name = [cassandra cluster name]-[token]
+        List<Volume> ebsVolumes = getEbsVolumes();
+
+        for(Volume vol : ebsVolumes) {
+
+            logger.info("Creating snapshot for volume: {}", vol);
+
+            try {
+                CreateSnapshotRequest createSnapshotRequest = new CreateSnapshotRequest().withVolumeId(vol.getVolumeId());
+                CreateSnapshotResult createSnapshotResult = ec2client.createSnapshot(createSnapshotRequest);
+            } catch (Exception e) {
+                logger.error("Unable to create snapshot for volume {}, {}", vol, e.getMessage());
+                throw Throwables.propagate(e);
+            }
+
+        }
+
     }
 
     /**

@@ -8,7 +8,8 @@ import java.util.Iterator;
 /**
  * Interface representing a backup storage as a file system
  */
-public interface IBackupFileSystem {
+public interface
+        IBackupFileSystem {
     /**
      * Write the contents of the specified remote path to the output stream and
      * close
@@ -40,4 +41,9 @@ public interface IBackupFileSystem {
      * Get number of active upload or downloads
      */
     public int getActivecount();
+
+    /**
+     * Any post-backup tasks you may want to perform
+     */
+    public void finalizeBackup();
 }

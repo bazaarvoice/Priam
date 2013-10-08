@@ -1,13 +1,13 @@
 package com.netflix.priam;
 
+import com.netflix.priam.backup.AbstractBackupPath;
+import com.netflix.priam.backup.BackupRestoreException;
+import com.netflix.priam.backup.IBackupFileSystem;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Date;
 import java.util.Iterator;
-
-import com.netflix.priam.backup.AbstractBackupPath;
-import com.netflix.priam.backup.BackupRestoreException;
-import com.netflix.priam.backup.IBackupFileSystem;
 
 public class NullBackupFileSystem implements IBackupFileSystem
 {
@@ -45,5 +45,10 @@ public class NullBackupFileSystem implements IBackupFileSystem
     {
         // TODO Auto-generated method stub
         
+    }
+
+    @Override
+    public void finalizeBackup() {
+        // noop
     }
 }

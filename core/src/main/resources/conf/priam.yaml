@@ -97,7 +97,8 @@ backup:
                                                     # This is usually only useful for SSD-based hardware: otherwise, your concern is usually to get compaction to do LESS i/o
   restoreClosestToken: false                        #    true if restore should search for nearest token if current token is not found
   #restoreKeyspaces:                                # List of keyspaces to restore. If none, all keyspaces are restored.
-  #restorePrefix:                                   # Location containing backup files. Typically bucket name followed by path to the clusters backup
+  restorePrefix: "/mnt/backup"                      # Location containing backup files. Typically bucket name followed by path to the clusters backup
+                                                    #   if using EBS, should be the filesystem path where the EBS volume is mounted
   streamingThroughputMbps: 400                      # Throttles all outbound streaming file transfers on this node to the given total throughput in Mbps. This is necessary because Cassandra does mostly sequential IO when streaming data during bootstrap or repair, which
                                                     #    can lead to saturating the network connection and degrading rpc performance.
 

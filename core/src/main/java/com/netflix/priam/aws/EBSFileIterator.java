@@ -40,7 +40,7 @@ public class EBSFileIterator implements Iterator<AbstractBackupPath> {
     private Iterator<AbstractBackupPath> createIterator() {
         List<AbstractBackupPath> temp = Lists.newArrayList();
 
-        assert null != objectListing.listFiles() : "No files to yielded from your EBS volume!";
+        assert null != objectListing.listFiles() : "No files yielded from your EBS volume!";
 
         for ( File nextFile : objectListing.listFiles() ) {
             AbstractBackupPath path = pathProvider.get();
