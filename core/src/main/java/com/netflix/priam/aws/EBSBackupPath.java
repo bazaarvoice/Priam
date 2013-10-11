@@ -45,7 +45,7 @@ public class EBSBackupPath extends AbstractBackupPath {
     }
 
     @Override
-    public void parseRemote(String remoteFilePath) {
+    public void parseRemote(String remoteFilePath) { // /backup_perftest/us-east-1/perftest_sor_cat_default/555555555555555555555555c12201c5/201310101750/SNAP
         try {
             String[] elements = remoteFilePath.split(String.valueOf(EBSBackupPath.PATH_SEP));
             // parse out things which are empty
@@ -115,6 +115,29 @@ public class EBSBackupPath extends AbstractBackupPath {
         buff.append(token).append(EBSBackupPath.PATH_SEP);
         // match the common characters to prefix.
         buff.append(match(start, end));
+        return buff.toString();
+    }
+
+    @Override
+    public String remotePrefixBase(String location) {
+        StringBuffer buff = new StringBuffer();
+        String[] elements = location.split(String.valueOf(EBSBackupPath.PATH_SEP));
+        if (elements.length <= 1) {
+            baseDir = backupConfiguration.getBaseDir();
+            region = amazonConfiguration.getRegionName();
+            clusterName = cassandraConfiguration.getClusterName();
+        } else {
+            assert elements.length >= 4 : "Too few elements in path " + location;
+            baseDir = elements[1];
+            region = elements[2];
+            clusterName = elements[3];
+        }
+        buff.append(baseDir).append(EBSBackupPath.PATH_SEP);
+        buff.append(region).append(EBSBackupPath.PATH_SEP);
+        buff.append(clusterName).append(EBSBackupPath.PATH_SEP);
+
+        token = instanceIdentity.getInstance().getToken();
+        buff.append(token).append(EBSBackupPath.PATH_SEP);
         return buff.toString();
     }
 

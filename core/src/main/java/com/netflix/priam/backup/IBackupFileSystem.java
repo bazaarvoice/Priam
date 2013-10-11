@@ -1,7 +1,5 @@
 package com.netflix.priam.backup;
 
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Date;
 import java.util.Iterator;
 
@@ -9,18 +7,18 @@ import java.util.Iterator;
  * Interface representing a backup storage as a file system
  */
 public interface
-        IBackupFileSystem {
+        IBackupFileSystem<InStream,OutStream> { // generics to support using FileChannel for EBS filesystem, but allow S3 to continue using InputStream/OutputStream
     /**
      * Write the contents of the specified remote path to the output stream and
      * close
      */
-    public void download(AbstractBackupPath path, OutputStream os) throws BackupRestoreException;
+    public void download(AbstractBackupPath path, OutStream os) throws BackupRestoreException;
 
     /**
      * Upload/Backup to the specified location with contents from the input
      * stream. Closes the InputStream after its done.
      */
-    public void upload(AbstractBackupPath path, InputStream in) throws BackupRestoreException;
+    public void upload(AbstractBackupPath path, InStream in) throws BackupRestoreException;
 
     /**
      * List all files in the backup location for the specified time range.
@@ -45,5 +43,5 @@ public interface
     /**
      * Any post-backup tasks you may want to perform
      */
-    public void finalizeBackup();
+    public void snapshotEbs(String snapshotName);
 }

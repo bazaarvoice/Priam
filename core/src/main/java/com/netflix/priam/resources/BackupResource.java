@@ -144,7 +144,14 @@ public class BackupResource {
             endTime = path.getFormat().parse(restore[1]);
         }
 
-        Iterator<AbstractBackupPath> it = fs.list(backupConfiguration.getS3BucketName(), startTime, endTime);
+        String prefix;
+        if ("ebs".equals(backupConfiguration.getBackupTarget())){
+            prefix = ""; // no prefix for ebs
+        } else {
+            prefix = backupConfiguration.getS3BucketName();
+        }
+
+        Iterator<AbstractBackupPath> it = fs.list(prefix, startTime, endTime);
         Map<String, Object> object = Maps.newHashMap();
         while (it.hasNext()) {
             AbstractBackupPath p = it.next();

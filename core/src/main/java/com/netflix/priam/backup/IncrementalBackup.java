@@ -7,6 +7,7 @@ import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
 import com.netflix.priam.config.CassandraConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileFilter;
 
@@ -44,7 +45,10 @@ public class IncrementalBackup extends AbstractBackup {
                 upload(backupDir, BackupFileType.SST);
             }
         }
-        fs.finalizeBackup();
+        // break this out into a separate schedule for taking snapshots of EBS volumes each hour
+//        Calendar cal = Calendar.getInstance((TimeZone.getTimeZone("GMT")));
+//        String snapshotName = "incremental-" + pathFactory.get().getFormat().format(cal.getTime());
+//        fs.snapshotEbs(snapshotName);
     }
 
 

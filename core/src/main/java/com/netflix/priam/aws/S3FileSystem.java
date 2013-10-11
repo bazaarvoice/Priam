@@ -42,7 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Implementation of IBackupFileSystem for S3
  */
 @Singleton
-public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
+public class S3FileSystem implements IBackupFileSystem<InputStream,OutputStream>, S3FileSystemMBean {
     private static final Logger logger = LoggerFactory.getLogger(S3FileSystem.class);
     private static final int MAX_CHUNKS = 10000;
     private static final long UPLOAD_TIMEOUT = (2 * 60 * 60 * 1000L);
@@ -224,7 +224,7 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
     }
 
     @Override
-    public void finalizeBackup() {
+    public void snapshotEbs(String snapshotName) {
         // noop
     }
 

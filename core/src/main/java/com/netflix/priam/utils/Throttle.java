@@ -83,6 +83,7 @@ public class Throttle {
                         this, bytesDelta, msSinceLast, timeToDelay));
             }
             try {
+                logger.info("{}: actual throughput was " + bytesDelta + " bytes in " + msSinceLast + " ms: throttling for " + timeToDelay + "ms");
                 Thread.sleep(timeToDelay);
             } catch (InterruptedException e) {
                 throw new AssertionError(e);

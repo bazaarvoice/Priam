@@ -94,7 +94,14 @@ public class Restore extends AbstractRestore {
 
         // Try and read the Meta file.
         List<AbstractBackupPath> metas = Lists.newArrayList();
-        String prefix = StringUtils.isNotBlank(backupConfiguration.getRestorePrefix()) ? backupConfiguration.getRestorePrefix() : backupConfiguration.getS3BucketName();
+
+        String prefix;
+        if ("ebs".equals(backupConfiguration.getBackupTarget())){
+            prefix = ""; // no prefix for ebs
+        } else {
+            prefix = StringUtils.isNotBlank(backupConfiguration.getRestorePrefix()) ? backupConfiguration.getRestorePrefix() : backupConfiguration.getS3BucketName();
+        }
+
         logger.info("Looking for meta file here:  " + prefix);
         Iterator<AbstractBackupPath> backupfiles = fs.list(prefix, startTime, endTime);
         while (backupfiles.hasNext()) {

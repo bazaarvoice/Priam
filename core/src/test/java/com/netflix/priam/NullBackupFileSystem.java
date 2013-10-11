@@ -9,7 +9,7 @@ import java.io.OutputStream;
 import java.util.Date;
 import java.util.Iterator;
 
-public class NullBackupFileSystem implements IBackupFileSystem
+public class NullBackupFileSystem implements IBackupFileSystem<InputStream,OutputStream>
 {
 
     @Override
@@ -48,7 +48,7 @@ public class NullBackupFileSystem implements IBackupFileSystem
     }
 
     @Override
-    public void finalizeBackup() {
+    public void snapshotEbs(String snapshotName) {
         // noop
     }
 }

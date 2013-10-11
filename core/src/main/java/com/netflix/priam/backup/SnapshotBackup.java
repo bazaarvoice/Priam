@@ -71,7 +71,7 @@ public class SnapshotBackup extends AbstractBackup {
             }
             // Upload meta file
             metaData.set(backupPaths, snapshotName);
-            fs.finalizeBackup();
+            fs.snapshotEbs(snapshotName);
             logger.info("Snapshot upload complete for " + snapshotName);
         } finally {
             try {

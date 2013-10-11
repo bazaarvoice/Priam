@@ -5,6 +5,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
 import com.netflix.priam.utils.RetryableCallable;
+import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.json.simple.JSONArray;
@@ -63,7 +64,11 @@ public class MetaData {
             new RetryableCallable<Void>() {
                 @Override
                 public Void retriableCall() throws Exception {
-                    fs.download(meta, new FileOutputStream(meta.newRestoreFile()));
+                    if ("ebs".equals(meta.backupConfiguration.getBackupTarget())){
+                        fs.download(meta, meta.newRestoreFile());
+                    } else {
+                        fs.download(meta, new FileOutputStream(meta.newRestoreFile()));
+                    }
                     return null;
                 }
             }.call();
@@ -76,7 +81,7 @@ public class MetaData {
                 files.add(p);
             }
         } catch (Exception ex) {
-            logger.error("Error downloading the Meta data try with a diffrent date...", ex);
+            logger.error("Error downloading the Meta data. Try with a different date...", ex);
         }
         return files;
     }
@@ -85,7 +90,11 @@ public class MetaData {
         new RetryableCallable<Void>() {
             @Override
             public Void retriableCall() throws Exception {
-                fs.upload(bp, bp.localReader());
+                if ("ebs".equals(bp.backupConfiguration.getBackupTarget())){
+                    fs.upload(bp, bp.getBackupFile());
+                } else { // s3 uses FileInputStream
+                    fs.upload(bp, new AbstractBackupPath.RafInputStream(RandomAccessReader.open(bp.getBackupFile(), true)));
+                }
                 return null;
             }
         }.call();

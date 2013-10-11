@@ -15,7 +15,7 @@ import java.io.OutputStream;
 import java.util.*;
 
 @Singleton
-public class FakeBackupFileSystem implements IBackupFileSystem
+public class FakeBackupFileSystem implements IBackupFileSystem<InputStream,OutputStream>
 {
     private List<AbstractBackupPath> flist;
     public Set<String> downloadedFiles;
@@ -106,7 +106,7 @@ public class FakeBackupFileSystem implements IBackupFileSystem
     public Iterator<AbstractBackupPath> list(String bucket, Date start, Date till)
     {
         String[] paths = bucket.split(String.valueOf(S3BackupPath.PATH_SEP));
-        
+
         if( paths.length > 1){
             baseDir = paths[1];
             region = paths[2];
@@ -126,7 +126,7 @@ public class FakeBackupFileSystem implements IBackupFileSystem
     }
 
     @Override
-    public void finalizeBackup() {
+    public void snapshotEbs(String snapshotName) {
         // noop
     }
 

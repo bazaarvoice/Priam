@@ -118,6 +118,12 @@ public class S3BackupPath extends AbstractBackupPath {
         return buff.toString();
     }
 
+    // useless, doesn't need to be here, whatever
+    @Override
+    public String remotePrefixBase(String location){
+        return location;
+    }
+
     @Override
     public String clusterPrefix(String location) {
         StringBuffer buff = new StringBuffer();

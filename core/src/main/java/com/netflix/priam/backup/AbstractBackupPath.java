@@ -5,7 +5,6 @@ import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.identity.InstanceIdentity;
 import org.apache.cassandra.io.util.FileUtils;
-import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.commons.lang.StringUtils;
 
 import java.io.File;
@@ -34,6 +33,7 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
     protected String baseDir;
     protected String token;
     protected String region;
+    protected String restorePrefix;
     protected Date time;
     protected long size;
 
@@ -48,15 +48,11 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
         this.cassandraConfiguration = cassandraConfiguration;
         this.amazonConfiguration = amazonConfiguration;
         this.backupConfiguration = backupConfiguration;
+        this.restorePrefix = backupConfiguration.getRestorePrefix();
     }
 
     public SimpleDateFormat getFormat() {
         return DAY_FORMAT;
-    }
-
-    public InputStream localReader() throws IOException {
-        assert backupFile != null;
-        return new RafInputStream(RandomAccessReader.open(backupFile, true));
     }
 
     public void parseLocal(File file, BackupFileType type) throws ParseException {
@@ -153,6 +149,13 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
     public abstract String remotePrefix(Date start, Date end, String location);
 
     /**
+     * Provides the path at the base, just before any start/end times
+     * @param location
+     * @return
+     */
+    public abstract String remotePrefixBase(String location);
+
+    /**
      * Provides the cluster prefix
      */
     public abstract String clusterPrefix(String location);
@@ -175,6 +178,10 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
 
     public String getFileName() {
         return fileName;
+    }
+
+    public String getRestorePrefix() {
+        return restorePrefix;
     }
 
     public String getBaseDir() {

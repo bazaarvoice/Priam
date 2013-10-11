@@ -81,12 +81,12 @@ backup:
   incrementalBackupEnabled: true                  # true if incremental backups are enabled
   s3BucketName: "cassandra-archive"               # S3 bucket for storing backups
   baseDir: "dev-backup"                             # Folder within the S3 bucket or EBS volume for backups
-  uploadThrottleBytesPerSec: 2147483647             # Bytes per second to throttle for backups
+  uploadThrottleBytesPerSec: 20971520             # Bytes per second to throttle for backups
   snapShotBackupEnabled: true                       # enable backups?
   #snapShotBackupCronTime:                          # Format: "sec min hour day-of-month month day-of-week". e.g. to run a job every sunday at 12 am, "0 0 0 ? * 1".
                                                     # For detail: http://quartz-scheduler.org/documentation/quartz-1.x/tutorials/crontrigger
   #autoRestoreSnapshotName:          # Snapshot to be searched and restored.  Specifies the start and end time used for restoring data (yyyyMMddHHmm format) Eg: 201201132030,201201142030
-  chunkSizeMB: 10                                   # Preferred data part size for multi part uploads to s3
+  chunkSizeMB: 4                                   # Preferred data part size for multi part uploads to s3
   #availabilityZonesToBackup:        # Get list of availability zones to backup. Backup all zones if empty
   retentionDays: 0                                  # Get Backup retention in days. Set to 0 to avoid any expiration of the backups from S3
   backupThreads: 2                                  # Number of backup threads for uploading

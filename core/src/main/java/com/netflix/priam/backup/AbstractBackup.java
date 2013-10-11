@@ -6,6 +6,7 @@ import com.google.inject.Provider;
 import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
 import com.netflix.priam.scheduler.Task;
 import com.netflix.priam.utils.RetryableCallable;
+import org.apache.cassandra.io.util.RandomAccessReader;
 
 import java.io.File;
 import java.util.Arrays;
@@ -55,7 +56,11 @@ public abstract class AbstractBackup extends Task {
         new RetryableCallable<Void>() {
             @Override
             public Void retriableCall() throws Exception {
-                fs.upload(bp, bp.localReader());
+                if ("ebs".equals(bp.backupConfiguration.getBackupTarget())){
+                    fs.upload(bp, bp.getBackupFile());
+                } else { // s3 uses FileInputStream
+                    fs.upload(bp, new AbstractBackupPath.RafInputStream(RandomAccessReader.open(bp.getBackupFile(), true)));
+                }
                 return null;
             }
         }.call();

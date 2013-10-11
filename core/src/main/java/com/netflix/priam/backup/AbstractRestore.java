@@ -77,7 +77,12 @@ public abstract class AbstractRestore extends Task {
             public Integer retriableCall() throws Exception {
 
                 logger.info("Downloading file: " + path);
-                fs.download(path, new FileOutputStream(restoreLocation));
+                if ("ebs".equals(backupConfiguration.getBackupTarget())){
+                    fs.download(path, restoreLocation);
+                } else { // s3 uses FileOutputStream
+                    fs.download(path, new FileOutputStream(restoreLocation));
+                }
+//                fs.download(path, new FileOutputStream(restoreLocation));
                 tracker.adjustAndAdd(path);
 
                 // Legitimately only want this to run when the download completes successfully - the effect of starting cassandra prematurely could involve data loss without knowing it.
