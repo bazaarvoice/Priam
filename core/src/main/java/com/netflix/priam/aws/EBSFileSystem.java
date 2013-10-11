@@ -151,10 +151,12 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
 
             // @TODO: make this platform-agnostic somehow
             // @TODO: don't do this every time we write to disk
-            String mountEbsVolumeScript = new Scanner(getClass().getResourceAsStream("mountEbsVolume.sh")).toString();
-            File mountEbsVolumeShell = File.createTempFile("mountEbsVolume", "sh");
+            String mountEbsVolumeScript = new Scanner(getClass().getResourceAsStream("/mountEbsVolume.sh")).toString();
+            File mountEbsVolumeShell = File.createTempFile("mountEbsVolume", ".sh");
+            mountEbsVolumeShell.setExecutable(true);
             FileUtils.write(mountEbsVolumeShell, mountEbsVolumeScript);
-            Process mountVolumeCmd = Runtime.getRuntime().exec(mountEbsVolumeShell.getAbsolutePath() + volume.getAttachments().get(0).getDevice() + " backup");
+
+            Process mountVolumeCmd = new ProcessBuilder(mountEbsVolumeShell.getAbsolutePath(), volume.getAttachments().get(0).getDevice(), "backup").start();
 
             logger.info("{}", CharStreams.toString(new InputStreamReader(mountVolumeCmd.getInputStream())));
 
