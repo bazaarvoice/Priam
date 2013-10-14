@@ -45,10 +45,6 @@ public class IncrementalBackup extends AbstractBackup {
                 upload(backupDir, BackupFileType.SST);
             }
         }
-        // break this out into a separate schedule for taking snapshots of EBS volumes each hour
-//        Calendar cal = Calendar.getInstance((TimeZone.getTimeZone("GMT")));
-//        String snapshotName = "incremental-" + pathFactory.get().getFormat().format(cal.getTime());
-//        fs.snapshotEbs(snapshotName);
     }
 
 

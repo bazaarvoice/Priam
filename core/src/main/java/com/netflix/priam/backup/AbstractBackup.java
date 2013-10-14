@@ -1,5 +1,6 @@
 package com.netflix.priam.backup;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
@@ -7,6 +8,8 @@ import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
 import com.netflix.priam.scheduler.Task;
 import com.netflix.priam.utils.RetryableCallable;
 import org.apache.cassandra.io.util.RandomAccessReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Arrays;
@@ -16,6 +19,9 @@ import java.util.List;
  * Abstract Backup class for uploading files to backup location
  */
 public abstract class AbstractBackup extends Task {
+
+    private static final Logger logger = LoggerFactory.getLogger(AbstractBackup.class);
+
     protected final List<String> FILTER_KEYSPACE = Arrays.asList("OpsCenter");
     protected final List<String> FILTER_COLUMN_FAMILY = Arrays.asList("LocationInfo");
     protected final Provider<AbstractBackupPath> pathFactory;
@@ -47,6 +53,47 @@ public abstract class AbstractBackup extends Task {
             file.delete();
         }
         return bps;
+    }
+
+    protected void maybeHardlinkLatest(String snapshotName) {
+        AbstractBackupPath path = pathFactory.get();
+
+        // only for ebs
+        if (!"ebs".equals(path.backupConfiguration.getBackupTarget())){
+            return;
+        }
+
+        logger.info("Hardlink snapshot {}", snapshotName);
+        String baseBackup = path.backupConfiguration.getRestorePrefix() + "/" + path.remotePrefixBase("");
+        logger.info("Backup base lives at: {}", baseBackup);
+        String nextBackup = baseBackup + snapshotName;
+        logger.info("Upcoming snapshot will be in: {}", nextBackup);
+        String latestBackup = baseBackup + "latest";
+        logger.info("Latest symlink should live at: {}", latestBackup);
+        logger.info("Let's start by ensuring latest backup exists");
+
+        File latestBackupFile = new File(latestBackup);
+
+        try {
+
+            if (!latestBackupFile.exists()){
+                logger.info("It does not exist, so we should create it");
+                logger.info("Symlink: ln -s " + nextBackup + " " + latestBackup);
+                Runtime.getRuntime().exec("ln -s " + nextBackup + " " + latestBackup);
+            } else {
+                logger.info("It already exists, so we just need to copy from it");
+                logger.info("cp -R -l -v " + latestBackup + "/* "+ nextBackup);
+                Runtime.getRuntime().exec("cp -R -l -v " + latestBackup + "/* "+ nextBackup);
+                logger.info("Now that we hard linked everything out of latest, update latest to point at the next snapshot");
+                latestBackupFile.delete();
+                logger.info("Running: {}", "ln -s " + nextBackup + " " + latestBackup);
+                Runtime.getRuntime().exec("ln -s " + nextBackup + " " + latestBackup);
+            }
+
+        } catch (Exception e){
+            throw Throwables.propagate(e);
+        }
+
     }
 
     /**

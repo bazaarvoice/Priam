@@ -48,6 +48,9 @@ public class SnapshotBackup extends AbstractBackup {
             List<AbstractBackupPath> backupPaths = Lists.newArrayList();
             File dataDir = new File(cassandraConfiguration.getDataLocation());
 
+            // optionally hard link latest
+            maybeHardlinkLatest(snapshotName);
+
             if (dataDir.listFiles() == null) {
                 logger.error("No keyspace directories exist in configured cassandra data directory. Unable to capture snapshot.");
                 return;

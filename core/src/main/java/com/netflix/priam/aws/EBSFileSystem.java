@@ -151,7 +151,7 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
 
             // @TODO: make this platform-agnostic somehow
             // @TODO: don't do this every time we write to disk
-            String mountEbsVolumeScript = new Scanner(getClass().getResourceAsStream("/mountEbsVolume.sh")).toString();
+            String mountEbsVolumeScript = IOUtils.toString(new InputStreamReader(getClass().getResourceAsStream("/mountEbsVolume.sh")));
             File mountEbsVolumeShell = File.createTempFile("mountEbsVolume", ".sh");
             mountEbsVolumeShell.setExecutable(true);
             FileUtils.write(mountEbsVolumeShell, mountEbsVolumeScript);
@@ -230,9 +230,9 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
                     .withDevice(nextDeviceName);
             AttachVolumeResult volumeAttachment = ec2client.attachVolume(attachVolumeRequest);
 
-            String attachmentStatus = volumeAttachment.getAttachment().getState();
+            VolumeAttachment attachment = volumeAttachment.getAttachment();
 
-            while ("attaching".equals(attachmentStatus)) {
+            while ("attaching".equals(attachment.getState())) {
                 try {
 
                     DescribeVolumesRequest describeVolumesRequest = new DescribeVolumesRequest().withVolumeIds(volume.getVolumeId());
@@ -241,14 +241,14 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
                     if (null != attachmentVolumes && attachmentVolumes.size() > 0
                             && null != attachmentVolumes.get(0).getAttachments() && attachmentVolumes.get(0).getAttachments().size() > 0) {
                         // seem weird? it is. You can't have more than 1 attachment, but Amazon provides a List instead of an Attachment object for some reason
-                        attachmentStatus = attachmentVolumes.get(0).getAttachments().get(0).getState();
+                        attachment = attachmentVolumes.get(0).getAttachments().get(0);
                     } else {
                         logger.info("Attachment status did not receive an update...");
                     }
 
-                    logger.info("Attachment status: " + attachmentStatus);
+                    logger.info("Attachment status: " + attachment);
 
-                    if ("error".equals(attachmentStatus)){
+                    if ("error".equals(attachment.getState())){
                         logger.error("Error attaching EBS volume.");
                         break;
                     }
@@ -262,8 +262,8 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
                 }
             }
 
-            if ("attached".equals(attachmentStatus)) {
-                logger.info("Attached successfully on {}", volume.getAttachments().get(0).getDevice());
+            if ("attached".equals(attachment.getState())) {
+                logger.info("Attached successfully on {}", attachment.getDevice());
             }
         }
     }
@@ -457,9 +457,6 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
     @Override
     public void upload(AbstractBackupPath path, File inputStream) throws BackupRestoreException {
 
-//        logger.info("Ensure that EBS is attached for creating backups");
-//        ebsMountAndAttach();
-
         logger.info("Uploading backup path {} to file {}", path, inputStream);
         logger.info("Full remote/ebs path for upload target: {}", backupConfiguration.getRestorePrefix() + EBSBackupPath.PATH_SEP + path.getRemotePath());
 
@@ -469,8 +466,29 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
             // copy from ephemeral to EBS volume
             logger.info("Remote path: {}", path.getRemotePath());
             File ebsPath = new File(backupConfiguration.getRestorePrefix() + EBSBackupPath.PATH_SEP + path.getRemotePath());
+//            String newBackupPathName = ebsPath.getAbsolutePath() + EBSBackupPath.PATH_SEP + inputStream.getName();
+//
+//            logger.info("New backup path name: {}", newBackupPathName);
+//
+//            // @TODO: use JNA if available to create these links
+//            // if "latest" soft link does not exist, create it and point it at the upcoming snapshot
+//            File latestBackup = new File(backupConfiguration.getRestorePrefix() + EBSBackupPath.PATH_SEP + path.remotePrefixBase(""));
+//            if (!latestBackup.exists()) {
+//                logger.info("latest backup does not exist, would run to create: {}", "ln -s " + newBackupPathName + " " + latestBackup.getAbsolutePath());
+////                Runtime.getRuntime().exec("ln -s " + newBackupPathName + " " + latestBackup.getAbsolutePath());
+//            } else {
+//                // create new backup path directory
+//                File newBackupPath = new File(newBackupPathName);
+//                newBackupPath.mkdir();
+//
+//                // recursively create hard link of all files from "latest" and put them in the backup target path
+////                Runtime.getRuntime().exec("cp -R -l " + latestBackup.getAbsolutePath() + EBSBackupPath.PATH_SEP + "* " + newBackupPath.getAbsolutePath());
+//            }
+
+            // now copy the new backup files, overwriting the hard links where necessary
             copyFile(inputStream, ebsPath);
-//            FileUtils.copyFile(inputStream, ebsPath);
+
+            // record only the new data we copied
             bytesUploaded.addAndGet(FileUtils.sizeOf(inputStream));
 
         } catch (Exception e) {

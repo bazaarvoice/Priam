@@ -17,6 +17,7 @@ import java.util.List;
  * Represents an EBS filesystem object key
  */
 public class EBSBackupPath extends AbstractBackupPath {
+
     @Inject
     public EBSBackupPath(CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration, BackupConfiguration backupConfiguration, InstanceIdentity factory) {
         super(cassandraConfiguration, amazonConfiguration, backupConfiguration, factory);
@@ -121,21 +122,7 @@ public class EBSBackupPath extends AbstractBackupPath {
     @Override
     public String remotePrefixBase(String location) {
         StringBuffer buff = new StringBuffer();
-        String[] elements = location.split(String.valueOf(EBSBackupPath.PATH_SEP));
-        if (elements.length <= 1) {
-            baseDir = backupConfiguration.getBaseDir();
-            region = amazonConfiguration.getRegionName();
-            clusterName = cassandraConfiguration.getClusterName();
-        } else {
-            assert elements.length >= 4 : "Too few elements in path " + location;
-            baseDir = elements[1];
-            region = elements[2];
-            clusterName = elements[3];
-        }
-        buff.append(baseDir).append(EBSBackupPath.PATH_SEP);
-        buff.append(region).append(EBSBackupPath.PATH_SEP);
-        buff.append(clusterName).append(EBSBackupPath.PATH_SEP);
-
+        buff.append(clusterPrefix(location));
         token = instanceIdentity.getInstance().getToken();
         buff.append(token).append(EBSBackupPath.PATH_SEP);
         return buff.toString();
