@@ -1,5 +1,6 @@
 package com.netflix.priam.backup;
 
+import com.bazaarvoice.support.util.ProcessUtils;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
@@ -55,6 +56,7 @@ public abstract class AbstractBackup extends Task {
         return bps;
     }
 
+    // not sure the best way to refactor so that this is just an implementation method for EBS only
     protected void maybeHardlinkLatest(String snapshotName) {
         AbstractBackupPath path = pathFactory.get();
 
@@ -78,16 +80,26 @@ public abstract class AbstractBackup extends Task {
 
             if (!latestBackupFile.exists()){
                 logger.info("It does not exist, so we should create it");
+                logger.info("But first, in case it exists but points to something that does not exist, we should delete it!");
+
+                try {
+                    logger.info("We think this is a symlink pointing to a file that doesn't exist, so let's delete the reference.");
+                    latestBackupFile.delete();
+                } catch (Exception e){
+                    // swallow exception
+                }
+
                 logger.info("Symlink: ln -s " + nextBackup + " " + latestBackup);
-                Runtime.getRuntime().exec("ln -s " + nextBackup + " " + latestBackup);
+                ProcessUtils.execProcess("ln -s " + nextBackup + " " + latestBackup);
             } else {
                 logger.info("It already exists, so we just need to copy from it");
                 logger.info("cp -R -l -v " + latestBackup + "/* "+ nextBackup);
-                Runtime.getRuntime().exec("cp -R -l -v " + latestBackup + "/* "+ nextBackup);
+                String cpHardlinkOutput = ProcessUtils.execProcessCaptureOutput("cp -R -l -v " + latestBackup + "/* "+ nextBackup);
+                logger.info(cpHardlinkOutput);
                 logger.info("Now that we hard linked everything out of latest, update latest to point at the next snapshot");
                 latestBackupFile.delete();
                 logger.info("Running: {}", "ln -s " + nextBackup + " " + latestBackup);
-                Runtime.getRuntime().exec("ln -s " + nextBackup + " " + latestBackup);
+                ProcessUtils.execProcess("ln -s " + nextBackup + " " + latestBackup);
             }
 
         } catch (Exception e){
@@ -103,11 +115,7 @@ public abstract class AbstractBackup extends Task {
         new RetryableCallable<Void>() {
             @Override
             public Void retriableCall() throws Exception {
-                if ("ebs".equals(bp.backupConfiguration.getBackupTarget())){
-                    fs.upload(bp, bp.getBackupFile());
-                } else { // s3 uses FileInputStream
-                    fs.upload(bp, new AbstractBackupPath.RafInputStream(RandomAccessReader.open(bp.getBackupFile(), true)));
-                }
+                fs.upload(bp, bp.getBackupFile());
                 return null;
             }
         }.call();

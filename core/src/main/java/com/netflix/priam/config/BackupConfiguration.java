@@ -16,9 +16,6 @@ public class BackupConfiguration {
     private int chunkSizeMB;
 
     @JsonProperty
-    private String backupTarget;
-
-    @JsonProperty
     private List<String> availabilityZonesToBackup;
 
     @JsonProperty
@@ -29,9 +26,6 @@ public class BackupConfiguration {
 
     @JsonProperty
     private int restoreThreads;
-
-    @JsonProperty
-    private String s3BucketName;
 
     @JsonProperty
     private String baseDir;
@@ -69,10 +63,6 @@ public class BackupConfiguration {
     @JsonProperty
     private String snapShotBackupCronTime;
 
-    public String getBackupTarget() {
-        return backupTarget;
-    }
-
     public String getAutoRestoreSnapshotName() {
         return autoRestoreSnapshotName;
     }
@@ -95,10 +85,6 @@ public class BackupConfiguration {
 
     public int getRestoreThreads() {
         return restoreThreads;
-    }
-
-    public String getS3BucketName() {
-        return s3BucketName;
     }
 
     public String getBaseDir() {
@@ -149,11 +135,6 @@ public class BackupConfiguration {
         return snapShotBackupCronTime;
     }
 
-    public void setBackupTarget(String backupTarget){
-        checkState(!backupTarget.equals("ebs") || !backupTarget.equals("s3"), "The backup target must be either \"ebs\" or \"s3\"");
-        this.backupTarget = backupTarget;
-    }
-
     public void setAutoRestoreSnapshotName(String autoRestoreSnapshotName) {
         this.autoRestoreSnapshotName = autoRestoreSnapshotName;
     }
@@ -176,10 +157,6 @@ public class BackupConfiguration {
 
     public void setRestoreThreads(int restoreThreads) {
         this.restoreThreads = restoreThreads;
-    }
-
-    public void setS3BucketName(String s3BucketName) {
-        this.s3BucketName = s3BucketName;
     }
 
     public void setBaseDir(String baseDir) {

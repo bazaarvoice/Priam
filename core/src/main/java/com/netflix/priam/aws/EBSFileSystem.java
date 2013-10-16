@@ -2,10 +2,10 @@ package com.netflix.priam.aws;
 
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.*;
+import com.bazaarvoice.support.util.ProcessUtils;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
-import com.google.common.io.CharStreams;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
@@ -156,9 +156,9 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
             mountEbsVolumeShell.setExecutable(true);
             FileUtils.write(mountEbsVolumeShell, mountEbsVolumeScript);
 
-            Process mountVolumeCmd = new ProcessBuilder(mountEbsVolumeShell.getAbsolutePath(), volume.getAttachments().get(0).getDevice(), "backup").start();
+            String mountVolumeResult = ProcessUtils.execProcessCaptureOutput(mountEbsVolumeShell.getAbsolutePath(), volume.getAttachments().get(0).getDevice(), "backup");
 
-            logger.info("{}", CharStreams.toString(new InputStreamReader(mountVolumeCmd.getInputStream())));
+            logger.info("{}", mountVolumeResult);
 
         } catch (Exception e){ // runtime or IO
             logger.info("Failed to mount EBS volume. ", e.getMessage());
@@ -192,10 +192,8 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
 
             // @TODO: make this platform-agnostic?
             try {
-                // grab the list of mounted devices
-                Process getDeviceName = Runtime.getRuntime().exec("/bin/mount | grep '^" + devicePrefix + "' | awk '{print $1}'");
-                // split the output into a String array
-                String[] deviceNames = getDeviceName.getOutputStream().toString().split("\n");
+                // grab the list of mounted devices and split the output into a String array
+                String[] deviceNames = ProcessUtils.execProcessCaptureOutput("/bin/mount | grep '^" + devicePrefix + "' | awk '{print $1}'").split("\n");
                 // sort the array
                 Arrays.sort(deviceNames);
                 // now just grab the last one in the array
@@ -442,7 +440,6 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
             File ebsPath = new File(path.getRemotePath());
 
             // write the file to outputstream
-            // use this for FileChannels; Guava ByteStreams uses traditional copy
             // don't throttle copying from EBS to ephemeral -- we want to restore as quickly as possible
             FileUtils.copyFile(ebsPath, outputStream);
 //            ByteStreams.copy(new FileInputStream(new File("/mnt/ephemeral/" + getPrefix())), outputStream);
@@ -466,24 +463,6 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
             // copy from ephemeral to EBS volume
             logger.info("Remote path: {}", path.getRemotePath());
             File ebsPath = new File(backupConfiguration.getRestorePrefix() + EBSBackupPath.PATH_SEP + path.getRemotePath());
-//            String newBackupPathName = ebsPath.getAbsolutePath() + EBSBackupPath.PATH_SEP + inputStream.getName();
-//
-//            logger.info("New backup path name: {}", newBackupPathName);
-//
-//            // @TODO: use JNA if available to create these links
-//            // if "latest" soft link does not exist, create it and point it at the upcoming snapshot
-//            File latestBackup = new File(backupConfiguration.getRestorePrefix() + EBSBackupPath.PATH_SEP + path.remotePrefixBase(""));
-//            if (!latestBackup.exists()) {
-//                logger.info("latest backup does not exist, would run to create: {}", "ln -s " + newBackupPathName + " " + latestBackup.getAbsolutePath());
-////                Runtime.getRuntime().exec("ln -s " + newBackupPathName + " " + latestBackup.getAbsolutePath());
-//            } else {
-//                // create new backup path directory
-//                File newBackupPath = new File(newBackupPathName);
-//                newBackupPath.mkdir();
-//
-//                // recursively create hard link of all files from "latest" and put them in the backup target path
-////                Runtime.getRuntime().exec("cp -R -l " + latestBackup.getAbsolutePath() + EBSBackupPath.PATH_SEP + "* " + newBackupPath.getAbsolutePath());
-//            }
 
             // now copy the new backup files, overwriting the hard links where necessary
             copyFile(inputStream, ebsPath);
@@ -597,7 +576,7 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
             try {
 
                 // freeze filesystem
-                new ProcessBuilder("xfs_freeze", "-f", backupConfiguration.getRestorePrefix()).start();
+                ProcessUtils.execProcess("xfs_freeze", "-f", backupConfiguration.getRestorePrefix());
 
                 CreateSnapshotRequest createSnapshotRequest = new CreateSnapshotRequest()
                         .withVolumeId(vol.getVolumeId())
@@ -610,7 +589,7 @@ public class EBSFileSystem implements IBackupFileSystem<File,File>, EBSFileSyste
                 }
 
                 // unfreeze filesystem
-                new ProcessBuilder("xfs_freeze", "-u", backupConfiguration.getRestorePrefix()).start();
+                ProcessUtils.execProcess("xfs_freeze", "-u", backupConfiguration.getRestorePrefix());
 
                 CreateTagsRequest createTagsRequest = new CreateTagsRequest()
                         .withResources(createSnapshotResult.getSnapshot().getSnapshotId())
