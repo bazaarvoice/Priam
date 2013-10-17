@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.bazaarvoice.priam</groupId>
         <artifactId>priam-parent</artifactId>
-        <version>1.18-SNAPSHOT</version>
+        <version>1.19-SNAPSHOT</version>
         <relativePath>../parent/pom.xml</relativePath>
     </parent>
 
@@ -350,7 +350,10 @@
                                 </mapping>
                                 <!-- Helper jar that gets added to Cassandra's classpath and wraps its main() method. -->
                                 <mapping>
-                                    <directory>/usr/share/cassandra/lib</directory>
+                                    <filemode>755</filemode>
+                                    <username>cassandra</username>
+                                    <groupname>cassandra</groupname>
+                                    <directory>/usr/share/cassandra/lib/</directory>
                                     <sources>
                                         <source>
                                             <location>${basedir}/target/${project.artifactId}-${project.version}.jar</location>
