@@ -9,7 +9,7 @@ cassandra:
   cassHome: "/etc/cassandra"                  # Path to the home dir of Cassandra
   cassStartScript: "/etc/init.d/cassandra start"  # Path to Cassandra startup script
   cassStopScript: "/etc/init.d/cassandra stop"    # Path to Cassandra stop script
-  clusterName: "cass_cluster"                 # Cluster name (or App) name
+  clusterName: "local_default"                # Cluster name (or App) name
   dataLocation: "/var/lib/cassandra/data"     # Location of the local data dir
   sslStoragePort: 7101                        # Cassandra storage/cluster SSL communication port
   storagePort: 7101                           # Cassandra storage/cluster communication port
@@ -77,12 +77,13 @@ amazon:
 
 
 backup:
-  backupTarget: "ebs"                             # "ebs" or "s3"
   incrementalBackupEnabled: true                  # true if incremental backups are enabled
   s3BucketName: "cassandra-archive"               # S3 bucket for storing backups
   baseDir: "dev-backup"                             # Folder within the S3 bucket or EBS volume for backups
   uploadThrottleBytesPerSec: 20971520             # Bytes per second to throttle for backups
   snapShotBackupEnabled: true                       # enable backups?
+  incrementalBackupEnabled: false                   # true if incremental backups are enabled
+  snapShotBackupEnabled: false
   #snapShotBackupCronTime:                          # Format: "sec min hour day-of-month month day-of-week". e.g. to run a job every sunday at 12 am, "0 0 0 ? * 1".
                                                     # For detail: http://quartz-scheduler.org/documentation/quartz-1.x/tutorials/crontrigger
   #autoRestoreSnapshotName:          # Snapshot to be searched and restored.  Specifies the start and end time used for restoring data (yyyyMMddHHmm format) Eg: 201201132030,201201142030
@@ -102,14 +103,19 @@ backup:
   streamingThroughputMbps: 400                      # Throttles all outbound streaming file transfers on this node to the given total throughput in Mbps. This is necessary because Cassandra does mostly sequential IO when streaming data during bootstrap or repair, which
                                                     #    can lead to saturating the network connection and degrading rpc performance.
 
+# Configure the HTTP server that listens for inbound requests
+http:
+  port: 9090
+  adminPort: 9091
+
 zooKeeper:
   enabled: false                     # Whether or not ZooKeeper registration is enabled.
-  #connectString: localhost:2181     # Comma-separated list of ZooKeeper servers, eg. "host:port,host:port,..."
+  connectString: localhost:2181      # Comma-separated list of ZooKeeper servers, eg. "host:port,host:port,..."
   #namespace:                        # Root namespace in ZooKeeper, eg. "us-east-1"
 
 # Priam will register the Cassandra node in ZooKeeper using the BV Ostrich library under the specified service names.
 ostrichServiceNames:
-  - cass_cluster-cassandra
+  - local_default-cassandra
 
 monitoring:
   defaultBadgerRegistrationState: true

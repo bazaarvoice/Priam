@@ -10,10 +10,12 @@ import com.netflix.priam.PriamServer;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
+import com.netflix.priam.config.PriamConfiguration;
 import com.netflix.priam.utils.JMXNodeTool;
 import com.netflix.priam.utils.SystemUtils;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.WebResource;
 import org.apache.cassandra.concurrent.JMXEnabledThreadPoolExecutorMBean;
-import org.apache.cassandra.config.ConfigurationException;
 import org.apache.cassandra.db.ColumnFamilyStoreMBean;
 import org.apache.cassandra.db.compaction.CompactionManagerMBean;
 import org.apache.cassandra.net.MessagingServiceMBean;
@@ -37,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 /**
  * Do general operations. Start/Stop and some JMX node tool commands
@@ -49,37 +50,45 @@ public class CassandraAdminResource {
 
     private static final Logger logger = LoggerFactory.getLogger(CassandraAdminResource.class);
 
+    enum HintsState {OK, UNREACHABLE, ERROR};
+
     private final PriamServer priamServer;
     private final CassandraConfiguration cassandraConfiguration;
     private final AmazonConfiguration amazonConfiguration;
     private final BackupConfiguration backupConfiguration;
+    private final PriamConfiguration priamConfiguration;
 
     @Inject
     public CassandraAdminResource(PriamServer priamServer, CassandraConfiguration cassandraConfiguration,
-                                  AmazonConfiguration amazonConfiguration, BackupConfiguration backupConfiguration) {
+                                  AmazonConfiguration amazonConfiguration, BackupConfiguration backupConfiguration,
+                                  PriamConfiguration priamConfiguration) {
         this.priamServer = priamServer;
         this.cassandraConfiguration = cassandraConfiguration;
         this.amazonConfiguration = amazonConfiguration;
         this.backupConfiguration = backupConfiguration;
+        this.priamConfiguration = priamConfiguration;
     }
 
     @GET
     @Path ("/start")
-    public Response cassStart() throws IOException, InterruptedException {
+    public Response cassStart()
+            throws IOException, InterruptedException {
         SystemUtils.startCassandra(true, cassandraConfiguration, backupConfiguration, amazonConfiguration.getInstanceType());
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
     }
 
     @GET
     @Path ("/stop")
-    public Response cassStop() throws IOException, InterruptedException {
+    public Response cassStop()
+            throws IOException, InterruptedException {
         SystemUtils.stopCassandra(cassandraConfiguration);
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
     }
 
     @GET
     @Path ("/refresh")
-    public Response cassRefresh(@QueryParam ("keyspaces") String keyspaces) throws Exception {
+    public Response cassRefresh(@QueryParam ("keyspaces") String keyspaces)
+            throws Exception {
         logger.info("node tool refresh is being called");
         if (StringUtils.isBlank(keyspaces)) {
             return Response.status(400).entity("Missing keyspace in request").build();
@@ -92,23 +101,92 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/info")
-    public Response cassInfo() throws Exception {
+    public Response cassInfo()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         logger.info("node tool info being called");
         return Response.ok(nodetool.info(), MediaType.APPLICATION_JSON).build();
     }
 
+    /**
+     * Returns hints info for the entire ring.
+     * Includes all nodes in the ring along with their state, and total hints.
+     *
+     * @throws Exception
+     */
+    @GET
+    @Path ("/hints/ring")
+    public Response cassHintsInRing()
+            throws Exception {
+        List<Map<String, Object>> ring = JMXNodeTool.instance(cassandraConfiguration).ring();
+        List<Map<String, Object>> hintsInfo = Lists.newArrayList();
+
+        Client client = Client.create();
+
+        for (Map<String, Object> node : ring) {
+            String endpoint = node.get("endpoint").toString();
+
+            // Is this node down?
+            if (!node.get("status").toString().equalsIgnoreCase("up")) {
+                hintsInfo.add(ImmutableMap.<String, Object>of("endpoint", endpoint, "state", HintsState.UNREACHABLE));
+                continue;
+            }
+            try {
+                String url = String.format("http://%s:%s/v1/cassadmin/hints/node", endpoint,
+                        priamConfiguration.getHttpConfiguration().getPort());
+                WebResource webResource = client.resource(url);
+                Map<String, Object> fullNodeInfo = Maps.newHashMap();
+                Map<String, Object> nodeResponse = webResource.accept(MediaType.APPLICATION_JSON)
+                        .get(Map.class);
+                fullNodeInfo.putAll(nodeResponse);
+                fullNodeInfo.put("state", HintsState.OK);
+                fullNodeInfo.put("endpoint", endpoint);
+                hintsInfo.add(fullNodeInfo);
+            } catch (Exception e) {
+                hintsInfo.add(ImmutableMap.<String, Object>of("endpoint", endpoint, "state", HintsState.ERROR,
+                        "exception", e.toString()));
+            }
+        }
+
+        return Response.ok(hintsInfo, MediaType.APPLICATION_JSON).build();
+    }
+
+    /**
+     * This method will return hints info for this node only
+     *
+     * @throws Exception
+     */
+    @GET
+    @Path ("/hints/node")
+    public Response cassHintsInNode()
+            throws Exception {
+        JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
+        logger.info("node tool info being called");
+        return Response.ok(ImmutableMap.of("totalEndpointsPendingHints", nodetool.totalEndpointsPendingHints()), MediaType.APPLICATION_JSON).build();
+    }
+
     @GET
     @Path ("/ring/{keyspace}")
-    public Response cassRing(@PathParam ("keyspace") String keyspace) throws Exception {
+    public Response cassRing(@PathParam ("keyspace") String keyspace)
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         logger.info("node tool ring being called");
         return Response.ok(nodetool.ring(keyspace), MediaType.APPLICATION_JSON).build();
     }
 
     @GET
+    @Path ("/ring")
+    public Response cassRingAllKeyspaces(@PathParam ("keyspace") String keyspace)
+            throws Exception {
+        JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
+        logger.info("node tool ring being called");
+        return Response.ok(nodetool.ring(), MediaType.APPLICATION_JSON).build();
+    }
+
+    @GET
     @Path ("/flush")
-    public Response cassFlush() throws Exception {
+    public Response cassFlush()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         logger.info("node tool flush being called");
         nodetool.flush();
@@ -117,7 +195,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/compact")
-    public Response cassCompact() throws Exception {
+    public Response cassCompact()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         logger.info("node tool compact being called");
         nodetool.compact();
@@ -126,7 +205,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/cleanup")
-    public Response cassCleanup() throws Exception {
+    public Response cassCleanup()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         logger.info("node tool cleanup being called");
         nodetool.cleanup();
@@ -150,14 +230,16 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/version")
-    public Response version() throws Exception {
+    public Response version()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         return Response.ok(ImmutableMap.of("version", nodetool.getReleaseVersion()), MediaType.APPLICATION_JSON).build();
     }
 
     @GET
     @Path ("/tpstats")
-    public Response tpstats() throws Exception {
+    public Response tpstats()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         Iterator<Map.Entry<String, JMXEnabledThreadPoolExecutorMBean>> threads = nodetool.getThreadPoolMBeanProxies();
         List<Map<String, Object>> threadPoolArray = Lists.newArrayList();
@@ -189,7 +271,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/compactionstats")
-    public Response compactionStats() throws Exception {
+    public Response compactionStats()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         Map<String, Object> rootObj = Maps.newHashMap();
         CompactionManagerMBean cm = nodetool.getCompactionManagerProxy();
@@ -213,7 +296,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/disablegossip")
-    public Response disablegossip() throws Exception {
+    public Response disablegossip()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         nodetool.stopGossiping();
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
@@ -221,7 +305,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/enablegossip")
-    public Response enablegossip() throws Exception {
+    public Response enablegossip()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         nodetool.startGossiping();
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
@@ -229,7 +314,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/disablethrift")
-    public Response disablethrift() throws Exception {
+    public Response disablethrift()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         nodetool.stopThriftServer();
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
@@ -237,7 +323,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/enablethrift")
-    public Response enablethrift() throws Exception {
+    public Response enablethrift()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         nodetool.startThriftServer();
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
@@ -245,14 +332,16 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/statusthrift")
-    public Response statusthrift() throws Exception {
+    public Response statusthrift()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         return Response.ok(ImmutableMap.of("status", (nodetool.isThriftServerRunning() ? "running" : "not running")), MediaType.APPLICATION_JSON).build();
     }
 
     @GET
     @Path ("/pingthrift")
-    public Response pingthrift() throws IOException {
+    public Response pingthrift()
+            throws IOException {
         try {
             JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
             if (nodetool.isThriftServerRunning()) {
@@ -266,7 +355,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/gossipinfo")
-    public Response gossipinfo() throws Exception {
+    public Response gossipinfo()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         Map<String, Object> rootObj = Maps.newHashMap();
         String[] ginfo = nodetool.getGossipInfo().split("/");
@@ -291,7 +381,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/netstats")
-    public Response netstats(@QueryParam ("host") String hostname) throws Exception {
+    public Response netstats(@QueryParam ("host") String hostname)
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         Map<String, Object> rootObj = Maps.newHashMap();
         rootObj.put("mode", nodetool.getOperationMode());
@@ -379,7 +470,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/move")
-    public Response moveToken(@QueryParam ("token") String newToken) throws Exception {
+    public Response moveToken(@QueryParam ("token") String newToken)
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         nodetool.move(newToken);
         priamServer.getInstanceIdentity().updateToken();
@@ -388,7 +480,8 @@ public class CassandraAdminResource {
 
     @GET
     @Path ("/scrub")
-    public Response scrub(@QueryParam ("keyspaces") String keyspaces, @QueryParam ("cfnames") String cfnames) throws Exception {
+    public Response scrub(@QueryParam ("keyspaces") String keyspaces, @QueryParam ("cfnames") String cfnames)
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         String[] cfs = null;
         if (StringUtils.isNotBlank(cfnames)) {

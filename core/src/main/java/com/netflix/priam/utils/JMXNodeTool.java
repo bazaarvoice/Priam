@@ -1,5 +1,6 @@
 package com.netflix.priam.utils;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
@@ -7,18 +8,15 @@ import com.google.inject.Singleton;
 import com.netflix.priam.config.CassandraConfiguration;
 import org.apache.cassandra.config.ConfigurationException;
 import org.apache.cassandra.db.ColumnFamilyStoreMBean;
+import org.apache.cassandra.db.HintedHandOffManagerMBean;
 import org.apache.cassandra.tools.NodeProbe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.management.JMX;
 import javax.management.MBeanServerConnection;
-import javax.management.Notification;
-import javax.management.NotificationListener;
+import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
-import javax.management.remote.JMXConnectionNotification;
-import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
@@ -168,6 +166,21 @@ public class JMXNodeTool extends NodeProbe {
     }
 
     @SuppressWarnings ("unchecked")
+    public long totalEndpointsPendingHints()
+            throws MalformedObjectNameException {
+        ObjectName name = new ObjectName("org.apache.cassandra.db:type=HintedHandoffManager");
+        HintedHandOffManagerMBean hintedHandoffManager = JMX.newMBeanProxy(mbeanServerConn, name, HintedHandOffManagerMBean.class);
+        long totalEndpointsPendingHints = hintedHandoffManager.listEndpointsPendingHints().size();
+        logger.info(String.format("Total total endpoints pending hints: %s", totalEndpointsPendingHints));
+        return totalEndpointsPendingHints;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> ring(){
+        return ring(null);
+    }
+
+    @SuppressWarnings ("unchecked")
     public List<Map<String, Object>> ring(String keyspace) {
         logger.info("JMX ring being called");
         List<Map<String, Object>> ring = Lists.newArrayList();
@@ -186,7 +199,12 @@ public class JMXNodeTool extends NodeProbe {
         // Calculate per-token ownership of the ring
         Map<String, Float> ownerships;
         try {
-            ownerships = effectiveOwnership(keyspace);
+            if (Strings.isNullOrEmpty(keyspace)){
+                ownerships = getOwnership();
+            }
+            else {
+                ownerships = effectiveOwnership(keyspace);
+            }
         } catch (ConfigurationException ex) {
             ownerships = getOwnership();
         }

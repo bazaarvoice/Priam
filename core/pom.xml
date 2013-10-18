@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.bazaarvoice.priam</groupId>
         <artifactId>priam-parent</artifactId>
-        <version>1.19-SNAPSHOT</version>
+        <version>1.20-SNAPSHOT</version>
         <relativePath>../parent/pom.xml</relativePath>
     </parent>
 
@@ -47,6 +47,10 @@
         <dependency>
             <groupId>com.yammer.dropwizard</groupId>
             <artifactId>dropwizard-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.yammer.dropwizard</groupId>
+            <artifactId>dropwizard-client</artifactId>
         </dependency>
         <dependency>
             <groupId>commons-lang</groupId>
