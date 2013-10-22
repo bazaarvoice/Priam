@@ -15,7 +15,7 @@
 
     <properties>
         <!-- note: the *bucket* is the root of the repo -->
-        <yumrepo.s3RepositoryPath>s3://nexus-private-artifacts/emodb/yum-repo</yumrepo.s3RepositoryPath>
+        <yumrepo.s3RepositoryPath>s3://nexus-private-artifacts/priam/yum-repo</yumrepo.s3RepositoryPath>
     </properties>
 
     <profiles>
@@ -42,8 +42,6 @@
                                             <version>${project.version}</version>
                                             <type>rpm</type>
                                             <classifier>rpm</classifier>
-                                            <!-- NOTE: in our shared repo, put priam artifacts in the "priam" subfolder -->
-                                            <targetSubfolder>priam</targetSubfolder>
                                             <targetExtension>noarch.rpm</targetExtension>
                                         </artifactItem>
                                     </artifactItems>
