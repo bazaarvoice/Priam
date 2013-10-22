@@ -35,6 +35,7 @@
                                 </goals>
                                 <configuration>
                                     <s3RepositoryPath>${yumrepo.s3RepositoryPath}</s3RepositoryPath>
+                                    <allowCreateRepository>true</allowCreateRepository>
                                     <artifactItems>
                                         <artifactItem>
                                             <groupId>com.bazaarvoice.priam</groupId>
