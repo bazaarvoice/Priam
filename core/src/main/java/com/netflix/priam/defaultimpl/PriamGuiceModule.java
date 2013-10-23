@@ -27,6 +27,8 @@ import com.netflix.priam.utils.Sleeper;
 import com.netflix.priam.utils.ThreadSleeper;
 import com.netflix.priam.utils.TokenManager;
 import com.netflix.priam.utils.TokenManagerProvider;
+import com.sun.jersey.api.client.Client;
+import com.yammer.dropwizard.client.JerseyClientBuilder;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.config.HttpConfiguration;
 import org.apache.curator.framework.CuratorFramework;
@@ -73,5 +75,13 @@ public class PriamGuiceModule extends AbstractModule {
         CuratorFramework curator = zkConfiguration.newManagedCurator(environment);
         curator.start();
         return Optional.of(curator);
+    }
+
+    @Provides @Singleton
+    Client provideJerseyClient() {
+        return new JerseyClientBuilder()
+                .using(priamConfiguration.getHttpClientConfiguration())
+                .using(environment)
+                .build();
     }
 }

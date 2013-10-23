@@ -1,7 +1,6 @@
 package com.bazaarvoice.priam.client;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Interface for interacting with Priam's CassAdmin class
@@ -14,5 +13,5 @@ public interface PriamCassAdmin {
     /**
      * Returns a list of hints info from each node in the entire ring.
      */
-    List<Map<String, Object>> getHintsForTheRing();
+    List<HintsInfo> getHintsForRing();
 }

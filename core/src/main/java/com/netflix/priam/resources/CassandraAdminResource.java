@@ -14,7 +14,7 @@ import com.netflix.priam.config.PriamConfiguration;
 import com.netflix.priam.utils.JMXNodeTool;
 import com.netflix.priam.utils.SystemUtils;
 import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.GenericType;
 import org.apache.cassandra.concurrent.JMXEnabledThreadPoolExecutorMBean;
 import org.apache.cassandra.db.ColumnFamilyStoreMBean;
 import org.apache.cassandra.db.compaction.CompactionManagerMBean;
@@ -57,16 +57,18 @@ public class CassandraAdminResource {
     private final AmazonConfiguration amazonConfiguration;
     private final BackupConfiguration backupConfiguration;
     private final PriamConfiguration priamConfiguration;
+    private final Client jersey;
 
     @Inject
     public CassandraAdminResource(PriamServer priamServer, CassandraConfiguration cassandraConfiguration,
                                   AmazonConfiguration amazonConfiguration, BackupConfiguration backupConfiguration,
-                                  PriamConfiguration priamConfiguration) {
+                                  PriamConfiguration priamConfiguration, Client jersey) {
         this.priamServer = priamServer;
         this.cassandraConfiguration = cassandraConfiguration;
         this.amazonConfiguration = amazonConfiguration;
         this.backupConfiguration = backupConfiguration;
         this.priamConfiguration = priamConfiguration;
+        this.jersey = jersey;
     }
 
     @GET
@@ -121,29 +123,33 @@ public class CassandraAdminResource {
         List<Map<String, Object>> ring = JMXNodeTool.instance(cassandraConfiguration).ring();
         List<Map<String, Object>> hintsInfo = Lists.newArrayList();
 
-        Client client = Client.create();
-
         for (Map<String, Object> node : ring) {
             String endpoint = node.get("endpoint").toString();
 
-            // Is this node down?
-            if (!node.get("status").toString().equalsIgnoreCase("up")) {
-                hintsInfo.add(ImmutableMap.<String, Object>of("endpoint", endpoint, "state", HintsState.UNREACHABLE));
-                continue;
-            }
             try {
+                // Is this node down?
+                if (!node.get("status").toString().equalsIgnoreCase("up")) {
+                    hintsInfo.add(ImmutableMap.<String, Object>of(
+                            "endpoint", endpoint,
+                            "state", HintsState.UNREACHABLE));
+                    continue;
+                }
+
                 String url = String.format("http://%s:%s/v1/cassadmin/hints/node", endpoint,
                         priamConfiguration.getHttpConfiguration().getPort());
-                WebResource webResource = client.resource(url);
-                Map<String, Object> fullNodeInfo = Maps.newHashMap();
-                Map<String, Object> nodeResponse = webResource.accept(MediaType.APPLICATION_JSON)
-                        .get(Map.class);
-                fullNodeInfo.putAll(nodeResponse);
-                fullNodeInfo.put("state", HintsState.OK);
+                Map<String, Object> nodeResponse = jersey.resource(url)
+                        .get(new GenericType<Map<String, Object>>() {});
+
+                Map<String, Object> fullNodeInfo = Maps.newLinkedHashMap();
                 fullNodeInfo.put("endpoint", endpoint);
+                fullNodeInfo.put("state", HintsState.OK);
+                fullNodeInfo.putAll(nodeResponse);
                 hintsInfo.add(fullNodeInfo);
+
             } catch (Exception e) {
-                hintsInfo.add(ImmutableMap.<String, Object>of("endpoint", endpoint, "state", HintsState.ERROR,
+                hintsInfo.add(ImmutableMap.<String, Object>of(
+                        "endpoint", endpoint,
+                        "state", HintsState.ERROR,
                         "exception", e.toString()));
             }
         }
