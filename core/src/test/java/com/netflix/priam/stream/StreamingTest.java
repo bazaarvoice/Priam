@@ -1,29 +1,27 @@
 package com.netflix.priam.stream;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collection;
-
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import com.netflix.priam.TestAmazonConfiguration;
 import com.netflix.priam.TestBackupConfiguration;
 import com.netflix.priam.TestCassandraConfiguration;
-import com.netflix.priam.config.AmazonConfiguration;
-import com.netflix.priam.config.BackupConfiguration;
-import com.netflix.priam.config.CassandraConfiguration;
-import junit.framework.Assert;
-
-import org.apache.cassandra.io.sstable.SSTableLoaderWrapper;
-import org.apache.cassandra.streaming.PendingFile;
-import org.junit.Test;
-
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 import com.netflix.priam.aws.S3BackupPath;
 import com.netflix.priam.backup.AbstractBackupPath;
 import com.netflix.priam.backup.BRTestModule;
 import com.netflix.priam.backup.IncrementalRestore;
+import com.netflix.priam.config.AmazonConfiguration;
+import com.netflix.priam.config.BackupConfiguration;
+import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.identity.InstanceIdentity;
 import com.netflix.priam.utils.FifoQueue;
+import junit.framework.Assert;
+import org.apache.cassandra.io.sstable.SSTableLoaderWrapper;
+import org.apache.cassandra.streaming.PendingFile;
+import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
 
 public class StreamingTest
 {

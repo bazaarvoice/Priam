@@ -122,5 +122,5 @@ monitoring:
 logging:
   level: INFO
   loggers:
+    "org.apache.curator": WARN
     "org.apache.zookeeper": OFF
-    "com.netflix.curator": WARN

@@ -1,16 +1,16 @@
 package com.netflix.priam.backup;
 
-import static junit.framework.Assert.*;
+import com.netflix.priam.scheduler.CustomizedThreadPoolExecutor;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.netflix.priam.scheduler.CustomizedThreadPoolExecutor;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
 
 public class TestCustomizedTPE
 {

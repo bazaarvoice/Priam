@@ -1,13 +1,5 @@
 package com.netflix.priam;
 
-import com.netflix.priam.config.AmazonConfiguration;
-import com.netflix.priam.config.BackupConfiguration;
-import com.netflix.priam.config.CassandraConfiguration;
-import com.netflix.priam.identity.IPriamInstanceRegistry;
-import com.netflix.priam.utils.TokenManager;
-import com.netflix.priam.utils.TokenManagerProvider;
-import org.junit.Ignore;
-
 import com.google.common.collect.ImmutableList;
 import com.google.inject.AbstractModule;
 import com.google.inject.Scopes;
@@ -15,9 +7,16 @@ import com.netflix.priam.aws.S3BackupPath;
 import com.netflix.priam.backup.AbstractBackupPath;
 import com.netflix.priam.backup.FakeCredentials;
 import com.netflix.priam.backup.IBackupFileSystem;
+import com.netflix.priam.config.AmazonConfiguration;
+import com.netflix.priam.config.BackupConfiguration;
+import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.identity.IMembership;
+import com.netflix.priam.identity.IPriamInstanceRegistry;
 import com.netflix.priam.utils.FakeSleeper;
 import com.netflix.priam.utils.Sleeper;
+import com.netflix.priam.utils.TokenManager;
+import com.netflix.priam.utils.TokenManagerProvider;
+import org.junit.Ignore;
 
 @Ignore
 public class TestModule extends AbstractModule

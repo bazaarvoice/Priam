@@ -1,5 +1,13 @@
 package com.netflix.priam.backup;
 
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+import com.google.inject.Singleton;
+import com.netflix.priam.aws.S3BackupPath;
+import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
+import org.apache.commons.io.IOUtils;
+import org.json.simple.JSONArray;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,17 +18,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.commons.io.IOUtils;
-import org.json.simple.JSONArray;
-import com.google.inject.Inject;
-import com.google.inject.Provider;
-import com.google.inject.Singleton;
-import com.netflix.priam.aws.S3BackupPath;
-import com.netflix.priam.backup.AbstractBackupPath;
-import com.netflix.priam.backup.BackupRestoreException;
-import com.netflix.priam.backup.IBackupFileSystem;
-import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
 
 @Singleton
 public class FakeBackupFileSystem implements IBackupFileSystem

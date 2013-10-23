@@ -4,7 +4,6 @@ import com.google.common.base.Optional;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.priam.ICredential;
 import com.netflix.priam.aws.AWSMembership;
 import com.netflix.priam.aws.DefaultCredentials;
@@ -30,6 +29,7 @@ import com.netflix.priam.utils.TokenManager;
 import com.netflix.priam.utils.TokenManagerProvider;
 import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.config.HttpConfiguration;
+import org.apache.curator.framework.CuratorFramework;
 
 public class PriamGuiceModule extends AbstractModule {
     private final PriamConfiguration priamConfiguration;
