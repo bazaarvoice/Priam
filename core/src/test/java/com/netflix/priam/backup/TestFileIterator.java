@@ -1,27 +1,5 @@
 package com.netflix.priam.backup;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import com.netflix.priam.TestAmazonConfiguration;
-import com.netflix.priam.TestBackupConfiguration;
-import com.netflix.priam.TestCassandraConfiguration;
-import com.netflix.priam.config.AmazonConfiguration;
-import com.netflix.priam.config.BackupConfiguration;
-import com.netflix.priam.config.CassandraConfiguration;
-import mockit.Mock;
-import mockit.Mocked;
-import mockit.Mockit;
-
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -30,8 +8,29 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.netflix.priam.TestAmazonConfiguration;
+import com.netflix.priam.TestBackupConfiguration;
+import com.netflix.priam.TestCassandraConfiguration;
 import com.netflix.priam.aws.S3FileIterator;
+import com.netflix.priam.config.AmazonConfiguration;
+import com.netflix.priam.config.BackupConfiguration;
+import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.identity.InstanceIdentity;
+import mockit.Mock;
+import mockit.Mocked;
+import mockit.Mockit;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Unit test for backup file iterator

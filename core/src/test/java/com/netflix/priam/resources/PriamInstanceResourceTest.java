@@ -1,20 +1,17 @@
 package com.netflix.priam.resources;
 
-import java.util.List;
-
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
-
 import com.google.common.collect.ImmutableList;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.identity.IPriamInstanceRegistry;
 import com.netflix.priam.identity.PriamInstance;
-
 import mockit.Expectations;
 import mockit.Mocked;
-
 import org.junit.Before;
 import org.junit.Test;
+
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;

@@ -1,17 +1,10 @@
 package com.netflix.priam.backup;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import junit.framework.Assert;
-
 import mockit.Mock;
 import mockit.Mockit;
-
 import org.apache.cassandra.tools.NodeProbe;
 import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
@@ -21,11 +14,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import com.netflix.priam.backup.IBackupFileSystem;
-import com.netflix.priam.backup.IncrementalBackup;
-import com.netflix.priam.backup.SnapshotBackup;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Unit test case to test a snapshot backup and incremental backup

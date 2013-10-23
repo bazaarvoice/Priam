@@ -13,7 +13,6 @@ import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.netflix.curator.framework.CuratorFramework;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
@@ -21,6 +20,7 @@ import com.netflix.priam.utils.JMXNodeTool;
 import com.yammer.dropwizard.config.HttpConfiguration;
 import com.yammer.dropwizard.lifecycle.Managed;
 import org.apache.cassandra.utils.FBUtilities;
+import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,25 +1,22 @@
 package com.netflix.priam.backup;
 
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.netflix.priam.aws.S3BackupPath;
+import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
+import com.netflix.priam.identity.InstanceIdentity;
+import junit.framework.Assert;
+import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.Date;
 import java.text.ParseException;
-
-import junit.framework.Assert;
-
-import org.apache.commons.io.FileUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.google.inject.Guice;
-import com.google.inject.Injector;
-import com.netflix.priam.aws.S3BackupPath;
-import com.netflix.priam.backup.AbstractBackupPath;
-import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
-import com.netflix.priam.identity.InstanceIdentity;
 
 public class TestBackupFile
 {

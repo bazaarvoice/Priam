@@ -1,8 +1,8 @@
 package com.netflix.priam.config;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 

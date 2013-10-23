@@ -1,8 +1,8 @@
 package com.netflix.priam;
 
-import java.util.List;
-
 import com.netflix.priam.identity.IMembership;
+
+import java.util.List;
 
 public class FakeMembership implements IMembership
 {

@@ -1,10 +1,9 @@
 package com.netflix.priam.backup;
 
-import java.util.Random;
-
+import com.netflix.priam.utils.Throttle;
 import org.junit.Test;
 
-import com.netflix.priam.utils.Throttle;
+import java.util.Random;
 
 public class ThrottleTest
 {
