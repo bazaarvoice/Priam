@@ -4,7 +4,7 @@ import com.google.common.base.Objects;
 
 /** Cassandra hint information returned by the "..host../v1/cassadmin/hints/ring" REST API. */
 public class HintsInfo {
-    enum State {OK, UNREACHABLE, ERROR}
+    public enum State {OK, UNREACHABLE, ERROR}
 
     private String _endpoint;
     private State _state;
