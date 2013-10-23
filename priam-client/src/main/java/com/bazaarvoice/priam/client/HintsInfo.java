@@ -15,7 +15,7 @@ public class HintsInfo {
     // When state == ERROR
     private String _exception;
 
-    /** Returns the IP address of the Cassandra server this information applies ti. */
+    /** Returns the IP address of the Cassandra server this information applies to. */
     public String getEndpoint() {
         return _endpoint;
     }
