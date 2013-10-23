@@ -2,6 +2,7 @@ package com.netflix.priam.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Singleton;
+import com.yammer.dropwizard.client.JerseyClientConfiguration;
 import com.yammer.dropwizard.config.Configuration;
 
 import javax.validation.Valid;
@@ -33,6 +34,11 @@ public class PriamConfiguration extends Configuration {
     @JsonProperty
     @NotNull
     @Valid
+    private JerseyClientConfiguration httpClient = new JerseyClientConfiguration();
+
+    @JsonProperty
+    @NotNull
+    @Valid
     private MonitoringConfiguration monitoring = new MonitoringConfiguration();
 
     @JsonProperty
@@ -55,6 +61,10 @@ public class PriamConfiguration extends Configuration {
 
     public ZooKeeperConfiguration getZooKeeperConfiguration() {
         return zooKeeper;
+    }
+
+    public JerseyClientConfiguration getHttpClientConfiguration() {
+        return httpClient;
     }
 
     public MonitoringConfiguration getMonitoringConfiguration() {

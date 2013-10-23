@@ -1,42 +1,19 @@
 package com.bazaarvoice.priam.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.yammer.dropwizard.json.ObjectMapperFactory;
 
 import java.io.IOException;
 
-public class JsonHelper {
-    private static final Logger LOG = LoggerFactory.getLogger(JsonHelper.class);
+class JsonHelper {
+    private static final ObjectMapper JSON = new ObjectMapperFactory().build();
 
-    private static final ObjectMapper JSON = new ObjectMapper();
-    public static <T> T fromJson(String string, Class<T> type) {
+    static <T> T fromJson(String string, Class<T> type) {
         try {
             return JSON.readValue(string, type);
         } catch (IOException e) {
-            LOG.error("Error deserializing json:\"{}\", to type:\"{}\"", string,type);
-            throw new AssertionError(e);
+            // Must be malformed JSON.  Other kinds of I/O errors don't get thrown when reading from a string.
+            throw new IllegalArgumentException(e.toString());
         }
     }
-
-    public static String toJson(Object obj){
-
-        try {
-            return JSON.writeValueAsString(obj);
-        } catch (IOException e) {
-            throw new AssertionError(e);
-        }
-
-    }
-
-    public static <T> T deserialized(String json, TypeReference<T> type) {
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            return mapper.readValue(json, type);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
 }
