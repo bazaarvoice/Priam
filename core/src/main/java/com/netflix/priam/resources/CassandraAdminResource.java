@@ -122,7 +122,7 @@ public class CassandraAdminResource {
             throws Exception {
         List<Map<String, Object>> ring = JMXNodeTool.instance(cassandraConfiguration).ring();
         List<Map<String, Object>> hintsInfo = Lists.newArrayList();
-
+        String selfIP = priamServer.getInstanceIdentity().getInstance().getHostIP();
         for (Map<String, Object> node : ring) {
             String endpoint = node.get("endpoint").toString();
 
@@ -135,15 +135,23 @@ public class CassandraAdminResource {
                     continue;
                 }
 
-                String url = String.format("http://%s:%s/v1/cassadmin/hints/node", endpoint,
-                        priamConfiguration.getHttpConfiguration().getPort());
-                Map<String, Object> nodeResponse = jersey.resource(url)
-                        .get(new GenericType<Map<String, Object>>() {});
-
                 Map<String, Object> fullNodeInfo = Maps.newLinkedHashMap();
+                // Do not make an outbound request to yourself
+                if (endpoint.equals(selfIP)) {
+                    Map<String, Object> nodeResponse = endpointsPendingHints();
+                    fullNodeInfo.putAll(nodeResponse);
+                }
+                else {
+                    String url = String.format("http://%s:%s/v1/cassadmin/hints/node", endpoint,
+                            priamConfiguration.getHttpConfiguration().getPort());
+                    Map<String, Object> nodeResponse = jersey.resource(url)
+                            .get(new GenericType<Map<String, Object>>() {
+                            });
+
+                    fullNodeInfo.putAll(nodeResponse);
+                }
                 fullNodeInfo.put("endpoint", endpoint);
                 fullNodeInfo.put("state", HintsState.OK);
-                fullNodeInfo.putAll(nodeResponse);
                 hintsInfo.add(fullNodeInfo);
 
             } catch (Exception e) {
@@ -166,9 +174,13 @@ public class CassandraAdminResource {
     @Path ("/hints/node")
     public Response cassHintsInNode()
             throws Exception {
+        return Response.ok(endpointsPendingHints(), MediaType.APPLICATION_JSON).build();
+    }
+
+    public Map<String, Object> endpointsPendingHints()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
-        logger.info("node tool info being called");
-        return Response.ok(ImmutableMap.of("totalEndpointsPendingHints", nodetool.totalEndpointsPendingHints()), MediaType.APPLICATION_JSON).build();
+        return ImmutableMap.<String, Object>of("totalEndpointsPendingHints", nodetool.totalEndpointsPendingHints());
     }
 
     @GET
