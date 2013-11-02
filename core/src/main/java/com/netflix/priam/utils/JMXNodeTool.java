@@ -171,7 +171,7 @@ public class JMXNodeTool extends NodeProbe {
         ObjectName name = new ObjectName("org.apache.cassandra.db:type=HintedHandoffManager");
         HintedHandOffManagerMBean hintedHandoffManager = JMX.newMBeanProxy(mbeanServerConn, name, HintedHandOffManagerMBean.class);
         long totalEndpointsPendingHints = hintedHandoffManager.listEndpointsPendingHints().size();
-        logger.info(String.format("Total total endpoints pending hints: %s", totalEndpointsPendingHints));
+        logger.info(String.format("Total endpoints pending hints: %s", totalEndpointsPendingHints));
         return totalEndpointsPendingHints;
     }
 
