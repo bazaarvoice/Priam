@@ -1,5 +1,6 @@
 package com.netflix.priam.resources;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -34,6 +35,7 @@ import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.text.DecimalFormat;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -108,6 +110,17 @@ public class CassandraAdminResource {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         logger.info("node tool info being called");
         return Response.ok(nodetool.info(), MediaType.APPLICATION_JSON).build();
+    }
+
+    @GET
+    @Path ("/estimateKeys")
+    public Response estimateKeys(@QueryParam ("keyspaces") String keyspaces)
+            throws Exception {
+        JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
+        Optional<Collection<String>> keyspaceCollection = StringUtils.isBlank(keyspaces) ?
+                Optional.<Collection<String>>absent() :
+                Optional.<Collection<String>>of(Lists.newArrayList(keyspaces.split(",")));
+        return Response.ok(nodetool.estimateKeys(keyspaceCollection), MediaType.APPLICATION_JSON).build();
     }
 
     /**
