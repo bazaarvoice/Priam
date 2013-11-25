@@ -1,6 +1,8 @@
 package com.netflix.priam.utils;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
@@ -128,21 +130,20 @@ public class JMXNodeTool extends NodeProbe {
         }.call();
     }
 
-    /**
-     * You must do the compaction before running this to remove the duplicate
-     * tokens out of the server. TODO code it.
-     */
-    @SuppressWarnings ("unchecked")
-    public Map<String, Object> estimateKeys() {
-        Iterator<Entry<String, ColumnFamilyStoreMBean>> it = super.getColumnFamilyStoreMBeanProxies();
-        Map<String, Object> object = Maps.newHashMap();
+    public List<Map<String, Object>> estimateKeys(Optional<Collection<String>> keyspaces) {
+        Iterator<Entry<String, ColumnFamilyStoreMBean>> it = getColumnFamilyStoreMBeanProxies();
+        List<Map<String, Object>> list = Lists.newArrayList();
         while (it.hasNext()) {
             Entry<String, ColumnFamilyStoreMBean> entry = it.next();
-            object.put("keyspace", entry.getKey());
-            object.put("column_family", entry.getValue().getColumnFamilyName());
-            object.put("estimated_size", entry.getValue().estimateKeys());
+            if (!keyspaces.isPresent() || keyspaces.get().contains(entry.getKey())) {
+                list.add(ImmutableMap.<String, Object>builder()
+                        .put("keyspace", entry.getKey())
+                        .put("column_family", entry.getValue().getColumnFamilyName())
+                        .put("estimated_size", entry.getValue().estimateKeys())
+                        .build());
+            }
         }
-        return object;
+        return list;
     }
 
     @SuppressWarnings ("unchecked")
@@ -302,7 +303,7 @@ public class JMXNodeTool extends NodeProbe {
     }
 
     public void refresh(List<String> keyspaces) throws IOException {
-        Iterator<Entry<String, ColumnFamilyStoreMBean>> it = super.getColumnFamilyStoreMBeanProxies();
+        Iterator<Entry<String, ColumnFamilyStoreMBean>> it = getColumnFamilyStoreMBeanProxies();
         while (it.hasNext()) {
             Entry<String, ColumnFamilyStoreMBean> entry = it.next();
             if (keyspaces.contains(entry.getKey())) {
