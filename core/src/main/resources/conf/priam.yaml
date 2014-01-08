@@ -78,6 +78,7 @@ amazon:
 
 backup:
   incrementalBackupEnabled: false                   # true if incremental backups are enabled
+  incrementalBackupEnabledForCassandra: false       # true if incremental backups are enabled for just Cassandra--Priam will not process the incremental backup files
   snapShotBackupEnabled: false
   #snapShotBackupCronTime:                          # Format: "sec min hour day-of-month month day-of-week". e.g. to run a job every sunday at 12 am, "0 0 0 ? * 1".
                                                     # For detail: http://quartz-scheduler.org/documentation/quartz-1.x/tutorials/crontrigger
