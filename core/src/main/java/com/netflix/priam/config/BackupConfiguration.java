@@ -43,6 +43,9 @@ public class BackupConfiguration {
     private boolean incrementalBackupEnabled;
 
     @JsonProperty
+    private boolean incrementalBackupEnabledForCassandra;
+
+    @JsonProperty
     private boolean multiThreadedCompaction;
 
     @JsonProperty
@@ -108,6 +111,10 @@ public class BackupConfiguration {
 
     public boolean isIncrementalBackupEnabled() {
         return incrementalBackupEnabled;
+    }
+
+    public boolean isIncrementalBackupEnabledForCassandra() {
+        return incrementalBackupEnabledForCassandra;
     }
 
     public boolean isMultiThreadedCompaction() {
@@ -185,6 +192,10 @@ public class BackupConfiguration {
 
     public void setIncrementalBackupEnabled(boolean incrementalBackupEnabled) {
         this.incrementalBackupEnabled = incrementalBackupEnabled;
+    }
+
+    public void setIncrementalBackupEnabledForCassandra(boolean incrementalBackupEnabledForCassandra) {
+        this.incrementalBackupEnabledForCassandra = incrementalBackupEnabledForCassandra;
     }
 
     public void setMultiThreadedCompaction(boolean multiThreadedCompaction) {
