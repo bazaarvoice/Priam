@@ -41,18 +41,18 @@ public class NFThinCassandraDaemon extends CassandraDaemon {
         String token = null;
         String seeds = null;
         boolean isReplace = false;
-        Integer tries = 0;
-        Integer maximumTries = 15;
+        int tries = 0;
+        int maximumTries = 15;
 
         while (true) {
             try {
+                tries++;
                 token = SystemUtils.getDataFromUrl("http://127.0.0.1:8080/v1/cassconfig/get_token");
                 seeds = SystemUtils.getDataFromUrl("http://127.0.0.1:8080/v1/cassconfig/get_seeds");
                 isReplace = Boolean.parseBoolean(SystemUtils.getDataFromUrl("http://127.0.0.1:8080/v1/cassconfig/is_replace_token"));
             } catch (Exception e) {
                 if (tries <= maximumTries) {
-                    logger.warn("Failed to obtain a token from a pre-defined list, we can not start!", e);
-                    tries++;
+                    logger.info("Failed to obtain a token from a pre-defined list, we can not start!", e);
                 } else {
                     logger.error("Failed to obtain a token from a pre-defined list after {} attempts. We cannot start!", tries, e);
                 }
