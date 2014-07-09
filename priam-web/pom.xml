@@ -33,7 +33,7 @@
         </dependency>
         <dependency>
             <groupId>com.bazaarvoice.priam</groupId>
-            <artifactId>priam-cse-extensions</artifactId>
+            <artifactId>priam-cass-extensions</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

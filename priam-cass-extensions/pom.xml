@@ -10,7 +10,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>priam-cse-extensions</artifactId>
+    <artifactId>priam-cass-extensions</artifactId>
     <packaging>jar</packaging>
 
     <name>Priam Cassandra Extensions</name>
