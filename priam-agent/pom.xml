@@ -26,7 +26,7 @@
         <!-- External dependencies -->
         <dependency>
             <groupId>com.netflix.astyanax</groupId>
-            <artifactId>astyanax</artifactId>
+            <artifactId>astyanax-thrift</artifactId>
         </dependency>
 
         <!-- Test dependencies -->
