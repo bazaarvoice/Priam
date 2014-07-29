@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
  * TODO TODO TODO: remove this.... this is a copy from 1.0 source code.
  */
 public class Throttle {
-    private static Logger logger = LoggerFactory.getLogger(Throttle.class);
+    private static final Logger logger = LoggerFactory.getLogger(Throttle.class);
 
     private final String name;
     private final ThroughputFunction fun;
@@ -79,8 +79,8 @@ public class Throttle {
         long timeToDelay = excessBytes / Math.max(1, targetBytesPerMS);
         if (timeToDelay > 0) {
             if (logger.isTraceEnabled()) {
-                logger.trace(String.format("%s actual throughput was %d bytes in %d ms: throttling for %d ms",
-                        this, bytesDelta, msSinceLast, timeToDelay));
+                logger.trace("{} actual throughput was {} bytes in {} ms: throttling for {} ms",
+                        this, bytesDelta, msSinceLast, timeToDelay);
             }
             try {
                 Thread.sleep(timeToDelay);
@@ -100,7 +100,7 @@ public class Throttle {
     public interface ThroughputFunction {
         /**
          * @return The instantaneous target throughput in bytes per millisecond. Targets less
-         *         than or equal to zero will disable throttling.
+         * than or equal to zero will disable throttling.
          */
         public int targetThroughput();
     }

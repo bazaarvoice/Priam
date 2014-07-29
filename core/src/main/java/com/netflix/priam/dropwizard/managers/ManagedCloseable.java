@@ -22,6 +22,6 @@ public class ManagedCloseable implements Managed {
 
     @Override
     public void stop() throws Exception {
-        Closeables.closeQuietly(_closeable);
+        Closeables.close(_closeable, true);
     }
 }

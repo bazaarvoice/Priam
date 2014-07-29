@@ -24,7 +24,7 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
 
     public static enum BackupFileType {
         SNAP, SST, CL, META
-    };
+    }
 
     protected BackupFileType type;
     protected String clusterName;
@@ -103,7 +103,7 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
      * Local restore file
      */
     public File newRestoreFile() {
-        StringBuffer buff = new StringBuffer();
+        StringBuilder buff = new StringBuilder();
         buff.append(cassandraConfiguration.getDataLocation()).append(PATH_SEP);
         if (type != BackupFileType.META) {
             buff.append(keyspace).append(PATH_SEP);
@@ -202,7 +202,7 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
     }
 
     public static class RafInputStream extends InputStream {
-        private RandomAccessFile raf;
+        private final RandomAccessFile raf;
 
         public RafInputStream(RandomAccessFile raf) {
             this.raf = raf;

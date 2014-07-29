@@ -222,11 +222,11 @@ public class BackupConfiguration {
         this.uploadThrottleBytesPerSec = uploadThrottleBytesPerSec;
     }
 
-    public void setSnapShotBackupEnabled (boolean snapShotBackupEnabled) {
+    public void setSnapShotBackupEnabled(boolean snapShotBackupEnabled) {
         this.snapShotBackupEnabled = snapShotBackupEnabled;
     }
 
-    public void setSnapShotBackupCronTime (String snapShotBackupCronTime) {
+    public void setSnapShotBackupCronTime(String snapShotBackupCronTime) {
         this.snapShotBackupCronTime = snapShotBackupCronTime;
     }
 

@@ -19,12 +19,10 @@ import com.netflix.priam.utils.TokenManagerProvider;
 import org.junit.Ignore;
 
 @Ignore
-public class TestModule extends AbstractModule
-{
+public class TestModule extends AbstractModule {
 
     @Override
-    protected void configure()
-    {
+    protected void configure() {
         bind(CassandraConfiguration.class).toInstance(new TestCassandraConfiguration("fake-app"));
         bind(AmazonConfiguration.class).toInstance(new TestAmazonConfiguration("fake-app", "fake-region", "az1", "fakeInstance1"));
         bind(BackupConfiguration.class).toInstance(new TestBackupConfiguration());

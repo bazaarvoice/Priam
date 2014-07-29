@@ -60,25 +60,25 @@ public class DoubleRing {
             // Move existing slots
             int slot = (priamInstance.getId() - regionOffsetHash) * 2;
             instanceRegistry.create(priamInstance.getApp(),
-                                    regionOffsetHash + slot,
-                                    priamInstance.getInstanceId(),
-                                    priamInstance.getHostName(),
-                                    priamInstance.getHostIP(),
-                                    priamInstance.getAvailabilityZone(),
-                                    priamInstance.getVolumes(),
-                                    priamInstance.getToken());
+                    regionOffsetHash + slot,
+                    priamInstance.getInstanceId(),
+                    priamInstance.getHostName(),
+                    priamInstance.getHostIP(),
+                    priamInstance.getAvailabilityZone(),
+                    priamInstance.getVolumes(),
+                    priamInstance.getToken());
 
             // Add new slots
             int newSlot = (slot + numZones) % newRingSize;
             String token = tokenManager.createToken(newSlot, newRingSize, amazonConfiguration.getRegionName());
             instanceRegistry.create(priamInstance.getApp(),
-                                    regionOffsetHash + newSlot,
-                                    "new_slot",
-                                    amazonConfiguration.getPrivateHostName(),
-                                    amazonConfiguration.getPrivateIP(),
-                                    priamInstance.getAvailabilityZone(),
-                                    null,
-                                    token);
+                    regionOffsetHash + newSlot,
+                    "new_slot",
+                    amazonConfiguration.getPrivateHostName(),
+                    amazonConfiguration.getPrivateIP(),
+                    priamInstance.getAvailabilityZone(),
+                    null,
+                    token);
         }
     }
 
@@ -103,7 +103,7 @@ public class DoubleRing {
         ObjectOutputStream stream = new ObjectOutputStream(out);
         try {
             stream.writeObject(filteredRemote(instanceRegistry.getAllIds(cassandraConfiguration.getClusterName())));
-            logger.info("Wrote the backup of the instances to: " + TMP_BACKUP_FILE.getAbsolutePath());
+            logger.info("Wrote the backup of the instances to: {}", TMP_BACKUP_FILE.getAbsolutePath());
         } finally {
             IOUtils.closeQuietly(stream);
             IOUtils.closeQuietly(out);
@@ -125,12 +125,12 @@ public class DoubleRing {
         InputStream in = new FileInputStream(TMP_BACKUP_FILE);
         ObjectInputStream stream = new ObjectInputStream(in);
         try {
-            @SuppressWarnings ("unchecked")
+            @SuppressWarnings("unchecked")
             List<PriamInstance> allInstances = (List<PriamInstance>) stream.readObject();
             for (PriamInstance data : allInstances) {
                 instanceRegistry.create(data.getApp(), data.getId(), data.getInstanceId(), data.getHostName(), data.getHostIP(), data.getAvailabilityZone(), data.getVolumes(), data.getToken());
             }
-            logger.info("Successfully restored the Instances from the backup: " + TMP_BACKUP_FILE.getAbsolutePath());
+            logger.info("Successfully restored the Instances from the backup: {}", TMP_BACKUP_FILE.getAbsolutePath());
         } finally {
             IOUtils.closeQuietly(stream);
             IOUtils.closeQuietly(in);

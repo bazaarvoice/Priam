@@ -15,7 +15,6 @@ import com.netflix.priam.utils.TokenManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -74,7 +73,7 @@ public class InstanceIdentity {
             myInstance = new GetNewToken().call();
         }
 
-        logger.info("My token: " + myInstance.getToken());
+        logger.info("My token: {}", myInstance.getToken());
     }
 
     public class GetOwnToken extends RetryableCallable<PriamInstance> {
@@ -82,7 +81,7 @@ public class InstanceIdentity {
         public PriamInstance retriableCall() throws Exception {
             // Look to see if an instance with the same instanceID is already part of the cluster.  If so, use it.
             for (PriamInstance ins : instanceRegistry.getAllIds(cassandraConfiguration.getClusterName())) {
-                logger.debug(String.format("Iterating through the hosts: %s", ins.getInstanceId()));
+                logger.debug("Iterating through the hosts: {}", ins.getInstanceId());
                 if (ins.getInstanceId().equals(amazonConfiguration.getInstanceID())) {
                     return ins;
                 }
@@ -116,7 +115,7 @@ public class InstanceIdentity {
                 logger.info("Found dead instance {} with token {}.", deadInstance.getInstanceId(), deadInstance.getToken());
                 instanceRegistry.delete(deadInstance);
 
-                logger.info("Trying to grab slot {} in availability zone {} with token {}", new Object[]{deadInstance.getId(), deadInstance.getAvailabilityZone(), deadInstance.getToken()});
+                logger.info("Trying to grab slot {} in availability zone {} with token {}", deadInstance.getId(), deadInstance.getAvailabilityZone(), deadInstance.getToken());
                 isReplace = true;
                 return instanceRegistry.create(
                         cassandraConfiguration.getClusterName(),
@@ -139,7 +138,7 @@ public class InstanceIdentity {
     public class GetNewToken extends RetryableCallable<PriamInstance> {
         @Override
         public PriamInstance retriableCall() throws Exception {
-            // Sleep random interval - upto 15 sec
+            // Sleep random interval - up to 15 sec
             sleeper.sleep(new Random().nextInt(15000));
             int hash = TokenManager.regionOffset(amazonConfiguration.getRegionName());
 
@@ -175,7 +174,7 @@ public class InstanceIdentity {
              */
 
             int maxSlot = max - hash;
-            int mySlot = 0;
+            int mySlot;
             if (hash == max && instancesByAvailabilityZoneMultiMap.get(amazonConfiguration.getAvailabilityZone()).size() == 0) {
                 // This is the first instance in the region and first instance in its availability zone.
                 mySlot = amazonConfiguration.getUsableAvailabilityZones().indexOf(amazonConfiguration.getAvailabilityZone()) + maxSlot;
@@ -199,7 +198,7 @@ public class InstanceIdentity {
         }
     }
 
-    public List<String> getSeeds() throws UnknownHostException {
+    public List<String> getSeeds() {
         populateInstancesByAvailabilityZoneMultiMap();
         List<String> seeds = new LinkedList<String>();
         // Handle single zone deployment

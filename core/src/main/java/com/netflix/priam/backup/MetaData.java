@@ -34,7 +34,7 @@ public class MetaData {
         this.fs = fs;
     }
 
-    @SuppressWarnings ("unchecked")
+    @SuppressWarnings("unchecked")
     public void set(List<AbstractBackupPath> bps, String snapshotName) throws Exception {
         File metafile = createTmpMetaFile();
         FileWriter fr = new FileWriter(metafile);
@@ -69,14 +69,14 @@ public class MetaData {
             }.call();
 
             File file = meta.newRestoreFile();
-            JSONArray jsonObj = (JSONArray) new JSONParser().parse(new FileReader(file));
-            for (int i = 0; i < jsonObj.size(); i++) {
+            JSONArray jsonArray = (JSONArray) new JSONParser().parse(new FileReader(file));
+            for (Object jsonObj : jsonArray) {
                 AbstractBackupPath p = pathFactory.get();
-                p.parseRemote((String) jsonObj.get(i));
+                p.parseRemote((String) jsonObj);
                 files.add(p);
             }
         } catch (Exception ex) {
-            logger.error("Error downloading the Meta data try with a diffrent date...", ex);
+            logger.error("Error downloading the metadata. Try with a different date...", ex);
         }
         return files;
     }

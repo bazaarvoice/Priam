@@ -5,7 +5,7 @@ import java.util.TreeSet;
 
 public class FifoQueue<E extends Comparable<E>> extends TreeSet<E> {
     private static final long serialVersionUID = -7388604551920505669L;
-    private int capacity;
+    private final int capacity;
 
     public FifoQueue(int capacity) {
         super(new Comparator<E>() {

@@ -53,13 +53,13 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
     private final CassandraConfiguration cassandraConfiguration;
     private final AmazonConfiguration amazonConfiguration;
     private final ICredential cred;
-    private Throttle throttle;
-    private CustomizedThreadPoolExecutor partUploadExecutor;
+    private final Throttle throttle;
+    private final CustomizedThreadPoolExecutor partUploadExecutor;
 
-    private AtomicLong bytesDownloaded = new AtomicLong();
-    private AtomicLong bytesUploaded = new AtomicLong();
-    private AtomicInteger uploadCount = new AtomicInteger();
-    private AtomicInteger downloadCount = new AtomicInteger();
+    private final AtomicLong bytesDownloaded = new AtomicLong();
+    private final AtomicLong bytesUploaded = new AtomicLong();
+    private final AtomicInteger uploadCount = new AtomicInteger();
+    private final AtomicInteger downloadCount = new AtomicInteger();
 
     @Inject
     public S3FileSystem(Provider<AbstractBackupPath> pathProvider, ICompression compress, final BackupConfiguration backupConfiguration, CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration, ICredential cred) {
@@ -94,7 +94,7 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
     @Override
     public void download(AbstractBackupPath path, OutputStream outputStream) throws BackupRestoreException {
         try {
-            //logger.info("Downloading " + path.getRemotePath());
+            //logger.info("Downloading {}", path.getRemotePath());
             downloadCount.incrementAndGet();
             AmazonS3 client = getS3Client();
 
@@ -122,7 +122,7 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
         if (path.getSize() > 0) {
             chunkSize = (path.getSize() / chunkSize >= MAX_CHUNKS) ? (path.getSize() / (MAX_CHUNKS - 1)) : chunkSize;
         }
-        logger.info(String.format("Uploading to %s with chunk size %d", path.getRemotePath(), chunkSize));
+        logger.info("Uploading to {} with chunk size {}", path.getRemotePath(), chunkSize);
 
         try {
             Iterator<byte[]> chunks = compress.compress(in, chunkSize);
@@ -138,7 +138,7 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
             }
             partUploadExecutor.sleepTillEmpty();
             if (partNum != partETags.size()) {
-                throw new BackupRestoreException("Number of parts(" + partNum + ")  does not match the uploaded parts(" + partETags.size() + ")");
+                throw new BackupRestoreException("Number of parts (" + partNum + ") does not match the uploaded parts (" + partETags.size() + ")");
             }
             new S3PartUploader(s3Client, initialDataPart, partETags).completeUpload();
         } catch (Exception e) {
@@ -208,12 +208,12 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
             rule.setStatus(BucketLifecycleConfiguration.ENABLED);
             rule.setId(prefix);
             rules.add(rule);
-            logger.info(String.format("Setting cleanup for %s to %d days", rule.getPrefix(), rule.getExpirationInDays()));
+            logger.info("Setting cleanup for {} to {} days", rule.getPrefix(), rule.getExpirationInDays());
         } else if (backupConfiguration.getRetentionDays() > 0) {
-            logger.info(String.format("Setting cleanup for %s to %d days", rule.getPrefix(), backupConfiguration.getRetentionDays()));
+            logger.info("Setting cleanup for {} to {} days", rule.getPrefix(), backupConfiguration.getRetentionDays());
             rule.setExpirationInDays(backupConfiguration.getRetentionDays());
         } else {
-            logger.info(String.format("Removing cleanup rule for %s", rule.getPrefix()));
+            logger.info("Removing cleanup rule for {}", rule.getPrefix());
             rules.remove(rule);
         }
         return true;
@@ -227,7 +227,7 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
      * Get S3 prefix which will be used to locate S3 files
      */
     public String getPrefix() {
-        String prefix = "";
+        String prefix;
         if (StringUtils.isNotBlank(backupConfiguration.getRestorePrefix())) {
             prefix = backupConfiguration.getRestorePrefix();
         } else {

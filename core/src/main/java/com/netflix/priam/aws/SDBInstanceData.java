@@ -60,15 +60,15 @@ public class SDBInstanceData {
     }
 
     private String getAllApplicationsQuery() {
-        return "select " + Attributes.APP_ID + " from " + simpleDbDomain;
+        return String.format("select " + Attributes.APP_ID + " from %s", simpleDbDomain);
     }
 
-    private String getAllQuery() {
-        return "select * from " + simpleDbDomain + " where " + Attributes.APP_ID + "='%s'";
+    private String getAllQuery(String appId) {
+        return String.format("select * from %s where " + Attributes.APP_ID + "='%s'", simpleDbDomain, appId);
     }
 
-    private String getInstanceQuery() {
-        return "select * from " + simpleDbDomain + " where " + Attributes.APP_ID + "='%s' and " + Attributes.ID + "='%d'";
+    private String getInstanceQuery(String appId, int id) {
+        return String.format("select * from %s where " + Attributes.APP_ID + "='%s' and " + Attributes.ID + "='%d'", simpleDbDomain, appId, id);
     }
 
     private void createDomain() {
@@ -87,7 +87,7 @@ public class SDBInstanceData {
      */
     public PriamInstance getInstance(String app, int id) {
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
-        SelectRequest request = new SelectRequest(String.format(getInstanceQuery(), app, id));
+        SelectRequest request = new SelectRequest(getInstanceQuery(app, id));
         SelectResult result = simpleDBClient.select(request);
         if (result.getItems().size() == 0) {
             return null;
@@ -107,9 +107,9 @@ public class SDBInstanceData {
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
         Set<PriamInstance> inslist = new HashSet<PriamInstance>();
         String nextToken = null;
-        String allQuery = getAllQuery();
+        String allQuery = getAllQuery(app);
         do {
-            SelectRequest request = new SelectRequest(String.format(allQuery, app));
+            SelectRequest request = new SelectRequest(allQuery);
             request.setNextToken(nextToken);
             SelectResult result = simpleDBClient.select(request);
             nextToken = result.getNextToken();
@@ -125,7 +125,6 @@ public class SDBInstanceData {
     /**
      * Create a new instance entry in SimpleDB
      *
-     * @param instance
      * @throws AmazonServiceException
      */
     public void createInstance(PriamInstance instance) throws AmazonServiceException {
@@ -138,7 +137,6 @@ public class SDBInstanceData {
     /**
      * Register a new instance. Registration will fail if a prior entry exists
      *
-     * @param instance
      * @throws AmazonServiceException
      */
     public void registerInstance(PriamInstance instance) throws AmazonServiceException {
@@ -155,7 +153,6 @@ public class SDBInstanceData {
     /**
      * Deregister instance (same as delete)
      *
-     * @param instance
      * @throws AmazonServiceException
      */
     public void deregisterInstance(PriamInstance instance) throws AmazonServiceException {
@@ -206,9 +203,6 @@ public class SDBInstanceData {
 
     /**
      * Convert a simpledb item to PriamInstance
-     *
-     * @param item
-     * @return
      */
     private PriamInstance transform(Item item) {
         PriamInstance ins = new PriamInstance();

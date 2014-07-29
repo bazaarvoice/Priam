@@ -6,10 +6,12 @@ import javax.validation.constraints.NotNull;
 
 public class MonitoringConfiguration {
 
-    @JsonProperty @NotNull
+    @JsonProperty
+    @NotNull
     private boolean defaultBadgerRegistrationState = true; // True == registered, False == not registered
 
-    @JsonProperty @NotNull
+    @JsonProperty
+    @NotNull
     private String badgerServiceName;
 
     public boolean getDefaultBadgerRegistrationState() {

@@ -18,8 +18,8 @@ import java.util.List;
 
 public class S3PartUploader extends RetryableCallable<Void> {
     private final AmazonS3 client;
-    private DataPart dataPart;
-    private List<PartETag> partETags;
+    private final DataPart dataPart;
+    private final List<PartETag> partETags;
 
     private static final Logger logger = LoggerFactory.getLogger(S3PartUploader.class);
     private static final int MAX_RETRIES = 5;
@@ -31,7 +31,7 @@ public class S3PartUploader extends RetryableCallable<Void> {
         this.partETags = partETags;
     }
 
-    private Void uploadPart() throws AmazonClientException, BackupRestoreException {
+    private void uploadPart() throws AmazonClientException, BackupRestoreException {
         UploadPartRequest req = new UploadPartRequest();
         req.setBucketName(dataPart.getBucketName());
         req.setKey(dataPart.getS3key());
@@ -52,10 +52,9 @@ public class S3PartUploader extends RetryableCallable<Void> {
 
         // Keep track of the ETags so that we can complete the request once all parts have been uploaded
         partETags.add(partETag);
-        return null;
     }
 
-    public void completeUpload() throws BackupRestoreException {
+    public void completeUpload() {
         CompleteMultipartUploadRequest compRequest = new CompleteMultipartUploadRequest(dataPart.getBucketName(), dataPart.getS3key(), dataPart.getUploadID(), partETags);
         client.completeMultipartUpload(compRequest);
     }
@@ -67,7 +66,8 @@ public class S3PartUploader extends RetryableCallable<Void> {
 
     @Override
     public Void retriableCall() throws AmazonClientException, BackupRestoreException {
-        logger.debug("Picked up part " + dataPart.getPartNo() + " size " + dataPart.getPartData().length);
-        return uploadPart();
+        logger.debug("Picked up part {} size {}", dataPart.getPartNo(), dataPart.getPartData().length);
+        uploadPart();
+        return null;
     }
 }

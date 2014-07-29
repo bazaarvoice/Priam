@@ -20,7 +20,6 @@ import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
 import java.lang.reflect.Field;
 import java.net.UnknownHostException;
@@ -70,24 +69,9 @@ public class JMXNodeTool extends NodeProbe {
         return tool;
     }
 
-    public static <T> T getRemoteBean(Class<T> clazz, String mbeanName, CassandraConfiguration config, boolean mxbean) {
-        try {
-            if (mxbean) {
-                return ManagementFactory.newPlatformMXBeanProxy(JMXNodeTool.instance(config).mbeanServerConn, mbeanName, clazz);
-            } else {
-                return JMX.newMBeanProxy(JMXNodeTool.instance(config).mbeanServerConn, new ObjectName(mbeanName), clazz);
-            }
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-        }
-        return null;
-    }
-
     /**
      * This method will test if you can connect and query something before handing over the connection,
      * This is required for our retry logic.
-     *
-     * @return
      */
     private static boolean testConnection() {
         // connecting first time hence return false.
@@ -118,12 +102,12 @@ public class JMXNodeTool extends NodeProbe {
             public JMXNodeTool retriableCall() throws Exception {
                 JMXNodeTool nodetool = new JMXNodeTool("localhost", config.getJmxPort());
                 Field fields[] = NodeProbe.class.getDeclaredFields();
-                for (int i = 0; i < fields.length; i++) {
-                    if (!fields[i].getName().equals("mbeanServerConn")) {
+                for (Field field : fields) {
+                    if (!field.getName().equals("mbeanServerConn")) {
                         continue;
                     }
-                    fields[i].setAccessible(true);
-                    nodetool.mbeanServerConn = (MBeanServerConnection) fields[i].get(nodetool);
+                    field.setAccessible(true);
+                    nodetool.mbeanServerConn = (MBeanServerConnection) field.get(nodetool);
                 }
                 return nodetool;
             }
@@ -146,7 +130,7 @@ public class JMXNodeTool extends NodeProbe {
         return list;
     }
 
-    @SuppressWarnings ("unchecked")
+    @SuppressWarnings("unchecked")
     public Map<String, Object> info() {
         logger.info("JMX info being called");
         Map<String, Object> object = Maps.newHashMap();
@@ -166,22 +150,22 @@ public class JMXNodeTool extends NodeProbe {
         return object;
     }
 
-    @SuppressWarnings ("unchecked")
+    @SuppressWarnings("unchecked")
     public long totalEndpointsPendingHints()
             throws MalformedObjectNameException {
         ObjectName name = new ObjectName("org.apache.cassandra.db:type=HintedHandoffManager");
         HintedHandOffManagerMBean hintedHandoffManager = JMX.newMBeanProxy(mbeanServerConn, name, HintedHandOffManagerMBean.class);
         long totalEndpointsPendingHints = hintedHandoffManager.listEndpointsPendingHints().size();
-        logger.info(String.format("Total endpoints pending hints: %s", totalEndpointsPendingHints));
+        logger.info("Total endpoints pending hints: {}", totalEndpointsPendingHints);
         return totalEndpointsPendingHints;
     }
 
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> ring(){
+    public List<Map<String, Object>> ring() {
         return ring(null);
     }
 
-    @SuppressWarnings ("unchecked")
+    @SuppressWarnings("unchecked")
     public List<Map<String, Object>> ring(String keyspace) {
         logger.info("JMX ring being called");
         List<Map<String, Object>> ring = Lists.newArrayList();
@@ -195,15 +179,12 @@ public class JMXNodeTool extends NodeProbe {
         Collection<String> movingNodes = getMovingNodes();
         Map<String, String> loadMap = getLoadMap();
 
-        String format = "%-16s%-12s%-12s%-7s%-8s%-16s%-20s%-44s%n";
-
         // Calculate per-token ownership of the ring
         Map<String, Float> ownerships;
         try {
-            if (Strings.isNullOrEmpty(keyspace)){
+            if (Strings.isNullOrEmpty(keyspace)) {
                 ownerships = getOwnership();
-            }
-            else {
+            } else {
                 ownerships = effectiveOwnership(keyspace);
             }
         } catch (ConfigurationException ex) {
@@ -281,10 +262,10 @@ public class JMXNodeTool extends NodeProbe {
         }
     }
 
-    public void repair(String keyspace, boolean isSequential) throws IOException, ExecutionException, InterruptedException {
+    public void repair(String keyspace, boolean isSequential) throws IOException {
         // Turns out that when a range is repaired, it is repaired on "all" replica. Therefore, it is redundant and in-efficient to do node repair on all ranges on all nodes.
         // Only repairing the primary range on each node in the cluster will repair the whole cluster
-        forceTableRepairPrimaryRange(keyspace, isSequential, new String[0]);
+        forceTableRepairPrimaryRange(keyspace, isSequential);
     }
 
     public void cleanup() throws IOException, ExecutionException, InterruptedException {
@@ -307,7 +288,7 @@ public class JMXNodeTool extends NodeProbe {
         while (it.hasNext()) {
             Entry<String, ColumnFamilyStoreMBean> entry = it.next();
             if (keyspaces.contains(entry.getKey())) {
-                logger.info("Refreshing " + entry.getKey() + " " + entry.getValue().getColumnFamilyName());
+                logger.info("Refreshing {} {}", entry.getKey(), entry.getValue().getColumnFamilyName());
                 loadNewSSTables(entry.getKey(), entry.getValue().getColumnFamilyName());
             }
         }

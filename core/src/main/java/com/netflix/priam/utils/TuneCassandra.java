@@ -19,6 +19,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
@@ -26,7 +27,6 @@ import java.util.Map;
 
 @Singleton
 public class TuneCassandra extends Task {
-    public static final String JOBNAME = "Tune-Cassandra";
     private static final Logger logger = LoggerFactory.getLogger(HintedHandOffManager.class);
 
     @Inject
@@ -40,14 +40,13 @@ public class TuneCassandra extends Task {
      * update the cassandra yaml file.
      */
     // there is no way we can have uncheck with snake's implementation.
-    @SuppressWarnings ({"unchecked", "rawtypes"})
     public static void updateYaml(CassandraConfiguration cassandraConfiguration, BackupConfiguration backupConfiguration, String availabilityZone, String yamlLocation, String hostIp, String seedProvider) throws IOException {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 
         Yaml yaml = new Yaml(options);
         File yamlFile = new File(yamlLocation);
-        Map map = (Map) yaml.load(new FileInputStream(yamlFile));
+        Map<String, Object> map = load(yaml, yamlFile);
 
         boolean enableIncremental = (backupConfiguration.isSnapShotBackupEnabled() && backupConfiguration.isIncrementalBackupEnabled())
                 && (CollectionUtils.isEmpty(backupConfiguration.getAvailabilityZonesToBackup()) || backupConfiguration.getAvailabilityZonesToBackup().contains(availabilityZone))
@@ -88,8 +87,9 @@ public class TuneCassandra extends Task {
 
         // this is only for 0.8 so check before set.
         if (null != map.get("seed_provider")) {
-            List<?> seedp = (List) map.get("seed_provider");
-            Map<String, Object> m = (Map<String, Object>) seedp.get(0);
+            @SuppressWarnings("unchecked") List<Map<String, Object>> seedp =
+                    (List<Map<String, Object>>) map.get("seed_provider");
+            Map<String, Object> m = seedp.get(0);
             m.put("class_name", seedProvider);
             m.put("parameters", ImmutableList.of(ImmutableMap.of("seeds", "127.0.0.1," + hostIp)));
         }
@@ -103,9 +103,9 @@ public class TuneCassandra extends Task {
     /**
      * Setup the cassandra 1.1 global cache values
      */
-    private static void configureGlobalCaches(CassandraConfiguration cassandraConfiguration, Map yaml) {
+    private static void configureGlobalCaches(CassandraConfiguration cassandraConfiguration, Map<String, Object> yaml) {
         final String keyCacheSize = cassandraConfiguration.getKeyCacheSizeInMB();
-        if(keyCacheSize != null) {
+        if (keyCacheSize != null) {
             yaml.put("key_cache_size_in_mb", Integer.valueOf(keyCacheSize));
             final String keyCount = cassandraConfiguration.getKeyCacheKeysToSave();
             if (keyCount != null) {
@@ -123,18 +123,21 @@ public class TuneCassandra extends Task {
         }
     }
 
-    @SuppressWarnings ("unchecked")
     public void updateYaml(boolean autobootstrap) throws IOException {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         Yaml yaml = new Yaml(options);
         File yamlFile = new File(cassandraConfiguration.getCassHome() + "/conf/cassandra.yaml");
-        @SuppressWarnings ("rawtypes")
-        Map map = (Map) yaml.load(new FileInputStream(yamlFile));
-        //Dont bootstrap in restore mode
+        Map<String, Object> map = load(yaml, yamlFile);
+        // Don't bootstrap in restore mode
         map.put("auto_bootstrap", autobootstrap);
-        logger.info("Updating yaml" + yaml.dump(map));
+        logger.info("Updating yaml {}", yaml.dump(map));
         yaml.dump(map, new FileWriter(yamlFile));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> load(Yaml yaml, File yamlFile) throws FileNotFoundException {
+        return (Map<String, Object>) yaml.load(new FileInputStream(yamlFile));
     }
 
     @Override
@@ -147,7 +150,7 @@ public class TuneCassandra extends Task {
         return "Tune-Cassandra";
     }
 
-    public String getTriggerName(){
+    public String getTriggerName() {
         return "tunecassandra-trigger";
     }
 }

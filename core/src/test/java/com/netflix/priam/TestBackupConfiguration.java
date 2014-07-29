@@ -16,7 +16,7 @@ public class TestBackupConfiguration extends BackupConfiguration {
         setIncrementalBackupEnabled(true);
         setUploadThrottleBytesPerSec(0);
         setRestoreKeyspaces(Lists.<String>newArrayList());
-        setChunkSizeMB(5*1024*1024);
+        setChunkSizeMB(5 * 1024 * 1024);
         setRestoreClosestToken(true);
         setRetentionDays(5);
         setAvailabilityZonesToBackup(Lists.<String>newArrayList());

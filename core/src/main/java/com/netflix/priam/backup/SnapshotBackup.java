@@ -22,7 +22,7 @@ import java.util.TimeZone;
  */
 @Singleton
 public class SnapshotBackup extends AbstractBackup {
-    public static String JOBNAME = "SnapshotBackup";
+    public static final String JOBNAME = "SnapshotBackup";
 
     private static final Logger logger = LoggerFactory.getLogger(SnapshotBackup.class);
     private final MetaData metaData;
@@ -42,7 +42,7 @@ public class SnapshotBackup extends AbstractBackup {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
         String snapshotName = pathFactory.get().getFormat().format(cal.getTime());
         try {
-            logger.info("Starting snapshot " + snapshotName);
+            logger.info("Starting snapshot {}", snapshotName);
             takeSnapshot(snapshotName);
             // Collect all snapshot dir's under keyspace dir's
             List<AbstractBackupPath> backupPaths = Lists.newArrayList();
@@ -62,7 +62,7 @@ public class SnapshotBackup extends AbstractBackup {
                     if (!isValidBackupDir(keyspaceDir, columnFamilyDir, snpDir)) {
                         continue;
                     }
-                    File snapshotDir = getValidSnapshot(columnFamilyDir, snpDir, snapshotName);
+                    File snapshotDir = getValidSnapshot(snpDir, snapshotName);
                     // Add files to this dir
                     if (null != snapshotDir) {
                         backupPaths.addAll(upload(snapshotDir, BackupFileType.SNAP));
@@ -71,7 +71,7 @@ public class SnapshotBackup extends AbstractBackup {
             }
             // Upload meta file
             metaData.set(backupPaths, snapshotName);
-            logger.info("Snapshot upload complete for " + snapshotName);
+            logger.info("Snapshot upload complete for {}", snapshotName);
         } finally {
             try {
                 logger.info("clearing snapshot {}", snapshotName);
@@ -82,7 +82,7 @@ public class SnapshotBackup extends AbstractBackup {
         }
     }
 
-    private File getValidSnapshot(File columnFamilyDir, File snpDir, String snapshotName) {
+    private File getValidSnapshot(File snpDir, String snapshotName) {
         for (File snapshotDir : snpDir.listFiles()) {
             if (snapshotDir.getName().matches(snapshotName)) {
                 return snapshotDir;
@@ -95,7 +95,7 @@ public class SnapshotBackup extends AbstractBackup {
         new RetryableCallable<Void>() {
             public Void retriableCall() throws Exception {
                 JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
-                nodetool.takeSnapshot(snapshotName, null, new String[0]);
+                nodetool.takeSnapshot(snapshotName, null);
                 return null;
             }
         }.call();
@@ -116,12 +116,12 @@ public class SnapshotBackup extends AbstractBackup {
         return JOBNAME;
     }
 
-    public String getTriggerName(){
+    public String getTriggerName() {
         return "snapshotbackup-trigger";
     }
 
     @Override
-    public String getCronTime(){
+    public String getCronTime() {
         return backupConfiguration.getSnapShotBackupCronTime();
     }
 

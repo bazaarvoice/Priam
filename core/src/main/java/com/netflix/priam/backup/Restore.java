@@ -31,12 +31,12 @@ public class Restore extends AbstractRestore {
     public static final String JOBNAME = "AUTO_RESTORE_JOB";
     private static final Logger logger = LoggerFactory.getLogger(Restore.class);
 
-    private CassandraConfiguration cassandraConfiguration;
-    private AmazonConfiguration amazonConfiguration;
-    private Provider<AbstractBackupPath> pathProvider;
-    private RestoreTokenSelector tokenSelector;
-    private MetaData metaData;
-    private InstanceIdentity id;
+    private final CassandraConfiguration cassandraConfiguration;
+    private final AmazonConfiguration amazonConfiguration;
+    private final Provider<AbstractBackupPath> pathProvider;
+    private final RestoreTokenSelector tokenSelector;
+    private final MetaData metaData;
+    private final InstanceIdentity id;
 
     @Inject
     public Restore(BackupConfiguration backupConfiguration, CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration, Sleeper sleeper, Provider<AbstractBackupPath> pathProvider, RestoreTokenSelector tokenSelector, MetaData metaData, InstanceIdentity id) {
@@ -52,7 +52,7 @@ public class Restore extends AbstractRestore {
     @Override
     public void execute() throws Exception {
         if (isRestoreEnabled(backupConfiguration, amazonConfiguration.getAvailabilityZone())) {
-            logger.info("Starting restore for " + backupConfiguration.getAutoRestoreSnapshotName());
+            logger.info("Starting restore for {}", backupConfiguration.getAutoRestoreSnapshotName());
             String[] restore = backupConfiguration.getAutoRestoreSnapshotName().split(",");
             AbstractBackupPath path = pathProvider.get();
             final Date startTime = path.getFormat().parse(restore[0]);
@@ -95,7 +95,7 @@ public class Restore extends AbstractRestore {
         // Try and read the Meta file.
         List<AbstractBackupPath> metas = Lists.newArrayList();
         String prefix = StringUtils.isNotBlank(backupConfiguration.getRestorePrefix()) ? backupConfiguration.getRestorePrefix() : backupConfiguration.getS3BucketName();
-        logger.info("Looking for meta file here:  " + prefix);
+        logger.info("Looking for meta file here: {}", prefix);
         Iterator<AbstractBackupPath> backupfiles = fs.list(prefix, startTime, endTime);
         while (backupfiles.hasNext()) {
             AbstractBackupPath path = backupfiles.next();
@@ -107,7 +107,7 @@ public class Restore extends AbstractRestore {
 
         Collections.sort(metas);
         AbstractBackupPath meta = Iterators.getLast(metas.iterator());
-        logger.info("Meta file for restore " + meta.getRemotePath());
+        logger.info("Meta file for restore {}", meta.getRemotePath());
 
         // Download snapshot which is listed in the meta file.
         logger.info("Downloading full snapshot");
@@ -126,7 +126,7 @@ public class Restore extends AbstractRestore {
     }
 
     public int getActiveCount() {
-        return (executor == null) ? 0 : executor.getActiveCount();
+        return executor.getActiveCount();
     }
 
     public static boolean isRestoreEnabled(BackupConfiguration conf, String availabilityZone) {

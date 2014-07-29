@@ -76,28 +76,28 @@ public class PriamServer implements Managed {
 
         // restore from backup else start cassandra.
         if (StringUtils.isNotBlank(backupConfig.getAutoRestoreSnapshotName())) {
-            scheduler.addTask(restore.getJobDetail(),restore.getTriggerToStartNow());
+            scheduler.addTask(restore.getJobDetail(), restore.getTriggerToStartNow());
         } else {
             SystemUtils.startCassandra(true, cassandraConfig, backupConfig, amazonConfig.getInstanceType()); // Start cassandra.
         }
 
         // Start the snapshot backup schedule - Always run this. (If you want to
         // set it off, set snapShotBackupEnabled: false in priam.yaml)
-         if (backupConfig.isSnapShotBackupEnabled() && (CollectionUtils.isEmpty(backupConfig.getAvailabilityZonesToBackup()) || backupConfig.getAvailabilityZonesToBackup().contains(amazonConfig.getAvailabilityZone()))) {
-             scheduler.addTask(snapshotBackup.getJobDetail(),snapshotBackup.getCronTimeTrigger());
+        if (backupConfig.isSnapShotBackupEnabled() && (CollectionUtils.isEmpty(backupConfig.getAvailabilityZonesToBackup()) || backupConfig.getAvailabilityZonesToBackup().contains(amazonConfig.getAvailabilityZone()))) {
+            scheduler.addTask(snapshotBackup.getJobDetail(), snapshotBackup.getCronTimeTrigger());
 
             // Start the Incremental backup schedule if enabled
             if (backupConfig.isIncrementalBackupEnabled()) {
-               scheduler.addTask(incrementalBackup.getJobDetail(),incrementalBackup.getTriggerToStartNowAndRepeatInMillisec());
+                scheduler.addTask(incrementalBackup.getJobDetail(), incrementalBackup.getTriggerToStartNowAndRepeatInMillis());
             }
         }
 
         //Set cleanup
-        scheduler.addTask(updateCleanupPolicy.getJobDetail(),updateCleanupPolicy.getTriggerToStartNow());
+        scheduler.addTask(updateCleanupPolicy.getJobDetail(), updateCleanupPolicy.getTriggerToStartNow());
 
         //Schedule Node Repair
-        if(cassandraConfig.isNodeRepairEnabled()){
-            scheduler.addTask(nodeRepair.getJobDetail(),nodeRepair.getCronTimeTrigger());
+        if (cassandraConfig.isNodeRepairEnabled()) {
+            scheduler.addTask(nodeRepair.getJobDetail(), nodeRepair.getCronTimeTrigger());
         }
     }
 

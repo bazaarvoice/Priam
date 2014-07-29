@@ -9,27 +9,16 @@ import java.util.List;
 public interface IMembership {
     /**
      * Get a list of Instances in the current Auto Scale Group
-     *
-     * @return
      */
-    public List<String> getAutoScaleGroupMembership();
+    List<String> getAutoScaleGroupMembership();
 
     /**
-     * @return Size of current RAC
+     * @return Size of current availability zone.
      */
-    public int getAvailabilityZoneMembershipSize();
+    int getAvailabilityZoneMembershipSize();
 
     /**
      * Number of Availability Zones
-     *
-     * @return
      */
-    public int getUsableAvailabilityZones();
-
-    /**
-     * Expand the membership size by 1.
-     *
-     * @param count
-     */
-    public void expandAvailabilityZoneMembership(int count);
+    int getUsableAvailabilityZones();
 }

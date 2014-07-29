@@ -12,7 +12,7 @@ import net.sourceforge.argparse4j.inf.Subparser;
 
 /**
  * Print simple db data for a particular cluster to stdout.
- * <p>
+ * <p/>
  * AWS credentials can be supplied via environment variables "AWS_ACCESS_KEY_ID" and "AWS_SECRET_KEY" or JVM system
  * properties "aws.accessKeyId" and "aws.secretKey" or IAM instance profiles.
  */

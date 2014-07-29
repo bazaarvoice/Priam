@@ -181,9 +181,7 @@ public class AmazonConfiguration {
                 }
             }
         } finally {
-            if (client != null) {
-                client.shutdown();
-            }
+            client.shutdown();
         }
         return null;
     }

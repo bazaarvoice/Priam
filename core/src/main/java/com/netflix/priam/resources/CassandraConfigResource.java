@@ -21,8 +21,8 @@ import java.util.List;
  * This servlet will provide the configuration API service as and when Cassandra
  * requests for it.
  */
-@Path ("/v1/cassconfig")
-@Produces (MediaType.TEXT_PLAIN)
+@Path("/v1/cassconfig")
+@Produces(MediaType.TEXT_PLAIN)
 public class CassandraConfigResource {
     private static final Logger logger = LoggerFactory.getLogger(CassandraConfigResource.class);
 
@@ -36,14 +36,14 @@ public class CassandraConfigResource {
     }
 
     @GET
-    @Path ("/get_seeds")
+    @Path("/get_seeds")
     public Response getSeeds() {
         try {
             final List<String> seeds = priamServer.getInstanceIdentity().getSeeds();
             if (CollectionUtils.isNotEmpty(seeds)) {
                 return Response.ok(StringUtils.join(seeds, ',')).build();
             }
-            logger.error("Cannot find the Seeds " + seeds);
+            logger.error("Cannot find the Seeds {}", seeds);
         } catch (Exception e) {
             logger.error("Error while executing get_seeds", e);
             return Response.serverError().build();
@@ -52,7 +52,7 @@ public class CassandraConfigResource {
     }
 
     @GET
-    @Path ("/get_token")
+    @Path("/get_token")
     public Response getToken() {
         try {
             if (StringUtils.isNotBlank(priamServer.getInstanceIdentity().getInstance().getToken())) {
@@ -68,7 +68,7 @@ public class CassandraConfigResource {
     }
 
     @GET
-    @Path ("/is_replace_token")
+    @Path("/is_replace_token")
     public Response isReplaceToken() {
         try {
             return Response.ok(String.valueOf(priamServer.getInstanceIdentity().isReplace())).build();
@@ -83,7 +83,7 @@ public class CassandraConfigResource {
      * Updates the Priam instance registry (SimpleDB) with the token currently in use by Cassandra.
      */
     @POST
-    @Path ("/update_token")
+    @Path("/update_token")
     public Response updateToken() {
         try {
             priamServer.getInstanceIdentity().updateToken();
@@ -95,7 +95,7 @@ public class CassandraConfigResource {
     }
 
     @GET
-    @Path ("/double_ring")
+    @Path("/double_ring")
     public Response doubleRing() throws IOException, ClassNotFoundException {
         try {
             doubleRing.backup();

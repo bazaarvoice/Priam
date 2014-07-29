@@ -13,12 +13,13 @@ import java.util.Iterator;
  * Uses snappy compression
  */
 public class ChunkedStream implements Iterator<byte[]> {
+    private static final int BYTES_TO_READ = 2048;
+
     private boolean hasnext = true;
-    private ByteArrayOutputStream bos;
+    private final ByteArrayOutputStream bos;
     private SnappyOutputStream compress;
-    private InputStream origin;
+    private final InputStream origin;
     private long chunkSize;
-    private static int BYTES_TO_READ = 2048;
 
     public ChunkedStream(InputStream is, long chunkSize) throws IOException {
         this.origin = is;
@@ -66,7 +67,7 @@ public class ChunkedStream implements Iterator<byte[]> {
         return return_;
     }
 
-    private byte[] returnSafe() throws IOException {
+    private byte[] returnSafe() {
         byte[] return_ = bos.toByteArray();
         bos.reset();
         return return_;

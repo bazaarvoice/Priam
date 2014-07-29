@@ -17,9 +17,9 @@ import static java.lang.String.format;
 @Singleton
 public class ServiceMonitorManager implements Managed {
 
-    private MonitoringConfiguration monitoringConfiguration;
-    private CuratorFramework curator;
-    private HttpConfiguration httpConfiguration;
+    private final MonitoringConfiguration monitoringConfiguration;
+    private final CuratorFramework curator;
+    private final HttpConfiguration httpConfiguration;
     private BadgerRegistration badgerRegistration;
 
     @Inject

@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class Task implements Job, TaskMBean {
     public State status = State.DONE;
-    private static String TRIGGER_NAME = "task-trigger";
 
     public static enum State {
         ERROR, RUNNING, DONE
@@ -51,11 +50,10 @@ public abstract class Task implements Job, TaskMBean {
         }
     }
 
-
     /**
      * This method has to be implemented and cannot throw any exception.
      */
-    public void initialize() throws ExecutionException {
+    public void initialize() {
         // nothing to initialize
     }
 
@@ -75,11 +73,11 @@ public abstract class Task implements Job, TaskMBean {
 
         } catch (Exception e) {
             status = State.ERROR;
-            logger.error("Couldn't execute the task because of " + e.getMessage(), e);
+            logger.error("Couldn't execute the task because of {}", e.toString(), e);
             errors.incrementAndGet();
         } catch (Throwable e) {
             status = State.ERROR;
-            logger.error("Couldn't execute the task because of " + e.getMessage(), e);
+            logger.error("Couldn't execute the task because of {}", e.toString(), e);
             errors.incrementAndGet();
         }
         if (status != State.ERROR) {
@@ -101,21 +99,18 @@ public abstract class Task implements Job, TaskMBean {
 
     public abstract String getName();
 
-
-    public JobDetail getJobDetail(){
-        JobDetail jobDetail = JobBuilder.newJob(getClass())
+    public JobDetail getJobDetail() {
+        return JobBuilder.newJob(getClass())
                 .withIdentity("priam-scheduler", getName())
                 .build();
-        return jobDetail;
     }
 
-    public Trigger getCronTimeTrigger(){
-        Trigger trigger = TriggerBuilder
+    public Trigger getCronTimeTrigger() {
+        return TriggerBuilder
                 .newTrigger()
                 .withIdentity("priam-scheduler", getTriggerName())
                 .withSchedule(CronScheduleBuilder.cronSchedule(getCronTime()))
                 .build();
-        return trigger;
     }
 
     public String getCronTime() {
@@ -124,28 +119,26 @@ public abstract class Task implements Job, TaskMBean {
 
     public abstract String getTriggerName();
 
-    public Trigger getTriggerToStartNow(){
-        Trigger trigger = TriggerBuilder
+    public Trigger getTriggerToStartNow() {
+        return TriggerBuilder
                 .newTrigger()
                 .withIdentity("priam-scheduler", getTriggerName())
                 .startNow()
                 .build();
-        return trigger;
     }
 
     // This method returns a trigger which schedules a job to run with interval in milliseconds.
     // If there is a requirement to schedule a job to run with interval in seconds/minutes/hours implement in the same way in this class.
-    public Trigger getTriggerToStartNowAndRepeatInMillisec(){
-        Trigger trigger = TriggerBuilder
+    public Trigger getTriggerToStartNowAndRepeatInMillis() {
+        return TriggerBuilder
                 .newTrigger()
                 .withIdentity("priam-scheduler", getTriggerName())
                 .withSchedule(SimpleScheduleBuilder.simpleSchedule().withIntervalInMilliseconds(getIntervalInMilliseconds()).repeatForever().withMisfireHandlingInstructionFireNow())
                 .build();
-        return trigger;
     }
 
     //Override this method in subclass if using repeated interval
-    public long getIntervalInMilliseconds(){
+    public long getIntervalInMilliseconds() {
         return -0L;
     }
 }

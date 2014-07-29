@@ -5,6 +5,4 @@ package com.netflix.priam.utils;
  */
 public interface Sleeper {
     void sleep(long waitTimeMs) throws InterruptedException;
-
-    ;
 }

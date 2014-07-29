@@ -37,27 +37,27 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-@Path ("/v1/backup")
-@Produces (MediaType.APPLICATION_JSON)
+@Path("/v1/backup")
+@Produces(MediaType.APPLICATION_JSON)
 public class BackupResource {
     private static final Logger logger = LoggerFactory.getLogger(BackupResource.class);
 
     private static final Map<String, String> RESULT_OK = ImmutableMap.of("result", "ok");
 
-    private IBackupFileSystem fs;
-    private Restore restoreObj;
-    private Provider<AbstractBackupPath> pathProvider;
-    private TuneCassandra tuneCassandra;
-    private SnapshotBackup snapshotBackup;
-    private IncrementalRestore incrementalRestore;
-    private IPriamInstanceRegistry instanceRegistry;
-    private TokenManager tokenManager;
-    private PriamScheduler scheduler;
-    private InstanceIdentity id;
+    private final IBackupFileSystem fs;
+    private final Restore restoreObj;
+    private final Provider<AbstractBackupPath> pathProvider;
+    private final TuneCassandra tuneCassandra;
+    private final SnapshotBackup snapshotBackup;
+    private final IncrementalRestore incrementalRestore;
+    private final IPriamInstanceRegistry instanceRegistry;
+    private final TokenManager tokenManager;
+    private final PriamScheduler scheduler;
+    private final InstanceIdentity id;
 
-    private CassandraConfiguration cassandraConfiguration;
-    private AmazonConfiguration amazonConfiguration;
-    private BackupConfiguration backupConfiguration;
+    private final CassandraConfiguration cassandraConfiguration;
+    private final AmazonConfiguration amazonConfiguration;
+    private final BackupConfiguration backupConfiguration;
 
 
     @Inject
@@ -90,19 +90,19 @@ public class BackupResource {
     }
 
     @GET
-    @Path ("/do_snapshot")
+    @Path("/do_snapshot")
     public Response backup() throws Exception {
         snapshotBackup.execute();
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
     }
 
     @GET
-    @Path ("/restore")
-    public Response restore(@QueryParam ("daterange") String daterange,
-                            @QueryParam ("region") String region,
-                            @QueryParam ("token") String token,
-                            @QueryParam ("keyspaces") String keyspaces,
-                            @QueryParam ("restoreprefix") String restorePrefix) throws Exception {
+    @Path("/restore")
+    public Response restore(@QueryParam("daterange") String daterange,
+                            @QueryParam("region") String region,
+                            @QueryParam("token") String token,
+                            @QueryParam("keyspaces") String keyspaces,
+                            @QueryParam("restoreprefix") String restorePrefix) throws Exception {
 
         Date startTime = new DateTime().minusDays(1).toDate();
         Date endTime = new DateTime().toDate();
@@ -118,21 +118,21 @@ public class BackupResource {
     }
 
     @GET
-    @Path ("/incremental_restore")
+    @Path("/incremental_restore")
     public Response restoreIncrementals() throws Exception {
-        if(! scheduler.checkIfJobIsAlreadyScheduled(incrementalRestore.getName()) ){
-            scheduler.addTask(incrementalRestore.getJobDetail(), incrementalRestore.getTriggerToStartNowAndRepeatInMillisec());
+        if (!scheduler.checkIfJobIsAlreadyScheduled(incrementalRestore.getName())) {
+            scheduler.addTask(incrementalRestore.getJobDetail(), incrementalRestore.getTriggerToStartNowAndRepeatInMillis());
         } else {
-           logger.info("incremental_restore has been already scheduled and is running in intervals");
-           return Response.ok(ImmutableMap.of("response", "incremental_restore has been already scheduled and is running in intervals"), MediaType.APPLICATION_JSON).build();
+            logger.info("incremental_restore has been already scheduled and is running in intervals");
+            return Response.ok(ImmutableMap.of("response", "incremental_restore has been already scheduled and is running in intervals"), MediaType.APPLICATION_JSON).build();
         }
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
     }
 
     @GET
-    @Path ("/list")
-    public Response list(@QueryParam ("daterange") String daterange,
-                         @QueryParam ("filter") String filter) throws Exception {
+    @Path("/list")
+    public Response list(@QueryParam("daterange") String daterange,
+                         @QueryParam("filter") String filter) throws Exception {
 
         Date startTime = new DateTime().minusDays(1).toDate();
         Date endTime = new DateTime().toDate();
@@ -157,7 +157,7 @@ public class BackupResource {
     }
 
     @GET
-    @Path ("/status")
+    @Path("/status")
     public Response status() throws Exception {
         int restoreTCount = restoreObj.getActiveCount();
         int backupTCount = fs.getActivecount();
@@ -178,8 +178,8 @@ public class BackupResource {
      * @param token     Overrides the current token with this one, if specified
      * @param region    Override the region for searching backup
      * @param startTime Start time
-     * @param endTime   End time upto which the restore should fetch data
-     * @param keyspaces Comma seperated list of keyspaces to restore
+     * @param endTime   End time up to which the restore should fetch data
+     * @param keyspaces Comma separated list of keyspaces to restore
      * @throws Exception
      */
     private void restore(String token, String region, Date startTime, Date endTime, String keyspaces, String restorePrefix) throws Exception {
@@ -199,9 +199,9 @@ public class BackupResource {
             }
             if (StringUtils.isNotBlank(region)) {
                 amazonConfiguration.setRegionName(region);
-                logger.info("Restoring from region " + region);
+                logger.info("Restoring from region {}", region);
                 id.getInstance().setToken(closestToken(id.getInstance().getToken(), region));
-                logger.info("Restore will use token " + id.getInstance().getToken());
+                logger.info("Restore will use token {}", id.getInstance().getToken());
             }
 
             setRestoreKeyspaces(keyspaces);
@@ -239,7 +239,7 @@ public class BackupResource {
         List<String> list = backupConfiguration.getRestoreKeyspaces();
         list.clear();
         if (keyspaces != null) {
-            logger.info("Restoring keyspaces: " + keyspaces);
+            logger.info("Restoring keyspaces: {}", keyspaces);
             List<String> newKeyspaces = Lists.newArrayList(keyspaces.split(","));
             list.addAll(newKeyspaces);
         }

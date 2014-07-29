@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  * Monitors the Cassandra server and adds an entry for it in ZooKeeper in the place and format expected by the BV SOA
  * {@link com.bazaarvoice.ostrich.HostDiscovery} class.  Clients are encouraged to use these entries in ZooKeeper to get
  * their initial seed lists when connecting to Cassandra.
- * <p>
+ * <p/>
  * The host discovery entry is tied to the state of the Cassandra thrift interface.  If the thrift interface is
  * disabled (eg. via "nodetool disablethrift") but the Cassandra node is left running, the entry in ZooKeeper will be
  * removed.
@@ -51,7 +51,7 @@ public class ServiceRegistryManager implements Managed {
     private final ScheduledExecutorService executor;
     private final List<ServiceEndPoint> endPoints = Lists.newArrayList();
     private ServiceRegistry zkRegistry;
-    private HttpConfiguration httpConfiguration;
+    private final HttpConfiguration httpConfiguration;
     private boolean registered;
 
     @Inject
@@ -109,7 +109,7 @@ public class ServiceRegistryManager implements Managed {
                 try {
                     update();
                 } catch (Throwable t) {
-                    logger.error("Unable to update ZooKeeper registration: " + t);
+                    logger.error("Unable to update ZooKeeper registration: {}", t);
                 }
             }
         }, 5, 10, TimeUnit.SECONDS);
@@ -143,13 +143,13 @@ public class ServiceRegistryManager implements Managed {
     }
 
     @Override
-    public synchronized void stop() {
+    public synchronized void stop() throws Exception {
         executor.shutdown();
         try {
             executor.awaitTermination(5, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             // Ignore
         }
-        Closeables.closeQuietly(zkRegistry);
+        Closeables.close(zkRegistry, true);
     }
 }

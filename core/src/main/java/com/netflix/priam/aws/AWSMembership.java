@@ -6,7 +6,6 @@ import com.amazonaws.services.autoscaling.model.AutoScalingGroup;
 import com.amazonaws.services.autoscaling.model.DescribeAutoScalingGroupsRequest;
 import com.amazonaws.services.autoscaling.model.DescribeAutoScalingGroupsResult;
 import com.amazonaws.services.autoscaling.model.Instance;
-import com.amazonaws.services.autoscaling.model.UpdateAutoScalingGroupRequest;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
@@ -15,6 +14,7 @@ import com.amazonaws.services.ec2.model.DescribeSecurityGroupsResult;
 import com.amazonaws.services.ec2.model.IpPermission;
 import com.amazonaws.services.ec2.model.RevokeSecurityGroupIngressRequest;
 import com.amazonaws.services.ec2.model.SecurityGroup;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.netflix.priam.ICredential;
@@ -61,7 +61,7 @@ public class AWSMembership implements IMembership {
                     }
                 }
             }
-            logger.info(String.format("Querying Amazon returned the following instances in the ASG: %s --> %s", amazonConfiguration.getAutoScaleGroupName(), StringUtils.join(instanceIds, ",")));
+            logger.info("Querying Amazon returned the following instances in the ASG: {} --> {}", amazonConfiguration.getAutoScaleGroupName(), StringUtils.join(instanceIds, ","));
             return instanceIds;
         } finally {
             if (client != null) {
@@ -84,7 +84,7 @@ public class AWSMembership implements IMembership {
             for (AutoScalingGroup asg : res.getAutoScalingGroups()) {
                 size += asg.getMaxSize();
             }
-            logger.info(String.format("Max size of ASG is %d instances", size));
+            logger.info("Max size of ASG is {} instances", size);
             return size;
         } finally {
             if (client != null) {
@@ -99,16 +99,16 @@ public class AWSMembership implements IMembership {
     }
 
     /**
-     * Adds a iplist to the SG.
+     * Adds an IP list to the SG.
      */
-    public void addACL(Collection<String> listIPs, int from, int to) {
+    public void addACL(Collection<String> listIPs, int fromPort, int toPort) {
         AmazonEC2 client = null;
         try {
             client = getEc2Client();
-            List<IpPermission> ipPermissions = new ArrayList<IpPermission>();
-            ipPermissions.add(new IpPermission().withFromPort(from).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(to));
+            List<IpPermission> ipPermissions = ImmutableList.of(
+                    new IpPermission().withFromPort(fromPort).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(toPort));
             client.authorizeSecurityGroupIngress(new AuthorizeSecurityGroupIngressRequest(amazonConfiguration.getSecurityGroupName(), ipPermissions));
-            logger.info("Done adding ACL to: " + StringUtils.join(listIPs, ","));
+            logger.info("Done adding ACL to: {}", StringUtils.join(listIPs, ","));
         } finally {
             if (client != null) {
                 client.shutdown();
@@ -117,14 +117,14 @@ public class AWSMembership implements IMembership {
     }
 
     /**
-     * removes a iplist from the SG
+     * Removes an IP list from the SG
      */
-    public void removeACL(Collection<String> listIPs, int from, int to) {
+    public void removeACL(Collection<String> listIPs, int fromPort, int toPort) {
         AmazonEC2 client = null;
         try {
             client = getEc2Client();
-            List<IpPermission> ipPermissions = new ArrayList<IpPermission>();
-            ipPermissions.add(new IpPermission().withFromPort(from).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(to));
+            List<IpPermission> ipPermissions = ImmutableList.of(
+                    new IpPermission().withFromPort(fromPort).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(toPort));
             client.revokeSecurityGroupIngress(new RevokeSecurityGroupIngressRequest(amazonConfiguration.getSecurityGroupName(), ipPermissions));
         } finally {
             if (client != null) {
@@ -152,27 +152,6 @@ public class AWSMembership implements IMembership {
             }
 
             return ipPermissions;
-        } finally {
-            if (client != null) {
-                client.shutdown();
-            }
-        }
-    }
-
-    @Override
-    public void expandAvailabilityZoneMembership(int count) {
-        AmazonAutoScaling client = null;
-        try {
-            client = getAutoScalingClient();
-            DescribeAutoScalingGroupsRequest asgReq = new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(amazonConfiguration.getAutoScaleGroupName());
-            DescribeAutoScalingGroupsResult res = client.describeAutoScalingGroups(asgReq);
-            AutoScalingGroup asg = res.getAutoScalingGroups().get(0);
-            UpdateAutoScalingGroupRequest ureq = new UpdateAutoScalingGroupRequest();
-            ureq.setAutoScalingGroupName(asg.getAutoScalingGroupName());
-            ureq.setMinSize(asg.getMinSize() + 1);
-            ureq.setMaxSize(asg.getMinSize() + 1);
-            ureq.setDesiredCapacity(asg.getMinSize() + 1);
-            client.updateAutoScalingGroup(ureq);
         } finally {
             if (client != null) {
                 client.shutdown();

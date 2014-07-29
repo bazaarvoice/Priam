@@ -19,8 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Ignore
-public abstract class InstanceTestUtils
-{
+public abstract class InstanceTestUtils {
 
     List<String> instances = new ArrayList<String>();
     IMembership membership;
@@ -33,8 +32,7 @@ public abstract class InstanceTestUtils
     Sleeper sleeper;
 
     @Before
-    public void setup()
-    {
+    public void setup() {
         instances.add("fakeinstance1");
         instances.add("fakeinstance2");
         instances.add("fakeinstance3");
@@ -54,8 +52,7 @@ public abstract class InstanceTestUtils
         sleeper = new FakeSleeper();
     }
 
-    public void createInstances() throws Exception
-    {
+    public void createInstances() throws Exception {
         createInstanceIdentity("az1", "fakeinstance1");
         createInstanceIdentity("az1", "fakeinstance2");
         createInstanceIdentity("az1", "fakeinstance3");
@@ -68,9 +65,8 @@ public abstract class InstanceTestUtils
         createInstanceIdentity("az3", "fakeinstance8");
         createInstanceIdentity("az3", "fakeinstance9");
     }
-    
-    protected InstanceIdentity createInstanceIdentity(String zone, String instanceId) throws Exception
-    {
+
+    protected InstanceIdentity createInstanceIdentity(String zone, String instanceId) throws Exception {
         amazonConfiguration.setAvailabilityZone(zone);
         amazonConfiguration.setInstanceID(instanceId);
         amazonConfiguration.setPrivateHostName(instanceId);

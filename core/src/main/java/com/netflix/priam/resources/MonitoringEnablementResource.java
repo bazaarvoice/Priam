@@ -19,9 +19,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 @Singleton
 @Path("/v1/monitoringenabled")
-@Produces (MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
 public class MonitoringEnablementResource {
-    @Inject private ServiceMonitorManager monitoringManager;
+    @Inject
+    private ServiceMonitorManager monitoringManager;
 
     @GET
     @Timed
@@ -30,9 +31,9 @@ public class MonitoringEnablementResource {
     }
 
     @POST
-    @Path ("/{state}")
+    @Path("/{state}")
     @Timed
-    public Map<String, Object> setState(@PathParam ("state") BooleanParam state) {
+    public Map<String, Object> setState(@PathParam("state") BooleanParam state) {
         checkNotNull(state, "state");
 
         if (state.get()) {

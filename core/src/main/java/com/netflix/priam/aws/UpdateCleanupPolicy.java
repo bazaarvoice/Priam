@@ -38,7 +38,7 @@ public class UpdateCleanupPolicy extends Task {
         return JOBNAME;
     }
 
-    public String getTriggerName(){
+    public String getTriggerName() {
         return "update-cleanup-policy-trigger";
     }
 

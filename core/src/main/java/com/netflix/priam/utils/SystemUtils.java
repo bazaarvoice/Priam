@@ -4,35 +4,25 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
-import com.google.common.primitives.Longs;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import org.apache.cassandra.config.ConfigurationException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.management.remote.JMXConnector;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FilterInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -47,7 +37,7 @@ public class SystemUtils {
     /**
      * Start Cassandra process from this co-process.
      */
-    public static void startCassandra(boolean join_ring, CassandraConfiguration cassandraConfig, BackupConfiguration backupConfig, String instanceType) throws IOException, InterruptedException {
+    public static void startCassandra(boolean join_ring, CassandraConfiguration cassandraConfig, BackupConfiguration backupConfig, String instanceType) throws IOException {
         if (isCassandraRunning(cassandraConfig)) {
             logger.info("Cassandra already running.  No need to start.");
             return;
@@ -95,7 +85,7 @@ public class SystemUtils {
                     return JMXNodeTool.instance(cassandraConfiguration).getUptime();
                 }
             });
-            return  uptimeFuture.get(5, TimeUnit.SECONDS) > 0;
+            return uptimeFuture.get(5, TimeUnit.SECONDS) > 0;
         } catch (Exception e) {
             logger.info("Unable to use JMX to determine Cassandra server status.  Assuming the server is not running...", e);
         } finally {
@@ -138,7 +128,7 @@ public class SystemUtils {
             byte[] b = new byte[2048];
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             DataInputStream d = new DataInputStream((FilterInputStream) conn.getContent());
-            int c = 0;
+            int c;
             while ((c = d.read(b, 0, b.length)) != -1) {
                 bos.write(b, 0, c);
             }
@@ -153,7 +143,7 @@ public class SystemUtils {
     }
 
     /**
-     * delete all the files/dirs in the given Directory but dont delete the dir
+     * Delete all the files/dirs in the given Directory but don't delete the dir
      * itself.
      */
     public static void cleanupDir(String dirPath, List<String> childdirs) throws IOException {
@@ -163,16 +153,6 @@ public class SystemUtils {
             for (String cdir : childdirs) {
                 FileUtils.cleanDirectory(new File(dirPath + "/" + cdir));
             }
-        }
-    }
-
-    public static void createDirs(String location) {
-        File dirFile = new File(location);
-        if (dirFile.exists() && dirFile.isFile()) {
-            dirFile.delete();
-            dirFile.mkdirs();
-        } else if (!dirFile.exists()) {
-            dirFile.mkdirs();
         }
     }
 
@@ -216,27 +196,6 @@ public class SystemUtils {
         return new String(encoded);
     }
 
-    /**
-     * copy the input to the output.
-     */
-    public static void copyAndClose(InputStream input, OutputStream output) throws IOException {
-        try {
-            IOUtils.copy(input, output);
-        } finally {
-            IOUtils.closeQuietly(input);
-            IOUtils.closeQuietly(output);
-        }
-    }
-
-    public static File[] sortByLastModifiedTime(File[] files) {
-        Arrays.sort(files, new Comparator<File>() {
-            public int compare(File file1, File file2) {
-                return Longs.compare(file2.lastModified(), file1.lastModified());
-            }
-        });
-        return files;
-    }
-
     public static void closeQuietly(JMXNodeTool tool) {
         try {
             tool.close();
@@ -245,44 +204,4 @@ public class SystemUtils {
         }
     }
 
-    public static <T> T retryForEver(RetryableCallable<T> retryableCallable) {
-        try {
-            retryableCallable.setRetries(Integer.MAX_VALUE);
-            retryableCallable.setWaitTime(1000L);
-
-            return retryableCallable.call();
-        } catch (Exception e) {
-            // this might not happen because we are trying Integer.MAX_VALUE
-            // times.
-        }
-        return null;
-    }
-
-    public static void closeQuietly(JMXConnector jmc) {
-        try {
-            jmc.close();
-        } catch (IOException e) {
-            // Do nothing.
-        }
-    }
-
-    public static Date getDayBeginTime(Date date) {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTime(date);
-        cal.set(Calendar.HOUR, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        cal.set(Calendar.MILLISECOND, 0);
-        return cal.getTime();
-    }
-
-    public static Date getDayEndTime(Date date) {
-        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        cal.setTime(date);
-        cal.set(Calendar.HOUR, 23);
-        cal.set(Calendar.MINUTE, 59);
-        cal.set(Calendar.SECOND, 59);
-        cal.set(Calendar.MILLISECOND, 0);
-        return cal.getTime();
-    }
 }

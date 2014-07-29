@@ -66,7 +66,8 @@ public class PriamGuiceModule extends AbstractModule {
         bind(ServiceRegistryManager.class).asEagerSingleton();
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     Optional<CuratorFramework> provideCurator() {
         ZooKeeperConfiguration zkConfiguration = priamConfiguration.getZooKeeperConfiguration();
         if (!zkConfiguration.isEnabled()) {
@@ -77,7 +78,8 @@ public class PriamGuiceModule extends AbstractModule {
         return Optional.of(curator);
     }
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     Client provideJerseyClient() {
         return new JerseyClientBuilder()
                 .using(priamConfiguration.getHttpClientConfiguration())

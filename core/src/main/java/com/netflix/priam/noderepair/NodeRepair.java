@@ -20,23 +20,23 @@ import java.util.concurrent.TimeUnit;
 
 @Singleton
 public final class NodeRepair extends Task {
-    public static String JOBNAME = "NodeRepair";
+    public static final String JOBNAME = "NodeRepair";
     private static final Logger logger = LoggerFactory.getLogger(NodeRepair.class);
 
-    private CassandraConfiguration cassandraConfig;
-    private Optional<CuratorFramework> curator;
-    private AmazonConfiguration amazonConfiguration;
-    private Duration nodeRepairMutexAcquireTimeOut;
+    private final CassandraConfiguration cassandraConfig;
+    private final Optional<CuratorFramework> curator;
+    private final AmazonConfiguration amazonConfiguration;
+    private final Duration nodeRepairMutexAcquireTimeOut;
 
     @Inject
-    public NodeRepair(CassandraConfiguration cassandraConfig, Optional<CuratorFramework> curator, AmazonConfiguration amazonConfiguration){
+    public NodeRepair(CassandraConfiguration cassandraConfig, Optional<CuratorFramework> curator, AmazonConfiguration amazonConfiguration) {
         this.cassandraConfig = cassandraConfig;
         this.curator = curator;
         this.amazonConfiguration = amazonConfiguration;
         this.nodeRepairMutexAcquireTimeOut = Duration.standardMinutes(cassandraConfig.getNodeRepairMutexAcquireTimeOut());
     }
 
-    public void execute()  {
+    public void execute() {
         try {
             if (!curator.isPresent()) {
                 return;
@@ -57,7 +57,7 @@ public final class NodeRepair extends Task {
                     logger.info("node repair is trying to get lock of keyspace {}, thread: {}", keyspace, Thread.currentThread().getId());
                     if (mutex.acquire(nodeRepairMutexAcquireTimeOut.getStandardMinutes(), TimeUnit.MINUTES)) {
                         logger.info("starting node repair of keyspace {}, thread: {}", keyspace, Thread.currentThread().getId());
-                        jmxNodeTool.repair(keyspace,true);
+                        jmxNodeTool.repair(keyspace, true);
                         logger.info("node repair of keyspace {} is done, thread: {}", keyspace, Thread.currentThread().getId());
                     } else {
                         logger.info("time out occurred acquiring lock for keyspace {}, thread: {}", keyspace, Thread.currentThread().getId());
@@ -78,12 +78,12 @@ public final class NodeRepair extends Task {
         }
     }
 
-    private String getMutexPath(String keyspace){
+    private String getMutexPath(String keyspace) {
         return "/applications/priam/noderepair/" + amazonConfiguration.getRegionName() + "/" + cassandraConfig.getClusterName() + "/" + keyspace;
     }
 
     @Override
-    public String getCronTime(){
+    public String getCronTime() {
         return cassandraConfig.getNodeRepairTime();
     }
 

@@ -25,8 +25,8 @@ import java.util.List;
 /**
  * Resource for manipulating priam instances.
  */
-@Path ("/v1/instances")
-@Produces (MediaType.TEXT_PLAIN)
+@Path("/v1/instances")
+@Produces(MediaType.TEXT_PLAIN)
 public class PriamInstanceResource {
     private static final Logger log = LoggerFactory.getLogger(PriamInstanceResource.class);
 
@@ -63,8 +63,8 @@ public class PriamInstanceResource {
      * @throws WebApplicationException(404) if no priam instance found with {@code id}
      */
     @GET
-    @Path ("{id}")
-    public String getInstance(@PathParam ("id") int id) {
+    @Path("{id}")
+    public String getInstance(@PathParam("id") int id) {
         PriamInstance node = getByIdIfFound(id);
         return node.toString();
     }
@@ -77,11 +77,11 @@ public class PriamInstanceResource {
      */
     @POST
     public Response createInstance(
-            @QueryParam ("id") int id, @QueryParam ("instanceID") String instanceID,
-            @QueryParam ("hostname") String hostname, @QueryParam ("ip") String ip,
-            @QueryParam ("rack") String rack, @QueryParam ("token") String token) {
+            @QueryParam("id") int id, @QueryParam("instanceID") String instanceID,
+            @QueryParam("hostname") String hostname, @QueryParam("ip") String ip,
+            @QueryParam("rack") String rack, @QueryParam("token") String token) {
         log.info("Creating instance [id={}, instanceId={}, hostname={}, ip={}, rack={}, token={}",
-                new Object[] {id, instanceID, hostname, ip, rack, token});
+                id, instanceID, hostname, ip, rack, token);
         PriamInstance instance = instanceRegistry.create(cassandraConfiguration.getClusterName(), id, instanceID, hostname, ip, rack, null, token);
         URI uri = UriBuilder.fromPath("/{id}").build(instance.getId());
         return Response.created(uri).build();
@@ -95,8 +95,8 @@ public class PriamInstanceResource {
      * @throws WebApplicationException (404) if no priam instance found with {@code id}
      */
     @DELETE
-    @Path ("{id}")
-    public Response deleteInstance(@PathParam ("id") int id) {
+    @Path("{id}")
+    public Response deleteInstance(@PathParam("id") int id) {
         PriamInstance instance = getByIdIfFound(id);
         instanceRegistry.delete(instance);
         return Response.noContent().build();

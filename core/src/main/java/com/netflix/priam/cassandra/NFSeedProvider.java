@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 public class NFSeedProvider implements SeedProvider {
-    List<InetAddress> return_ = new ArrayList<InetAddress>();
+    private final List<InetAddress> return_ = new ArrayList<InetAddress>();
 
     /**
      * Populates args with list of seeds queried from Priam

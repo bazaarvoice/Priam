@@ -10,8 +10,8 @@ public abstract class ExponentialRetryCallable<T> extends RetryableCallable<T> {
     public final static long MIN_SLEEP = 200;
 
     private static final Logger logger = LoggerFactory.getLogger(RetryableCallable.class);
-    private long max;
-    private long min;
+    private final long max;
+    private final long min;
 
     public ExponentialRetryCallable() {
         this.max = MAX_SLEEP;

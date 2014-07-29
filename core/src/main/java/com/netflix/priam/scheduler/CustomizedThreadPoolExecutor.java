@@ -14,9 +14,9 @@ public class CustomizedThreadPoolExecutor extends ThreadPoolExecutor {
     private static final long DEFAULT_SLEEP = 100;
     private static final long DEFAULT_KEEP_ALIVE = 100;
     private static final Logger logger = LoggerFactory.getLogger(CustomizedThreadPoolExecutor.class);
-    private BlockingQueue<Runnable> queue;
-    private long giveupTime;
-    private AtomicInteger active;
+    private final BlockingQueue<Runnable> queue;
+    private final long giveupTime;
+    private final AtomicInteger active;
 
     public CustomizedThreadPoolExecutor(int maximumPoolSize, BlockingQueue<Runnable> workQueue, long timeoutAdding) {
         super(maximumPoolSize, maximumPoolSize, DEFAULT_KEEP_ALIVE, TimeUnit.SECONDS, workQueue);

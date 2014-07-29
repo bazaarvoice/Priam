@@ -9,12 +9,10 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-public class InstanceIdentityTest extends InstanceTestUtils
-{
+public class InstanceIdentityTest extends InstanceTestUtils {
 
     @Test
-    public void testCreateToken() throws Exception
-    {
+    public void testCreateToken() throws Exception {
 
         identity = createInstanceIdentity("az1", "fakeinstance1");
         int hash = TokenManager.regionOffset(amazonConfiguration.getRegionName());
@@ -48,8 +46,7 @@ public class InstanceIdentityTest extends InstanceTestUtils
     }
 
     @Test
-    public void testDeadInstance() throws Exception
-    {
+    public void testDeadInstance() throws Exception {
         createInstances();
         instances.remove("fakeinstance4");
         identity = createInstanceIdentity("az2", "fakeinstancex");
@@ -58,8 +55,7 @@ public class InstanceIdentityTest extends InstanceTestUtils
     }
 
     @Test
-    public void testGetSeeds() throws Exception
-    {
+    public void testGetSeeds() throws Exception {
         createInstances();
         identity = createInstanceIdentity("az1", "fakeinstancex");
         assertEquals(2, identity.getSeeds().size());
@@ -69,27 +65,25 @@ public class InstanceIdentityTest extends InstanceTestUtils
     }
 
     @Test
-    public void testDoubleSlots() throws Exception
-    {
+    public void testDoubleSlots() throws Exception {
         createInstances();
         int before = instanceRegistry.getAllIds("fake-app").size();
         new DoubleRing(cassandraConfiguration, amazonConfiguration, instanceRegistry, tokenManager).doubleSlots();
         List<PriamInstance> lst = instanceRegistry.getAllIds(cassandraConfiguration.getClusterName());
         // sort it so it will look good if you want to print it.
         instanceRegistry.sort(lst);
-        for (int i = 0; i < lst.size(); i++)
-        {
+        for (int i = 0; i < lst.size(); i++) {
             //System.out.println(lst.get(i));
-            if (0 == i % 2)
+            if (0 == i % 2) {
                 continue;
+            }
             assertEquals("new_slot", lst.get(i).getInstanceId());
         }
         assertEquals(before * 2, lst.size());
     }
 
     @Test
-    public void testDoubleGrap() throws Exception
-    {
+    public void testDoubleGrap() throws Exception {
         createInstances();
         new DoubleRing(cassandraConfiguration, amazonConfiguration, instanceRegistry, tokenManager).doubleSlots();
         amazonConfiguration.setAvailabilityZone("az1");
@@ -99,8 +93,7 @@ public class InstanceIdentityTest extends InstanceTestUtils
         printInstance(identity.getInstance(), hash);
     }
 
-    public void printInstance(PriamInstance ins, int hash)
-    {
+    public void printInstance(PriamInstance ins, int hash) {
         //System.out.println("ID: " + (ins.getInstanceIdentity() - hash));
         //System.out.println("PayLoad: " + ins.getToken());
 

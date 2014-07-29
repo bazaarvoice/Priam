@@ -26,10 +26,10 @@ public abstract class AbstractRestore extends Task {
     // keeps track of the last few download which was executed.
     // TODO fix the magic number of 1000 => the idea of 80% of 1000 files limit per s3 query
     protected static final FifoQueue<AbstractBackupPath> tracker = new FifoQueue<AbstractBackupPath>(800);
-    private AtomicInteger count = new AtomicInteger();
+    private final AtomicInteger count = new AtomicInteger();
 
-    protected BackupConfiguration backupConfiguration;
-    protected ThreadPoolExecutor executor;
+    protected final BackupConfiguration backupConfiguration;
+    protected final ThreadPoolExecutor executor;
 
     @Inject
     protected IBackupFileSystem fs;
@@ -66,7 +66,7 @@ public abstract class AbstractRestore extends Task {
     /**
      * Download to specific location
      */
-    public void download(final AbstractBackupPath path, final File restoreLocation) throws Exception {
+    public void download(final AbstractBackupPath path, final File restoreLocation) {
         if (backupConfiguration.getRestoreKeyspaces().size() != 0
                 && (!backupConfiguration.getRestoreKeyspaces().contains(path.keyspace) || path.keyspace.equals(SYSTEM_KEYSPACE))) {
             return;
@@ -76,13 +76,13 @@ public abstract class AbstractRestore extends Task {
             @Override
             public Integer retriableCall() throws Exception {
 
-                logger.info("Downloading file: " + path);
+                logger.info("Downloading file: {}", path);
                 fs.download(path, new FileOutputStream(restoreLocation));
                 tracker.adjustAndAdd(path);
 
                 // Legitimately only want this to run when the download completes successfully - the effect of starting cassandra prematurely could involve data loss without knowing it.
                 count.decrementAndGet();
-                logger.info("Downloaded file (" + restoreLocation.length() + " bytes, " + count.get() + " files left to download):" + restoreLocation.getPath());
+                logger.info("Downloaded file ({} bytes, {} files left to download): {}", restoreLocation.length(), count.get(), restoreLocation.getPath());
 
                 return 0;
             }

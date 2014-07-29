@@ -4,9 +4,9 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
-import junit.framework.Assert;
 import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -16,19 +16,17 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
-public class TestRestore
-{
+public class TestRestore {
     private static Injector injector;
     private static FakeBackupFileSystem filesystem;
     private static ArrayList<String> fileList;
-    private static Calendar cal;    
+    private static Calendar cal;
     private static CassandraConfiguration cassandraConfiguration;
-    
+
     @BeforeClass
-    public static void setup() throws InterruptedException, IOException
-    {
+    public static void setup() throws InterruptedException, IOException {
         injector = Guice.createInjector(new BRTestModule());
-        filesystem = (FakeBackupFileSystem)injector.getInstance(IBackupFileSystem.class);
+        filesystem = (FakeBackupFileSystem) injector.getInstance(IBackupFileSystem.class);
         cassandraConfiguration = injector.getInstance(CassandraConfiguration.class);
         fileList = new ArrayList<String>();
         File cassdir = new File(cassandraConfiguration.getDataLocation());
@@ -37,13 +35,12 @@ public class TestRestore
     }
 
     @AfterClass
-    public static void cleanup() throws IOException
-    {
+    public static void cleanup() throws IOException {
         File file = new File("cass");
         FileUtils.deleteQuietly(file);
     }
 
-    public static void populateBackupFileSystem(String baseDir){
+    public static void populateBackupFileSystem(String baseDir) {
         fileList.clear();
         fileList.add(baseDir + "/fake-region/fakecluster/123456/201108110030/META/meta.json");
         fileList.add(baseDir + "/fake-region/fakecluster/123456/201108110030/SNAP/ks1/cf1/f1.db");
@@ -56,10 +53,9 @@ public class TestRestore
         filesystem.clusterName = "fakecluster";
         filesystem.setupTest(fileList);
     }
-    
+
     @Test
-    public void testRestore() throws Exception 
-    {
+    public void testRestore() throws Exception {
         populateBackupFileSystem("test_backup");
         File tmpdir = new File(cassandraConfiguration.getDataLocation() + "/test");
         tmpdir.mkdir();
@@ -81,9 +77,8 @@ public class TestRestore
     }
 
     //Pick latest file
-    @Test 
-    public void testRestoreLatest() throws Exception 
-    {
+    @Test
+    public void testRestoreLatest() throws Exception {
         populateBackupFileSystem("test_backup");
         String metafile = "test_backup/fake-region/fakecluster/123456/201108110130/META/meta.json";
         filesystem.addFile(metafile);
@@ -103,29 +98,25 @@ public class TestRestore
     }
 
     @Test
-    public void testNoSnapshots() throws Exception 
-    {
-        try {        
+    public void testNoSnapshots() throws Exception {
+        try {
             filesystem.setupTest(new ArrayList<String>());
-            Restore restore = injector.getInstance(Restore.class);            
+            Restore restore = injector.getInstance(Restore.class);
             cal.set(2011, 8, 11, 0, 30);
             Date startTime = cal.getTime();
             cal.add(Calendar.HOUR, 5);
             restore.restore(startTime, cal.getTime());
             Assert.assertFalse(true);//No exception thrown
-        }
-        catch(java.lang.ArrayIndexOutOfBoundsException e){
+        } catch (java.lang.ArrayIndexOutOfBoundsException e) {
             //We are ok
-        }
-        catch (AssertionError e) {
+        } catch (AssertionError e) {
             Assert.assertEquals("[cass_backup] No snapshots found, Restore Failed.", e.getMessage());
         }
     }
-    
-    
+
+
     @Test
-    public void testRestoreFromDiffCluster() throws Exception 
-    {
+    public void testRestoreFromDiffCluster() throws Exception {
         populateBackupFileSystem("test_backup_new");
         BackupConfiguration backupConfiguration = injector.getInstance(BackupConfiguration.class);
         backupConfiguration.setRestorePrefix("RESTOREBUCKET/test_backup_new/fake-region/fakecluster");

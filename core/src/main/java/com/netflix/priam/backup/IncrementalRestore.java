@@ -29,12 +29,14 @@ public class IncrementalRestore extends AbstractRestore {
     private static final Logger logger = LoggerFactory.getLogger(IncrementalRestore.class);
     public static final String JOBNAME = "INCR_RESTORE_THREAD";
 
+    private static final String SYSTEM_KEYSPACE = "System";
+
     /* Marked public for testing */
-    public static final Pattern SECONDRY_INDEX_PATTERN = Pattern.compile("^[a-zA-Z_0-9-]+\\.[a-zA-Z_0-9-]+\\.[a-z1-9]{2,4}$");
+    public static final Pattern SECONDARY_INDEX_PATTERN = Pattern.compile("^[a-zA-Z_0-9-]+\\.[a-zA-Z_0-9-]+\\.[a-z1-9]{2,4}$");
 
     private final File restoreDir;
-    private SSTableLoaderWrapper loader;
-    private InstanceIdentity id;
+    private final SSTableLoaderWrapper loader;
+    private final InstanceIdentity id;
 
     @Inject
     public IncrementalRestore(CassandraConfiguration cassandraConfiguration, BackupConfiguration backupConfiguration, Sleeper sleeper, SSTableLoaderWrapper loader, InstanceIdentity id) {
@@ -49,7 +51,7 @@ public class IncrementalRestore extends AbstractRestore {
         String prefix = backupConfiguration.getRestorePrefix();
         if (Strings.isNullOrEmpty(prefix)) {
             logger.error("Restore prefix is not set, skipping incremental restore to avoid looping over the incremental backups. Plz check the configurations");
-            return; // No point in restoring the files which was just backedup.
+            return; // No point in restoring the files which was just backed up.
         }
 
         if (backupConfiguration.isRestoreClosestToken()) {
@@ -68,11 +70,11 @@ public class IncrementalRestore extends AbstractRestore {
                 continue; // download SST's only.
             }
             // skip System Keyspace, else you will run into concurrent schema issues.
-            if (temp.getKeyspace().equalsIgnoreCase("System")) {
+            if (temp.getKeyspace().equalsIgnoreCase(SYSTEM_KEYSPACE)) {
                 continue;
             }
             /* Cassandra will rebuild Secondary index's after streaming is complete so we can ignore those */
-            if (SECONDRY_INDEX_PATTERN.matcher(temp.fileName).matches()) // Make this use the constant from 1.1
+            if (SECONDARY_INDEX_PATTERN.matcher(temp.fileName).matches()) // Make this use the constant from 1.1
             {
                 continue;
             }
@@ -95,12 +97,12 @@ public class IncrementalRestore extends AbstractRestore {
         return JOBNAME;
     }
 
-    public String getTriggerName(){
+    public String getTriggerName() {
         return "incremental-restore";
     }
 
     @Override
-    public long getIntervalInMilliseconds(){
+    public long getIntervalInMilliseconds() {
         return 20L * 1000;
     }
 }

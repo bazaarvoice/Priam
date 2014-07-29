@@ -33,7 +33,6 @@ public abstract class AbstractBackup extends Task {
      *
      * @param parent Parent dir
      * @param type   Type of file (META, SST, SNAP etc)
-     * @return
      * @throws Exception
      */
     protected List<AbstractBackupPath> upload(File parent, BackupFileType type) throws Exception {

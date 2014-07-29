@@ -5,8 +5,7 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.internal.StaticCredentialsProvider;
 import com.netflix.priam.ICredential;
 
-public class FakeNullCredential implements ICredential
-{
+public class FakeNullCredential implements ICredential {
     @Override
     public AWSCredentialsProvider getCredentials() {
         return new StaticCredentialsProvider(new BasicAWSCredentials("testid", "testkey"));

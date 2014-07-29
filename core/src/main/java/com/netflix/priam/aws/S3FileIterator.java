@@ -7,8 +7,6 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.Lists;
 import com.google.inject.Provider;
 import com.netflix.priam.backup.AbstractBackupPath;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Date;
 import java.util.Iterator;
@@ -18,7 +16,6 @@ import java.util.List;
  * Iterator representing list of backup files available on S3
  */
 public class S3FileIterator implements Iterator<AbstractBackupPath> {
-    private static final Logger logger = LoggerFactory.getLogger(S3FileIterator.class);
     private final Provider<AbstractBackupPath> pathProvider;
     private final AmazonS3 s3Client;
     private final Date start;
@@ -61,10 +58,10 @@ public class S3FileIterator implements Iterator<AbstractBackupPath> {
         for (S3ObjectSummary summary : objectListing.getObjectSummaries()) {
             AbstractBackupPath path = pathProvider.get();
             path.parseRemote(summary.getKey());
-            // logger.debug("New key " + summary.getKey() + " path = " + path.getRemotePath() + " " + start + " end: " + till + " my " + path.getTime());
+//            logger.debug("New key {} path = {} {} end: {} my {}", summary.getKey(), path.getRemotePath(), start, till, path.getTime());
             if ((path.getTime().after(start) && path.getTime().before(till)) || path.getTime().equals(start)) {
                 temp.add(path);
-                // logger.debug("Added key " + summary.getKey());
+//                logger.debug("Added key {}", summary.getKey());
             }
         }
         return temp.iterator();

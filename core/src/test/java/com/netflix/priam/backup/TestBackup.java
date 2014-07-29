@@ -2,12 +2,12 @@ package com.netflix.priam.backup;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import junit.framework.Assert;
 import mockit.Mock;
 import mockit.Mockit;
 import org.apache.cassandra.tools.NodeProbe;
 import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -23,70 +23,66 @@ import java.util.Set;
 
 /**
  * Unit test case to test a snapshot backup and incremental backup
- * 
+ *
  * @author Praveen Sadhu
- * 
  */
-public class TestBackup
-{
+public class TestBackup {
     private static Injector injector;
     private static FakeBackupFileSystem filesystem;
     private static final Logger logger = LoggerFactory.getLogger(TestBackup.class);
     private static Set<String> expectedFiles = new HashSet<String>();
 
     @BeforeClass
-    public static void setup() throws InterruptedException, IOException
-    {
+    public static void setup() throws InterruptedException, IOException {
         injector = Guice.createInjector(new BRTestModule());
         filesystem = (FakeBackupFileSystem) injector.getInstance(IBackupFileSystem.class);
         Mockit.setUpMock(NodeProbe.class, MockNodeProbe.class);
     }
-    
+
     @AfterClass
-    public static void cleanup() throws IOException
-    {
+    public static void cleanup() throws IOException {
         File file = new File("target/data");
         FileUtils.deleteQuietly(file);
     }
 
     @Test
-    public void testSnapshotBackup() throws Exception
-    {
+    public void testSnapshotBackup() throws Exception {
         filesystem.setupTest();
         SnapshotBackup backup = injector.getInstance(SnapshotBackup.class);
         backup.execute();
         Assert.assertEquals(3, filesystem.uploadedFiles.size());
         //System.out.println(filesystem.uploadedFiles.size());
         boolean metafile = false;
-        for (String filePath : expectedFiles)
+        for (String filePath : expectedFiles) {
             Assert.assertTrue(filesystem.uploadedFiles.contains(filePath));
-            
-        for(String filepath : filesystem.uploadedFiles){
-            if( filepath.endsWith("meta.json")){             
+        }
+
+        for (String filepath : filesystem.uploadedFiles) {
+            if (filepath.endsWith("meta.json")) {
                 metafile = true;
                 break;
             }
-        }        
+        }
         Assert.assertTrue(metafile);
     }
 
     @Test
-    public void testIncrementalBackup() throws Exception
-    {
+    public void testIncrementalBackup() throws Exception {
         filesystem.setupTest();
         generateIncrementalFiles();
         IncrementalBackup backup = injector.getInstance(IncrementalBackup.class);
         backup.execute();
         Assert.assertEquals(4, filesystem.uploadedFiles.size());
-        for (String filePath : expectedFiles)
+        for (String filePath : expectedFiles) {
             Assert.assertTrue(filesystem.uploadedFiles.contains(filePath));
+        }
     }
 
-    public static void generateIncrementalFiles()
-    {
+    public static void generateIncrementalFiles() {
         File tmp = new File("target/data/");
-        if (tmp.exists())
+        if (tmp.exists()) {
             cleanup(tmp);
+        }
         // Setup
         Set<String> files = new HashSet<String>();
         files.add("target/data/Keyspace1/Standard1/backups/Keyspace1-Standard1-ia-1-Data.db");
@@ -95,53 +91,47 @@ public class TestBackup
         files.add("target/data/Keyspace1/Standard1/backups/Keyspace1-Standard1-ia-3-Data.db");
 
         expectedFiles.clear();
-        for (String filePath : files)
-        {
+        for (String filePath : files) {
             File file = new File(filePath);
             genTestFile(file);
             expectedFiles.add(file.getAbsolutePath());
         }
     }
 
-    public static void genTestFile(File file)
-    {
-        try
-        {
+    public static void genTestFile(File file) {
+        try {
             File parent = file.getParentFile();
-            if (!parent.exists())
+            if (!parent.exists()) {
                 parent.mkdirs();
+            }
             BufferedOutputStream bos1 = new BufferedOutputStream(new FileOutputStream(file));
-            for (long i = 0; i < (5L * 1024); i++)
+            for (long i = 0; i < (5L * 1024); i++) {
                 bos1.write((byte) 8);
+            }
             bos1.flush();
             bos1.close();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
             logger.error(e.getMessage());
         }
     }
 
-    public static void cleanup(File dir)
-    {
+    public static void cleanup(File dir) {
         FileUtils.deleteQuietly(dir);
     }
 
     // Mock Nodeprobe class
     @Ignore
-    public static class MockNodeProbe
-    {
+    public static class MockNodeProbe {
         @Mock
-        public void $init(String host, int port) throws IOException, InterruptedException
-        {
+        public void $init(String host, int port) throws IOException, InterruptedException {
         }
 
         @Mock
-        public void takeSnapshot(String snapshotName, String columnFamily, String... keyspaces) throws IOException
-        {
+        public void takeSnapshot(String snapshotName, String columnFamily, String... keyspaces) throws IOException {
             File tmp = new File("target/data/");
-            if (tmp.exists())
+            if (tmp.exists()) {
                 cleanup(tmp);
+            }
             // Setup
             Set<String> files = new HashSet<String>();
             files.add("target/data/Keyspace1/Standard1/snapshots/" + snapshotName + "/Keyspace1-Standard1-ia-5-Data.db");
@@ -149,23 +139,22 @@ public class TestBackup
             files.add("target/data/Keyspace1/Standard1/snapshots/" + snapshotName + "/Keyspace1-Standard1-ia-7-Data.db");
 
             expectedFiles.clear();
-            for (String filePath : files)
-            {
+            for (String filePath : files) {
                 File file = new File(filePath);
                 genTestFile(file);
                 if (filePath.indexOf("Keyspace1-Standard1-ia-6-Data.db") == -1)// skip
+                {
                     expectedFiles.add(file.getAbsolutePath());
+                }
             }
         }
 
         @Mock
-        public void close() throws IOException
-        {
+        public void close() throws IOException {
         }
 
         @Mock
-        public void clearSnapshot(String tag, String... keyspaces) throws IOException
-        {
+        public void clearSnapshot(String tag, String... keyspaces) throws IOException {
             cleanup(new File("target/data"));
         }
     }

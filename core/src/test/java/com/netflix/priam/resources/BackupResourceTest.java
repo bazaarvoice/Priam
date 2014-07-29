@@ -37,27 +37,55 @@ import static org.junit.Assert.assertEquals;
 public class BackupResourceTest {
     private static final Map<String, String> RESULT_OK = ImmutableMap.of("result", "ok");
 
-    private @NonStrict PriamServer priamServer;
-    private @NonStrict TestCassandraConfiguration cassandraConfiguration;
-    private @NonStrict TestAmazonConfiguration amazonConfiguration;
-    private @NonStrict TestBackupConfiguration backupConfiguration;
-    private @Mocked IBackupFileSystem fs;
-    private @Mocked Restore restoreObj;
-    private @Mocked Provider<AbstractBackupPath> pathProvider;
-    private @Mocked TuneCassandra tuneCassandra;
-    private @Mocked SnapshotBackup snapshotBackup;
-    private @Mocked IncrementalRestore incrementalRestore;
-    private @Mocked IPriamInstanceRegistry instanceRegistry;
-    private @Mocked PriamScheduler priamScheduler;
-    private @Mocked InstanceIdentity id;
+    private
+    @NonStrict
+    PriamServer priamServer;
+    private
+    @NonStrict
+    TestCassandraConfiguration cassandraConfiguration;
+    private
+    @NonStrict
+    TestAmazonConfiguration amazonConfiguration;
+    private
+    @NonStrict
+    TestBackupConfiguration backupConfiguration;
+    private
+    @Mocked
+    IBackupFileSystem fs;
+    private
+    @Mocked
+    Restore restoreObj;
+    private
+    @Mocked
+    Provider<AbstractBackupPath> pathProvider;
+    private
+    @Mocked
+    TuneCassandra tuneCassandra;
+    private
+    @Mocked
+    SnapshotBackup snapshotBackup;
+    private
+    @Mocked
+    IncrementalRestore incrementalRestore;
+    private
+    @Mocked
+    IPriamInstanceRegistry instanceRegistry;
+    private
+    @Mocked
+    PriamScheduler priamScheduler;
+    private
+    @Mocked
+    InstanceIdentity id;
 
-    private @Mocked TokenManager tokenManager;
+    private
+    @Mocked
+    TokenManager tokenManager;
     private BackupResource resource;
 
     @Before
     public void setUp() {
         resource = new BackupResource(cassandraConfiguration, amazonConfiguration, backupConfiguration, fs, restoreObj, pathProvider,
-            tuneCassandra, snapshotBackup, incrementalRestore, instanceRegistry, tokenManager, priamScheduler, id);
+                tuneCassandra, snapshotBackup, incrementalRestore, instanceRegistry, tokenManager, priamScheduler, id);
     }
 
     @Test
@@ -84,18 +112,24 @@ public class BackupResourceTest {
 
         new Expectations() {
             PriamInstance instance;
-            {
-                amazonConfiguration.getRegionName(); result = oldRegion;
-                id.getInstance(); result = instance;
-                instance.getToken(); result = oldToken;
 
-                backupConfiguration.isRestoreClosestToken(); result = false;
-  
+            {
+                amazonConfiguration.getRegionName();
+                result = oldRegion;
+                id.getInstance();
+                result = instance;
+                instance.getToken();
+                result = oldToken;
+
+                backupConfiguration.isRestoreClosestToken();
+                result = false;
+
                 restoreObj.restore((Date) any, (Date) any);
 
                 amazonConfiguration.setRegionName(oldRegion);
 
-                id.getInstance(); result = instance;
+                id.getInstance();
+                result = instance;
                 instance.setToken(oldToken);
 
                 tuneCassandra.updateYaml(false);
@@ -123,23 +157,31 @@ public class BackupResourceTest {
         new Expectations() {
             PriamInstance instance;
             AbstractBackupPath backupPath;
-  
+
             {
-                pathProvider.get(); result = backupPath;
-                backupPath.getFormat(); result = AbstractBackupPath.DAY_FORMAT; times = 2;
+                pathProvider.get();
+                result = backupPath;
+                backupPath.getFormat();
+                result = AbstractBackupPath.DAY_FORMAT;
+                times = 2;
 
-                amazonConfiguration.getRegionName(); result = oldRegion;
-                id.getInstance(); result = instance;
-                instance.getToken(); result = oldToken;
+                amazonConfiguration.getRegionName();
+                result = oldRegion;
+                id.getInstance();
+                result = instance;
+                instance.getToken();
+                result = oldToken;
 
-                backupConfiguration.isRestoreClosestToken(); result = false;
+                backupConfiguration.isRestoreClosestToken();
+                result = false;
 
                 restoreObj.restore(
-                    new DateTime(2011, 01, 01, 00, 00).toDate(),
-                    new DateTime(2011, 12, 31, 23, 59).toDate());
+                        new DateTime(2011, 01, 01, 00, 00).toDate(),
+                        new DateTime(2011, 12, 31, 23, 59).toDate());
 
                 amazonConfiguration.setRegionName(oldRegion);
-                id.getInstance(); result = instance;
+                id.getInstance();
+                result = instance;
                 instance.setToken(oldToken);
                 tuneCassandra.updateYaml(false);
             }
@@ -220,19 +262,26 @@ public class BackupResourceTest {
 
         new Expectations() {
             PriamInstance instance;
+
             {
-                amazonConfiguration.getRegionName(); result = oldRegion;
-                id.getInstance(); result = instance;
-                instance.getToken(); result = oldToken;
-                id.getInstance(); result = instance;
+                amazonConfiguration.getRegionName();
+                result = oldRegion;
+                id.getInstance();
+                result = instance;
+                instance.getToken();
+                result = oldToken;
+                id.getInstance();
+                result = instance;
                 instance.setToken(newToken);
 
-                backupConfiguration.isRestoreClosestToken(); result = false;
+                backupConfiguration.isRestoreClosestToken();
+                result = false;
 
                 restoreObj.restore((Date) any, (Date) any); // TODO: test default value
 
                 amazonConfiguration.setRegionName(oldRegion);
-                id.getInstance(); result = instance;
+                id.getInstance();
+                result = instance;
                 instance.setToken(oldToken);
                 tuneCassandra.updateYaml(false);
             }
@@ -258,22 +307,29 @@ public class BackupResourceTest {
 
         new Expectations() {
             PriamInstance instance;
-            {
-                amazonConfiguration.getRegionName(); result = oldRegion;
-                id.getInstance(); result = instance;
-                instance.getToken(); result = oldToken;
 
-                backupConfiguration.isRestoreClosestToken(); result = false;
-  
+            {
+                amazonConfiguration.getRegionName();
+                result = oldRegion;
+                id.getInstance();
+                result = instance;
+                instance.getToken();
+                result = oldToken;
+
+                backupConfiguration.isRestoreClosestToken();
+                result = false;
+
                 List<String> restoreKeyspaces = Lists.newArrayList();
-                backupConfiguration.getRestoreKeyspaces(); result = restoreKeyspaces;
+                backupConfiguration.getRestoreKeyspaces();
+                result = restoreKeyspaces;
                 restoreKeyspaces.clear();
                 restoreKeyspaces.addAll(ImmutableList.of("keyspace1", "keyspace2"));
 
                 restoreObj.restore((Date) any, (Date) any);
 
                 amazonConfiguration.setRegionName(oldRegion);
-                id.getInstance(); result = instance;
+                id.getInstance();
+                result = instance;
                 instance.setToken(oldToken);
                 tuneCassandra.updateYaml(false);
             }
@@ -300,41 +356,70 @@ public class BackupResourceTest {
         final String appName = "myApp";
 
         new Expectations() {
-            @NonStrict PriamInstance instance;
-            @NonStrict PriamInstance instance1, instance2, instance3;
+            @NonStrict
+            PriamInstance instance;
+            @NonStrict
+            PriamInstance instance1
+                    ,
+                    instance2
+                    ,
+                    instance3;
             AbstractBackupPath backupPath;
 
             {
-                pathProvider.get(); result = backupPath;
-                backupPath.getFormat(); result = AbstractBackupPath.DAY_FORMAT; times = 2;
+                pathProvider.get();
+                result = backupPath;
+                backupPath.getFormat();
+                result = AbstractBackupPath.DAY_FORMAT;
+                times = 2;
 
-                amazonConfiguration.getRegionName(); result = oldRegion; times = 1;
-                id.getInstance(); result = instance;
-                instance.getToken(); result = oldToken;
-                id.getInstance(); result = instance;
+                amazonConfiguration.getRegionName();
+                result = oldRegion;
+                times = 1;
+                id.getInstance();
+                result = instance;
+                instance.getToken();
+                result = oldToken;
+                id.getInstance();
+                result = instance;
                 instance.setToken(newToken);
 
-                backupConfiguration.isRestoreClosestToken(); result = true;
-                id.getInstance(); result = instance; times = 2;
-                instance.getToken(); result = oldToken;
-                cassandraConfiguration.getClusterName(); result = appName;
-                instanceRegistry.getAllIds(appName); result = ImmutableList.of(instance, instance1, instance2, instance3);
-                instance.getRegionName();  result = oldRegion;
-                instance.getToken(); result = oldToken;
-                instance1.getRegionName(); result = oldRegion;
-                instance2.getRegionName(); result = oldRegion;
-                instance3.getRegionName(); result = oldRegion;
-                instance1.getToken(); result = "1234";
-                instance2.getToken(); result = "5678";
-                instance3.getToken(); result = "9000";
+                backupConfiguration.isRestoreClosestToken();
+                result = true;
+                id.getInstance();
+                result = instance;
+                times = 2;
+                instance.getToken();
+                result = oldToken;
+                cassandraConfiguration.getClusterName();
+                result = appName;
+                instanceRegistry.getAllIds(appName);
+                result = ImmutableList.of(instance, instance1, instance2, instance3);
+                instance.getRegionName();
+                result = oldRegion;
+                instance.getToken();
+                result = oldToken;
+                instance1.getRegionName();
+                result = oldRegion;
+                instance2.getRegionName();
+                result = oldRegion;
+                instance3.getRegionName();
+                result = oldRegion;
+                instance1.getToken();
+                result = "1234";
+                instance2.getToken();
+                result = "5678";
+                instance3.getToken();
+                result = "9000";
                 instance.setToken((String) any); // TODO: test mocked closest token
 
                 restoreObj.restore(
-                    new DateTime(2011, 01, 01, 00, 00).toDate(),
-                    new DateTime(2011, 12, 31, 23, 59).toDate());
-  
+                        new DateTime(2011, 01, 01, 00, 00).toDate(),
+                        new DateTime(2011, 12, 31, 23, 59).toDate());
+
                 amazonConfiguration.setRegionName(oldRegion);
-                id.getInstance(); result = instance;
+                id.getInstance();
+                result = instance;
                 instance.setToken(oldToken);
                 tuneCassandra.updateYaml(false);
             }
@@ -351,17 +436,28 @@ public class BackupResourceTest {
     // TODO: create CassandraController interface and inject, instead of static util method
     private Expectations expectCassandraStartup() {
         return new Expectations() {{
-            amazonConfiguration.getInstanceType(); result = "m1.xlarge";
-            cassandraConfiguration.getCassStartScript(); result = "/usr/bin/false";
-            cassandraConfiguration.getMaxNewGenHeapSize(); result = ImmutableMap.of("m1.xlarge", "2G");
-            cassandraConfiguration.getMaxHeapSize(); result = ImmutableMap.of("m1.xlarge", "8G");
-            cassandraConfiguration.getDataLocation(); result = "/var/lib/cassandra/data";
-            backupConfiguration.getCommitLogLocation(); result = "/var/lib/cassandra/commitlog";
-            backupConfiguration.getS3BaseDir(); result = "backup";
-            cassandraConfiguration.getCacheLocation(); result = "/var/lib/cassandra/saved_caches";
-            cassandraConfiguration.getHeapDumpLocation(); result = "/var/log/cassandra/heaps";
-            cassandraConfiguration.getJmxPort(); result = 7199;
-            cassandraConfiguration.getDirectMaxHeapSize(); result = ImmutableMap.of("m1.xlarge", "50G");
+            amazonConfiguration.getInstanceType();
+            result = "m1.xlarge";
+            cassandraConfiguration.getCassStartScript();
+            result = "/usr/bin/false";
+            cassandraConfiguration.getMaxNewGenHeapSize();
+            result = ImmutableMap.of("m1.xlarge", "2G");
+            cassandraConfiguration.getMaxHeapSize();
+            result = ImmutableMap.of("m1.xlarge", "8G");
+            cassandraConfiguration.getDataLocation();
+            result = "/var/lib/cassandra/data";
+            backupConfiguration.getCommitLogLocation();
+            result = "/var/lib/cassandra/commitlog";
+            backupConfiguration.getS3BaseDir();
+            result = "backup";
+            cassandraConfiguration.getCacheLocation();
+            result = "/var/lib/cassandra/saved_caches";
+            cassandraConfiguration.getHeapDumpLocation();
+            result = "/var/log/cassandra/heaps";
+            cassandraConfiguration.getJmxPort();
+            result = 7199;
+            cassandraConfiguration.getDirectMaxHeapSize();
+            result = ImmutableMap.of("m1.xlarge", "50G");
         }};
     }
 }

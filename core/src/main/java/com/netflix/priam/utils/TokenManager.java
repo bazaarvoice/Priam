@@ -6,10 +6,10 @@ public abstract class TokenManager {
     /**
      * Creates a token given the following parameter
      *
-     * @param mySlot   -- Slot where this instance has to be.
-     * @param availabilityZones -- The number of AvailabilityZones
-     * @param availabilityZoneMembershipSize  -- number of members in the availabilityZone
-     * @param region    -- name of the DC where it this token is created.
+     * @param mySlot                         -- Slot where this instance has to be.
+     * @param availabilityZones              -- The number of AvailabilityZones
+     * @param availabilityZoneMembershipSize -- number of members in the availabilityZone
+     * @param region                         -- name of the DC where it this token is created.
      */
     public String createToken(int mySlot, int availabilityZones, int availabilityZoneMembershipSize, String region) {
         return createToken(mySlot, availabilityZones * availabilityZoneMembershipSize, region);

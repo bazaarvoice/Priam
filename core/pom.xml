@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
 
@@ -135,7 +136,7 @@
                         <argument>-Xmx${exec.Xmx}</argument>
                         <argument>-XX:MaxPermSize=${exec.MaxPermSize}</argument>
                         <argument>-classpath</argument>
-                        <classpath />
+                        <classpath/>
                         <argument>com.netflix.priam.dropwizard.PriamService</argument>
                         <argument>server</argument>
                         <argument>src/main/resources/conf/priam.yaml</argument>
@@ -246,8 +247,10 @@
                                 <configuration>
                                     <transformers>
                                         <!-- collate the various META-INF/services entries in the JARs instead of overwriting them -->
-                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                        <transformer
+                                                implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                        <transformer
+                                                implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                             <mainClass>com.netflix.priam.dropwizard.PriamService</mainClass>
                                         </transformer>
                                     </transformers>
@@ -303,7 +306,9 @@
                                     <directory>/usr/share/cassandra/</directory>
                                     <sources>
                                         <source>
-                                            <location>${basedir}/target/${project.artifactId}-${project.version}-shaded.jar</location>
+                                            <location>
+                                                ${basedir}/target/${project.artifactId}-${project.version}-shaded.jar
+                                            </location>
                                         </source>
                                         <!-- Create a symbolic link without the version number for use by supervisord. -->
                                         <softlinkSource>
@@ -320,7 +325,8 @@
                                     <directory>/usr/share/cassandra/lib/</directory>
                                     <sources>
                                         <source>
-                                            <location>${basedir}/target/${project.artifactId}-${project.version}.jar</location>
+                                            <location>${basedir}/target/${project.artifactId}-${project.version}.jar
+                                            </location>
                                         </source>
                                     </sources>
                                 </mapping>

@@ -18,32 +18,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class ByteOrderedPartitionerTokenManagerTest
-{
+public class ByteOrderedPartitionerTokenManagerTest {
     @Test(expected = IllegalArgumentException.class)
-    public void initialToken_zeroSize()
-    {
+    public void initialToken_zeroSize() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("0", "ff");
         tokenManager.initialToken(0, 0, 1);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void initialToken_negativePosition()
-    {
+    public void initialToken_negativePosition() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("0", "ff");
         tokenManager.initialToken(1, -1, 1);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void initialToken_negativeOffset()
-    {
+    public void initialToken_negativeOffset() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("0", "ff");
         tokenManager.initialToken(1, 0, -1);
     }
 
     @Test
-    public void initialToken_positionZero()
-    {
+    public void initialToken_positionZero() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("0", "ff");
         assertEquals(toToken("00"), tokenManager.initialToken(1, 0, 0));
         assertEquals(toToken("00"), tokenManager.initialToken(10, 0, 0));
@@ -51,8 +46,7 @@ public class ByteOrderedPartitionerTokenManagerTest
     }
 
     @Test
-    public void initialToken_offsets_zeroPosition()
-    {
+    public void initialToken_offsets_zeroPosition() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager(new CassandraConfiguration());
         assertEquals(toToken("00000000000000000000000000000007"), tokenManager.initialToken(1, 0, 7));
         assertEquals(toToken("0000000000000000000000000000000b"), tokenManager.initialToken(2, 0, 11));
@@ -69,36 +63,32 @@ public class ByteOrderedPartitionerTokenManagerTest
     }
 
     @Test
-    public void createToken()
-    {
+    public void createToken() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager(new CassandraConfiguration());
         assertEquals(Strings.padStart(new BigInteger("ffffffffffffffffffffffffffffffff", 16)
-                .add(BigInteger.ONE)
-                .divide(BigInteger.valueOf(8 * 32))
-                .multiply(BigInteger.TEN)
-                .add(BigInteger.valueOf(TokenManager.regionOffset("region")))
-                .toString(16), 32, '0'),
+                        .add(BigInteger.ONE)
+                        .divide(BigInteger.valueOf(8 * 32))
+                        .multiply(BigInteger.TEN)
+                        .add(BigInteger.valueOf(TokenManager.regionOffset("region")))
+                        .toString(16), 32, '0'),
                 tokenManager.createToken(10, 8, 32, "region"));
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void findClosestToken_emptyTokenList()
-    {
+    public void findClosestToken_emptyTokenList() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("00", "ff");
         tokenManager.findClosestToken("0", Collections.<String>emptyList());
     }
 
     @Test
-    public void findClosestToken_singleTokenList()
-    {
+    public void findClosestToken_singleTokenList() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("00", "ff");
         assertEquals("20", tokenManager.findClosestToken("01", ImmutableList.of("20")));
         assertEquals("20", tokenManager.findClosestToken("ff", ImmutableList.of("20")));
     }
 
     @Test
-    public void findClosestToken_multipleTokenList()
-    {
+    public void findClosestToken_multipleTokenList() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("00", "ff");
         List<String> tokenList = ImmutableList.of("0010", "01", "10");
         assertEquals("0010", tokenManager.findClosestToken("0010", tokenList));
@@ -112,15 +102,13 @@ public class ByteOrderedPartitionerTokenManagerTest
     }
 
     @Test
-    public void findClosestToken_tieGoesToLargerToken()
-    {
+    public void findClosestToken_tieGoesToLargerToken() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("00", "ff");
         assertEquals("a", tokenManager.findClosestToken("5", ImmutableList.of("0", "a")));
     }
 
     @Test
-    public void test4Splits()
-    {
+    public void test4Splits() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager(new CassandraConfiguration());
         final String expectedTokens = "00,40,80,c0";
         String[] tokens = expectedTokens.split(",");
@@ -131,8 +119,7 @@ public class ByteOrderedPartitionerTokenManagerTest
     }
 
     @Test
-    public void test4SplitsWithPrefixSufficientPrecision()
-    {
+    public void test4SplitsWithPrefixSufficientPrecision() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("123456789a", "123456789b");
         final String expectedTokens = "" +
                 "123456789a000000000000000000000000000001,123456789a400000000000000000000000000001," +
@@ -145,8 +132,7 @@ public class ByteOrderedPartitionerTokenManagerTest
     }
 
     @Test
-    public void test4SplitsOffset()
-    {
+    public void test4SplitsOffset() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager(new CassandraConfiguration());
         final String expectedTokens = "" +
                 "00000000000000000000000000000001,40000000000000000000000000000001," +
@@ -159,8 +145,7 @@ public class ByteOrderedPartitionerTokenManagerTest
     }
 
     @Test
-    public void test16Splits()
-    {
+    public void test16Splits() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager(new CassandraConfiguration());
         final String expectedTokens = "00,10,20,30,40,50,60,70,80,90,a0,b0,c0,d0,e0,f0";
         String[] tokens = expectedTokens.split(",");
@@ -171,8 +156,7 @@ public class ByteOrderedPartitionerTokenManagerTest
     }
 
     @Test
-    public void regionOffset()
-    {
+    public void regionOffset() {
         String allRegions = "us-west-2,us-east,us-west,eu-east,eu-west,ap-northeast,ap-southeast";
 
         for (String region1 : allRegions.split(",")) {
@@ -187,8 +171,7 @@ public class ByteOrderedPartitionerTokenManagerTest
     }
 
     @Test
-    public void testMultiToken()
-    {
+    public void testMultiToken() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("00", "ffffffffffffffff");
 
         int h1 = TokenManager.regionOffset("vijay");

@@ -11,31 +11,27 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class FakePriamInstanceRegistry implements IPriamInstanceRegistry
-{
-    private final Map<Integer,PriamInstance> instances = Maps.newHashMap();
+public class FakePriamInstanceRegistry implements IPriamInstanceRegistry {
+    private final Map<Integer, PriamInstance> instances = Maps.newHashMap();
     private final AmazonConfiguration config;
 
     @Inject
-    public FakePriamInstanceRegistry(AmazonConfiguration config)
-    {
+    public FakePriamInstanceRegistry(AmazonConfiguration config) {
         this.config = config;
     }
 
     @Override
-    public List<PriamInstance> getAllIds(String appName)
-    {
+    public List<PriamInstance> getAllIds(String appName) {
         return new ArrayList<PriamInstance>(instances.values());
-    }
-    
-    @Override
-    public PriamInstance getInstance(String appName, int id) {
-      return instances.get(id);
     }
 
     @Override
-    public PriamInstance create(String app, int id, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String payload)
-    {
+    public PriamInstance getInstance(String appName, int id) {
+        return instances.get(id);
+    }
+
+    @Override
+    public PriamInstance create(String app, int id, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String payload) {
         PriamInstance ins = new PriamInstance();
         ins.setApp(app);
         ins.setAvailabilityZone(rac);
@@ -50,26 +46,18 @@ public class FakePriamInstanceRegistry implements IPriamInstanceRegistry
     }
 
     @Override
-    public void delete(PriamInstance inst)
-    {
+    public void delete(PriamInstance inst) {
         instances.remove(inst.getId());
     }
 
     @Override
-    public void update(PriamInstance inst)
-    {
+    public void update(PriamInstance inst) {
         instances.put(inst.getId(), inst);
     }
 
     @Override
-    public void sort(List<PriamInstance> return_)
-    {
+    public void sort(List<PriamInstance> return_) {
         Collections.sort(return_);
     }
 
-    @Override
-    public void attachVolumes(PriamInstance instance, String mountPath, String device)
-    {
-        // TODO Auto-generated method stub
-    }
 }

@@ -16,7 +16,7 @@ import java.util.Map;
 
 /**
  * SimpleDB based instance factory. Requires 'InstanceIdentity' domain to be
- * created ahead
+ * created ahead of time.
  */
 @Singleton
 public class SDBInstanceRegistry implements IPriamInstanceRegistry {
@@ -81,8 +81,4 @@ public class SDBInstanceRegistry implements IPriamInstanceRegistry {
         Collections.sort(return_);
     }
 
-    @Override
-    public void attachVolumes(PriamInstance instance, String mountPath, String device) {
-        // TODO Auto-generated method stub
-    }
 }

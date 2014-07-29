@@ -14,7 +14,7 @@ import net.sourceforge.argparse4j.inf.Subparser;
  * Copy simple db data for a particular cluster from one AWS region to another.  This can be useful when migrating a
  * live cluster that used to store simple db data in us-east-1 but now wants to store it in the local region for better
  * performance and cross-data center isolation.
- * <p>
+ * <p/>
  * AWS credentials can be supplied via environment variables "AWS_ACCESS_KEY_ID" and "AWS_SECRET_KEY" or JVM system
  * properties "aws.accessKeyId" and "aws.secretKey" or IAM instance profiles.
  */

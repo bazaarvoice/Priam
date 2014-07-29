@@ -16,34 +16,44 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class PriamInstanceResourceTest
-{
+public class PriamInstanceResourceTest {
     private static final String APP_NAME = "myApp";
     private static final int NODE_ID = 3;
 
-    private @Mocked CassandraConfiguration cassandraConfiguration;
-    private @Mocked IPriamInstanceRegistry instanceRegistry;
+    private
+    @Mocked
+    CassandraConfiguration cassandraConfiguration;
+    private
+    @Mocked
+    IPriamInstanceRegistry instanceRegistry;
     private PriamInstanceResource resource;
 
     @Before
-    public void setUp()
-    {
+    public void setUp() {
         resource = new PriamInstanceResource(cassandraConfiguration, instanceRegistry);
     }
 
     @Test
-    public void getInstances()
-    {
+    public void getInstances() {
         new Expectations() {
-            PriamInstance instance1, instance2, instance3;
+            PriamInstance instance1
+                    ,
+                    instance2
+                    ,
+                    instance3;
             List<PriamInstance> instances = ImmutableList.of(instance1, instance2, instance3);
 
             {
-                cassandraConfiguration.getClusterName(); result = APP_NAME;
-                instanceRegistry.getAllIds(APP_NAME); result = instances;
-                instance1.toString(); result = "instance1";
-                instance2.toString(); result = "instance2";
-                instance3.toString(); result = "instance3";
+                cassandraConfiguration.getClusterName();
+                result = APP_NAME;
+                instanceRegistry.getAllIds(APP_NAME);
+                result = instances;
+                instance1.toString();
+                result = "instance1";
+                instance2.toString();
+                result = "instance2";
+                instance3.toString();
+                result = "instance3";
             }
         };
 
@@ -51,16 +61,18 @@ public class PriamInstanceResourceTest
     }
 
     @Test
-    public void getInstance()
-    {
+    public void getInstance() {
         final String expected = "plain text describing the instance";
         new Expectations() {
             PriamInstance instance;
 
             {
-                cassandraConfiguration.getClusterName(); result = APP_NAME;
-                instanceRegistry.getInstance(APP_NAME, NODE_ID); result = instance;
-                instance.toString(); result = expected;
+                cassandraConfiguration.getClusterName();
+                result = APP_NAME;
+                instanceRegistry.getInstance(APP_NAME, NODE_ID);
+                result = instance;
+                instance.toString();
+                result = expected;
             }
         };
 
@@ -68,27 +80,25 @@ public class PriamInstanceResourceTest
     }
 
     @Test
-    public void getInstance_notFound()
-    {
+    public void getInstance_notFound() {
         new Expectations() {{
-            cassandraConfiguration.getClusterName(); result = APP_NAME;
-            instanceRegistry.getInstance(APP_NAME, NODE_ID); result = null;
+            cassandraConfiguration.getClusterName();
+            result = APP_NAME;
+            instanceRegistry.getInstance(APP_NAME, NODE_ID);
+            result = null;
         }};
 
-        try
-        {
+        try {
             resource.getInstance(NODE_ID);
             fail("Expected WebApplicationException thrown");
-        } catch(WebApplicationException e)
-        {
+        } catch (WebApplicationException e) {
             assertEquals(404, e.getResponse().getStatus());
             assertEquals("No priam instance with id " + NODE_ID + " found", e.getResponse().getEntity());
         }
     }
 
     @Test
-    public void createInstance()
-    {
+    public void createInstance() {
         final String instanceID = "i-abc123";
         final String hostname = "dom.com";
         final String ip = "123.123.123.123";
@@ -96,31 +106,35 @@ public class PriamInstanceResourceTest
         final String token = "1234567890";
 
         new Expectations() {
-          PriamInstance instance;
+            PriamInstance instance;
 
-          {
-              cassandraConfiguration.getClusterName(); result = APP_NAME;
-              instanceRegistry.create(APP_NAME, NODE_ID, instanceID, hostname, ip, rack, null, token); result = instance;
-              instance.getId(); result = NODE_ID;
-          }
+            {
+                cassandraConfiguration.getClusterName();
+                result = APP_NAME;
+                instanceRegistry.create(APP_NAME, NODE_ID, instanceID, hostname, ip, rack, null, token);
+                result = instance;
+                instance.getId();
+                result = NODE_ID;
+            }
         };
 
         Response response = resource.createInstance(NODE_ID, instanceID, hostname, ip, rack, token);
         assertEquals(201, response.getStatus());
-        assertEquals("/"+NODE_ID, response.getMetadata().getFirst("location").toString());
+        assertEquals("/" + NODE_ID, response.getMetadata().getFirst("location").toString());
     }
 
     @Test
-    public void deleteInstance()
-    {
+    public void deleteInstance() {
         new Expectations() {
-          PriamInstance instance;
+            PriamInstance instance;
 
-          {
-              cassandraConfiguration.getClusterName(); result = APP_NAME;
-              instanceRegistry.getInstance(APP_NAME, NODE_ID); result = instance;
-              instanceRegistry.delete(instance);
-          }
+            {
+                cassandraConfiguration.getClusterName();
+                result = APP_NAME;
+                instanceRegistry.getInstance(APP_NAME, NODE_ID);
+                result = instance;
+                instanceRegistry.delete(instance);
+            }
         };
 
         Response response = resource.deleteInstance(NODE_ID);
@@ -128,19 +142,18 @@ public class PriamInstanceResourceTest
     }
 
     @Test
-    public void deleteInstance_notFound()
-    {
+    public void deleteInstance_notFound() {
         new Expectations() {{
-            cassandraConfiguration.getClusterName(); result = APP_NAME;
-            instanceRegistry.getInstance(APP_NAME, NODE_ID); result = null;
+            cassandraConfiguration.getClusterName();
+            result = APP_NAME;
+            instanceRegistry.getInstance(APP_NAME, NODE_ID);
+            result = null;
         }};
 
-        try
-        {
+        try {
             resource.getInstance(NODE_ID);
             fail("Expected WebApplicationException thrown");
-        } catch(WebApplicationException e)
-        {
+        } catch (WebApplicationException e) {
             assertEquals(404, e.getResponse().getStatus());
             assertEquals("No priam instance with id " + NODE_ID + " found", e.getResponse().getEntity());
         }

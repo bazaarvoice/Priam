@@ -19,28 +19,31 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class CassandraConfigResourceTest
-{
-    private @Mocked PriamServer priamServer;
-    private @Mocked DoubleRing doubleRing;
+public class CassandraConfigResourceTest {
+    private
+    @Mocked
+    PriamServer priamServer;
+    private
+    @Mocked
+    DoubleRing doubleRing;
     private CassandraConfigResource resource;
 
     @Before
-    public void setUp()
-    {
+    public void setUp() {
         resource = new CassandraConfigResource(priamServer, doubleRing);
     }
 
     @Test
-    public void getSeeds() throws Exception
-    {
+    public void getSeeds() throws Exception {
         final List<String> seeds = ImmutableList.of("seed1", "seed2", "seed3");
         new NonStrictExpectations() {
             InstanceIdentity identity;
 
             {
-                priamServer.getInstanceIdentity(); result = identity;
-                identity.getSeeds(); result = seeds;
+                priamServer.getInstanceIdentity();
+                result = identity;
+                identity.getSeeds();
+                result = seeds;
             }
         };
 
@@ -50,15 +53,16 @@ public class CassandraConfigResourceTest
     }
 
     @Test
-    public void getSeeds_notFound() throws Exception
-    {
+    public void getSeeds_notFound() throws Exception {
         final List<String> seeds = ImmutableList.of();
         new NonStrictExpectations() {
             InstanceIdentity identity;
 
             {
-                priamServer.getInstanceIdentity(); result = identity;
-                identity.getSeeds(); result = seeds;
+                priamServer.getInstanceIdentity();
+                result = identity;
+                identity.getSeeds();
+                result = seeds;
             }
         };
 
@@ -67,14 +71,15 @@ public class CassandraConfigResourceTest
     }
 
     @Test
-    public void getSeeds_handlesUnknownHostException() throws Exception
-    {
+    public void getSeeds_handlesUnknownHostException() throws Exception {
         new Expectations() {
             InstanceIdentity identity;
 
             {
-                priamServer.getInstanceIdentity(); result = identity;
-                identity.getSeeds(); result = new UnknownHostException();
+                priamServer.getInstanceIdentity();
+                result = identity;
+                identity.getSeeds();
+                result = new UnknownHostException();
             }
         };
 
@@ -83,17 +88,22 @@ public class CassandraConfigResourceTest
     }
 
     @Test
-    public void getToken()
-    {
+    public void getToken() {
         final String token = "myToken";
         new NonStrictExpectations() {
             InstanceIdentity identity;
             PriamInstance instance;
 
             {
-                priamServer.getInstanceIdentity(); result = identity; times = 2;
-                identity.getInstance(); result = instance; times = 2;
-                instance.getToken(); result = token; times = 2;
+                priamServer.getInstanceIdentity();
+                result = identity;
+                times = 2;
+                identity.getInstance();
+                result = instance;
+                times = 2;
+                instance.getToken();
+                result = token;
+                times = 2;
             }
         };
 
@@ -103,17 +113,19 @@ public class CassandraConfigResourceTest
     }
 
     @Test
-    public void getToken_notFound()
-    {
+    public void getToken_notFound() {
         final String token = "";
         new NonStrictExpectations() {
             InstanceIdentity identity;
             PriamInstance instance;
 
             {
-                priamServer.getInstanceIdentity(); result = identity;
-                identity.getInstance(); result = instance;
-                instance.getToken(); result = token;
+                priamServer.getInstanceIdentity();
+                result = identity;
+                identity.getInstance();
+                result = instance;
+                instance.getToken();
+                result = token;
             }
         };
 
@@ -122,16 +134,18 @@ public class CassandraConfigResourceTest
     }
 
     @Test
-    public void getToken_handlesException()
-    {
+    public void getToken_handlesException() {
         new NonStrictExpectations() {
             InstanceIdentity identity;
             PriamInstance instance;
 
             {
-                priamServer.getInstanceIdentity(); result = identity;
-                identity.getInstance(); result = instance;
-                instance.getToken(); result = new RuntimeException();
+                priamServer.getInstanceIdentity();
+                result = identity;
+                identity.getInstance();
+                result = instance;
+                instance.getToken();
+                result = new RuntimeException();
             }
         };
 
@@ -140,14 +154,15 @@ public class CassandraConfigResourceTest
     }
 
     @Test
-    public void isReplaceToken()
-    {
+    public void isReplaceToken() {
         new NonStrictExpectations() {
             InstanceIdentity identity;
 
             {
-                priamServer.getInstanceIdentity(); result = identity;
-                identity.isReplace(); result = true;
+                priamServer.getInstanceIdentity();
+                result = identity;
+                identity.isReplace();
+                result = true;
             }
         };
 
@@ -157,14 +172,15 @@ public class CassandraConfigResourceTest
     }
 
     @Test
-    public void isReplaceToken_handlesException()
-    {
+    public void isReplaceToken_handlesException() {
         new Expectations() {
             InstanceIdentity identity;
 
             {
-                priamServer.getInstanceIdentity(); result = identity;
-                identity.isReplace(); result = new RuntimeException();
+                priamServer.getInstanceIdentity();
+                result = identity;
+                identity.isReplace();
+                result = new RuntimeException();
             }
         };
 
@@ -173,8 +189,7 @@ public class CassandraConfigResourceTest
     }
 
     @Test
-    public void doubleRing() throws Exception
-    {
+    public void doubleRing() throws Exception {
         new NonStrictExpectations() {{
             doubleRing.backup();
             doubleRing.doubleSlots();
@@ -185,42 +200,41 @@ public class CassandraConfigResourceTest
     }
 
     @Test
-    public void doubleRing_ioExceptionInBackup() throws Exception
-    {
+    public void doubleRing_ioExceptionInBackup() throws Exception {
         final IOException exception = new IOException();
         new NonStrictExpectations() {{
-            doubleRing.backup(); result = exception;
+            doubleRing.backup();
+            result = exception;
             doubleRing.restore();
         }};
 
-        try
-        {
-          resource.doubleRing();
-          fail("Excepted RuntimeException");
-        }
-        catch (RuntimeException e)
-        {
-          assertEquals(exception, e.getCause());
+        try {
+            resource.doubleRing();
+            fail("Excepted RuntimeException");
+        } catch (RuntimeException e) {
+            assertEquals(exception, e.getCause());
         }
     }
 
-    @Test(expected=IOException.class)
-    public void doubleRing_ioExceptionInRestore() throws Exception
-    {
+    @Test(expected = IOException.class)
+    public void doubleRing_ioExceptionInRestore() throws Exception {
         new NonStrictExpectations() {{
-            doubleRing.backup(); result = new IOException();
-            doubleRing.restore(); result = new IOException();
+            doubleRing.backup();
+            result = new IOException();
+            doubleRing.restore();
+            result = new IOException();
         }};
 
         resource.doubleRing();
     }
 
-    @Test(expected=ClassNotFoundException.class)
-    public void doubleRing_classNotFoundExceptionInRestore() throws Exception
-    {
+    @Test(expected = ClassNotFoundException.class)
+    public void doubleRing_classNotFoundExceptionInRestore() throws Exception {
         new NonStrictExpectations() {{
-            doubleRing.backup(); result = new IOException();
-            doubleRing.restore(); result = new ClassNotFoundException();
+            doubleRing.backup();
+            result = new IOException();
+            doubleRing.restore();
+            result = new ClassNotFoundException();
         }};
 
         resource.doubleRing();

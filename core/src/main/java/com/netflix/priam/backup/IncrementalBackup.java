@@ -29,7 +29,7 @@ public class IncrementalBackup extends AbstractBackup {
     @Override
     public void execute() throws Exception {
         File dataDir = new File(cassandraConfiguration.getDataLocation());
-        logger.debug("Scanning for backup in: " + dataDir.getAbsolutePath());
+        logger.debug("Scanning for backup in: {}", dataDir.getAbsolutePath());
         File[] keyspaceDirs = dataDir.listFiles(new FileFilter() {
             @Override
             public boolean accept(File pathname) {
@@ -54,11 +54,11 @@ public class IncrementalBackup extends AbstractBackup {
     }
 
     @Override
-    public long getIntervalInMilliseconds(){
+    public long getIntervalInMilliseconds() {
         return 10L * 1000;
     }
 
-    public String getTriggerName(){
+    public String getTriggerName() {
         return "incrementalbackup-trigger";
     }
 

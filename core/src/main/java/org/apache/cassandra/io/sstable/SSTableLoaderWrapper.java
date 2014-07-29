@@ -1,5 +1,6 @@
 package org.apache.cassandra.io.sstable;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.inject.Singleton;
@@ -18,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -26,7 +28,7 @@ import java.util.Set;
 @Singleton
 public class SSTableLoaderWrapper {
     private static final Logger logger = LoggerFactory.getLogger(SSTableLoaderWrapper.class);
-    private static Set<Component> allComponents = Sets.newHashSet(Component.COMPRESSION_INFO, Component.DATA, Component.FILTER, Component.PRIMARY_INDEX, Component.STATS, Component.DIGEST);
+    private static final Set<Component> allComponents = Sets.newHashSet(Component.COMPRESSION_INFO, Component.DATA, Component.FILTER, Component.PRIMARY_INDEX, Component.STATS, Component.DIGEST);
 
     private final OutputHandler options = new OutputHandler() {
         public void output(String msg) {
@@ -48,10 +50,8 @@ public class SSTableLoaderWrapper {
 
     /**
      * Not multi-threaded intentionally.
-     *
-     * @return
      */
-    public Collection<PendingFile> stream(File directory) throws IOException, InterruptedException {
+    public Collection<PendingFile> stream(File directory) throws UnknownHostException {
         Client client = new Client() {
             public boolean validateColumnFamily(String keyspace, String cfName) {
                 return true;
@@ -64,12 +64,12 @@ public class SSTableLoaderWrapper {
         Collection<PendingFile> pendingFiles = Lists.newArrayList();
         for (SSTableReader sstable : loader.openSSTables()) {
             Descriptor desc = sstable.descriptor;
-            List<Pair<Long, Long>> sections = Lists.newArrayList(new Pair<Long, Long>(0L, sstable.onDiskLength()));
+            List<Pair<Long, Long>> sections = ImmutableList.of(new Pair<Long, Long>(0L, sstable.onDiskLength()));
             PendingFile pending = new PendingFile(sstable, desc, SSTable.COMPONENT_DATA, sections, OperationType.BULK_LOAD, sstable.estimatedKeys());
             StreamHeader header = new StreamHeader(directory.getName(), System.nanoTime(), pending, Collections.singleton(pending));
             logger.info("Streaming to {}", InetAddress.getLocalHost());
             new FileStreamTask(header, InetAddress.getLocalHost()).run();
-            logger.info("Done Streaming: " + pending.toString());
+            logger.info("Done Streaming: {}", pending);
             sstable.releaseReference();
             pendingFiles.add(pending);
         }
@@ -77,7 +77,7 @@ public class SSTableLoaderWrapper {
     }
 
     public void deleteCompleted(Collection<PendingFile> sstables) throws IOException {
-        logger.info("Restored SST's Now Deleting: " + StringUtils.join(sstables, ","));
+        logger.info("Restored SST's Now Deleting: {}", StringUtils.join(sstables, ","));
         for (PendingFile file : sstables) {
             for (Component component : allComponents) {
                 FileUtils.delete(file.sstable.descriptor.filenameFor(component));
