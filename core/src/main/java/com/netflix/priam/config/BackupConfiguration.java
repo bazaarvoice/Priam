@@ -34,19 +34,28 @@ public class BackupConfiguration {
     private String s3BaseDir;
 
     @JsonProperty
-    private boolean commitLogEnabled;
+    private boolean commitLogBackupEnabled;
 
     @JsonProperty
     private String commitLogLocation;
+
+    @JsonProperty
+    private String commitLogBackupArchiveCmd;
+
+    @JsonProperty
+    private String commitLogBackupRestoreCmd;
+
+    @JsonProperty
+    private String commitLogBackupRestoreFromDirs;
+
+    @JsonProperty
+    private String commitLogBackupRestorePointInTime;
 
     @JsonProperty
     private boolean incrementalBackupEnabled;
 
     @JsonProperty
     private boolean incrementalBackupEnabledForCassandra;
-
-    @JsonProperty
-    private boolean multiThreadedCompaction;
 
     @JsonProperty
     private boolean restoreClosestToken;
@@ -56,9 +65,6 @@ public class BackupConfiguration {
 
     @JsonProperty
     private String restorePrefix;
-
-    @JsonProperty
-    private int streamingThroughputMbps;
 
     @JsonProperty
     private long uploadThrottleBytesPerSec;
@@ -101,12 +107,28 @@ public class BackupConfiguration {
         return s3BaseDir;
     }
 
-    public boolean isCommitLogEnabled() {
-        return commitLogEnabled;
+    public boolean isCommitLogBackupEnabled() {
+        return commitLogBackupEnabled;
     }
 
     public String getCommitLogLocation() {
         return commitLogLocation;
+    }
+
+    public String getCommitLogBackupArchiveCmd() {
+        return commitLogBackupArchiveCmd;
+    }
+
+    public String getCommitLogBackupRestoreCmd() {
+        return commitLogBackupRestoreCmd;
+    }
+
+    public String getCommitLogBackupRestoreFromDirs() {
+        return commitLogBackupRestoreFromDirs;
+    }
+
+    public String getCommitLogBackupRestorePointInTime() {
+        return commitLogBackupRestorePointInTime;
     }
 
     public boolean isIncrementalBackupEnabled() {
@@ -115,10 +137,6 @@ public class BackupConfiguration {
 
     public boolean isIncrementalBackupEnabledForCassandra() {
         return incrementalBackupEnabledForCassandra;
-    }
-
-    public boolean isMultiThreadedCompaction() {
-        return multiThreadedCompaction;
     }
 
     public boolean isRestoreClosestToken() {
@@ -131,10 +149,6 @@ public class BackupConfiguration {
 
     public String getRestorePrefix() {
         return restorePrefix;
-    }
-
-    public int getStreamingThroughputMbps() {
-        return streamingThroughputMbps;
     }
 
     public long getUploadThrottleBytesPerSec() {
@@ -182,8 +196,8 @@ public class BackupConfiguration {
         this.s3BaseDir = s3BaseDir;
     }
 
-    public void setCommitLogEnabled(boolean commitLogEnabled) {
-        this.commitLogEnabled = commitLogEnabled;
+    public void setCommitLogBackupEnabled(boolean commitLogBackupEnabled) {
+        this.commitLogBackupEnabled = commitLogBackupEnabled;
     }
 
     public void setCommitLogLocation(String commitLogLocation) {
@@ -198,10 +212,6 @@ public class BackupConfiguration {
         this.incrementalBackupEnabledForCassandra = incrementalBackupEnabledForCassandra;
     }
 
-    public void setMultiThreadedCompaction(boolean multiThreadedCompaction) {
-        this.multiThreadedCompaction = multiThreadedCompaction;
-    }
-
     public void setRestoreClosestToken(boolean restoreClosestToken) {
         this.restoreClosestToken = restoreClosestToken;
     }
@@ -212,10 +222,6 @@ public class BackupConfiguration {
 
     public void setRestorePrefix(String restorePrefix) {
         this.restorePrefix = restorePrefix;
-    }
-
-    public void setStreamingThroughputMbps(int streamingThroughputMbps) {
-        this.streamingThroughputMbps = streamingThroughputMbps;
     }
 
     public void setUploadThrottleBytesPerSec(long uploadThrottleBytesPerSec) {

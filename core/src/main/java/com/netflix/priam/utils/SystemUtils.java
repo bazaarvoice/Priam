@@ -1,15 +1,11 @@
 package com.netflix.priam.utils;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
-import com.netflix.priam.config.BackupConfiguration;
-import com.netflix.priam.config.CassandraConfiguration;
-import org.apache.cassandra.config.ConfigurationException;
+import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,99 +18,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 
 public class SystemUtils {
     private static final Logger logger = LoggerFactory.getLogger(SystemUtils.class);
-    private static final String SUDO_STRING = "/usr/bin/sudo";
-
-    /**
-     * Start Cassandra process from this co-process.
-     */
-    public static void startCassandra(boolean join_ring, CassandraConfiguration cassandraConfig, BackupConfiguration backupConfig, String instanceType) throws IOException {
-        if (isCassandraRunning(cassandraConfig)) {
-            logger.info("Cassandra already running.  No need to start.");
-            return;
-        }
-
-        logger.info("Starting cassandra server ....join_ring={}, user.name={}", join_ring, System.getProperty("user.name"));
-
-        List<String> command = Lists.newArrayList();
-        if (!"root".equals(System.getProperty("user.name"))) {
-            command.add(SUDO_STRING);
-            command.add("-n");
-            command.add("-E");
-        }
-        for (String param : cassandraConfig.getCassStartScript().split(" ")) {
-            if (StringUtils.isNotBlank(param)) {
-                command.add(param);
-            }
-        }
-        ProcessBuilder startCass = new ProcessBuilder(command);
-        Map<String, String> env = startCass.environment();
-        env.put("HEAP_NEWSIZE", cassandraConfig.getMaxNewGenHeapSize().get(instanceType));
-        env.put("MAX_HEAP_SIZE", cassandraConfig.getMaxHeapSize().get(instanceType));
-        env.put("DATA_DIR", cassandraConfig.getDataLocation());
-        env.put("COMMIT_LOG_DIR", backupConfig.getCommitLogLocation());
-        env.put("LOCAL_BACKUP_DIR", backupConfig.getS3BaseDir());
-        env.put("CACHE_DIR", cassandraConfig.getCacheLocation());
-        env.put("CASSANDRA_HEAPDUMP_DIR", cassandraConfig.getHeapDumpLocation());
-        env.put("JMX_PORT", "" + cassandraConfig.getJmxPort());
-        env.put("MAX_DIRECT_MEMORY", cassandraConfig.getDirectMaxHeapSize().get(instanceType));
-        env.put("cassandra.join_ring", join_ring ? "true" : "false");
-        logger.info("Adding environment: {}", env);
-        startCass.directory(new File("/"));
-        startCass.redirectErrorStream(true);
-        startCass.start();
-        logger.info("Starting cassandra server ....");
-    }
-
-    private static boolean isCassandraRunning(final CassandraConfiguration cassandraConfiguration) {
-        logger.info("Checking status of cassandra server...");
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        try {
-            Future<Long> uptimeFuture = executor.submit(new Callable<Long>() {
-                @Override
-                public Long call() throws Exception {
-                    return JMXNodeTool.instance(cassandraConfiguration).getUptime();
-                }
-            });
-            return uptimeFuture.get(5, TimeUnit.SECONDS) > 0;
-        } catch (Exception e) {
-            logger.info("Unable to use JMX to determine Cassandra server status.  Assuming the server is not running...", e);
-        } finally {
-            executor.shutdownNow();
-        }
-        return false;
-    }
-
-    /**
-     * Stop Cassandra process from this co-process.
-     */
-    public static void stopCassandra(CassandraConfiguration config) throws IOException {
-        logger.info("Stopping cassandra server ....");
-        List<String> command = Lists.newArrayList();
-        if (!"root".equals(System.getProperty("user.name"))) {
-            command.add(SUDO_STRING);
-            command.add("-n");
-            command.add("-E");
-        }
-        for (String param : config.getCassStopScript().split(" ")) {
-            if (StringUtils.isNotBlank(param)) {
-                command.add(param);
-            }
-        }
-        ProcessBuilder stopCass = new ProcessBuilder(command);
-        stopCass.directory(new File("/"));
-        stopCass.redirectErrorStream(true);
-        stopCass.start();
-    }
 
     public static String getDataFromUrl(String url) {
         try {
@@ -146,12 +53,12 @@ public class SystemUtils {
      * Delete all the files/dirs in the given Directory but don't delete the dir
      * itself.
      */
-    public static void cleanupDir(String dirPath, List<String> childdirs) throws IOException {
-        if (childdirs == null || childdirs.size() == 0) {
+    public static void cleanupDir(String dirPath, List<String> childDirs) throws IOException {
+        if (childDirs == null || childDirs.size() == 0) {
             FileUtils.cleanDirectory(new File(dirPath));
         } else {
-            for (String cdir : childdirs) {
-                FileUtils.cleanDirectory(new File(dirPath + "/" + cdir));
+            for (String childDir : childDirs) {
+                FileUtils.cleanDirectory(new File(dirPath, childDir));
             }
         }
     }

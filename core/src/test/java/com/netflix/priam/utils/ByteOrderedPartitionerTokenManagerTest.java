@@ -74,6 +74,17 @@ public class ByteOrderedPartitionerTokenManagerTest {
                 tokenManager.createToken(10, 8, 32, "region"));
     }
 
+    @Test
+    public void createToken_typical() {
+        ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager(new CassandraConfiguration());
+        assertEquals("0000000000000000000000006bccac70", tokenManager.createToken(0, 3, 2, "us-east-1"));
+        assertEquals("2aaaaaaaaaaaaaaaaaaaaaab1677571a", tokenManager.createToken(1, 3, 2, "us-east-1"));
+        assertEquals("555555555555555555555555c12201c4", tokenManager.createToken(2, 3, 2, "us-east-1"));
+        assertEquals("8000000000000000000000006bccac6e", tokenManager.createToken(3, 3, 2, "us-east-1"));
+        assertEquals("aaaaaaaaaaaaaaaaaaaaaaab16775718", tokenManager.createToken(4, 3, 2, "us-east-1"));
+        assertEquals("d55555555555555555555555c12201c2", tokenManager.createToken(5, 3, 2, "us-east-1"));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void findClosestToken_emptyTokenList() {
         ByteOrderedPartitionerTokenManager tokenManager = new ByteOrderedPartitionerTokenManager("00", "ff");

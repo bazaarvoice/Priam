@@ -1,3 +1,18 @@
+/**
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.priam.resources;
 
 import com.google.common.collect.ImmutableMap;
@@ -5,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.netflix.priam.ICassandraProcess;
 import com.netflix.priam.backup.AbstractBackupPath;
 import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
 import com.netflix.priam.backup.IBackupFileSystem;
@@ -18,9 +34,8 @@ import com.netflix.priam.identity.IPriamInstanceRegistry;
 import com.netflix.priam.identity.InstanceIdentity;
 import com.netflix.priam.identity.PriamInstance;
 import com.netflix.priam.scheduler.PriamScheduler;
-import com.netflix.priam.utils.SystemUtils;
+import com.netflix.priam.utils.CassandraTuner;
 import com.netflix.priam.utils.TokenManager;
-import com.netflix.priam.utils.TuneCassandra;
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -47,11 +62,12 @@ public class BackupResource {
     private final IBackupFileSystem fs;
     private final Restore restoreObj;
     private final Provider<AbstractBackupPath> pathProvider;
-    private final TuneCassandra tuneCassandra;
+    private final CassandraTuner tuner;
     private final SnapshotBackup snapshotBackup;
     private final IncrementalRestore incrementalRestore;
     private final IPriamInstanceRegistry instanceRegistry;
     private final TokenManager tokenManager;
+    private final ICassandraProcess cassProcess;
     private final PriamScheduler scheduler;
     private final InstanceIdentity id;
 
@@ -67,11 +83,12 @@ public class BackupResource {
                           IBackupFileSystem fs,
                           Restore restoreObj,
                           Provider<AbstractBackupPath> pathProvider,
-                          TuneCassandra tunecassandra,
+                          CassandraTuner tuner,
                           SnapshotBackup snapshotBackup,
                           IncrementalRestore incrementalRestore,
                           IPriamInstanceRegistry instanceRegistry,
                           TokenManager tokenManager,
+                          ICassandraProcess cassProcess,
                           PriamScheduler scheduler,
                           InstanceIdentity id) {
         this.cassandraConfiguration = cassandraConfiguration;
@@ -80,11 +97,12 @@ public class BackupResource {
         this.fs = fs;
         this.restoreObj = restoreObj;
         this.pathProvider = pathProvider;
-        this.tuneCassandra = tunecassandra;
+        this.tuner = tuner;
         this.snapshotBackup = snapshotBackup;
         this.incrementalRestore = incrementalRestore;
         this.instanceRegistry = instanceRegistry;
         this.tokenManager = tokenManager;
+        this.cassProcess = cassProcess;
         this.scheduler = scheduler;
         this.id = id;
     }
@@ -110,8 +128,8 @@ public class BackupResource {
         if (StringUtils.isNotBlank(daterange) && !daterange.equalsIgnoreCase("default")) {
             String[] restore = daterange.split(",");
             AbstractBackupPath path = pathProvider.get();
-            startTime = path.getFormat().parse(restore[0]);
-            endTime = path.getFormat().parse(restore[1]);
+            startTime = path.parseDate(restore[0]);
+            endTime = path.parseDate(restore[1]);
         }
         restore(token, region, startTime, endTime, keyspaces, restorePrefix);
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
@@ -140,8 +158,8 @@ public class BackupResource {
         if (StringUtils.isNotBlank(daterange) && !daterange.equalsIgnoreCase("default")) {
             String[] restore = daterange.split(",");
             AbstractBackupPath path = pathProvider.get();
-            startTime = path.getFormat().parse(restore[0]);
-            endTime = path.getFormat().parse(restore[1]);
+            startTime = path.parseDate(restore[0]);
+            endTime = path.parseDate(restore[1]);
         }
 
         Iterator<AbstractBackupPath> it = fs.list(backupConfiguration.getS3BucketName(), startTime, endTime);
@@ -151,7 +169,7 @@ public class BackupResource {
             if (filter != null && BackupFileType.valueOf(filter) != p.getType()) {
                 continue;
             }
-            object.put(p.getRemotePath(), p.getFormat().format(p.getTime()));
+            object.put(p.getRemotePath(), p.formatDate(p.getTime()));
         }
         return Response.ok(object, MediaType.APPLICATION_JSON).build();
     }
@@ -213,8 +231,8 @@ public class BackupResource {
             id.getInstance().setToken(origToken);
             backupConfiguration.setRestorePrefix(origRestorePrefix);
         }
-        tuneCassandra.updateYaml(false);
-        SystemUtils.startCassandra(true, cassandraConfiguration, backupConfiguration, amazonConfiguration.getInstanceType());
+        tuner.updateAutoBootstrap(cassandraConfiguration.getYamlLocation(), false);
+        cassProcess.start(true);
     }
 
     /**

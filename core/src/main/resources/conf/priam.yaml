@@ -1,5 +1,5 @@
 cassandra:
-  partitionerClassName: "org.apache.cassandra.dht.RandomPartitioner" # The partitioner responsible for distributing rows (by key) across nodes in the cluster
+  partitioner: "org.apache.cassandra.dht.RandomPartitioner" # The partitioner responsible for distributing rows (by key) across nodes in the cluster
   #minimumToken:                              # Ignored for random partitioner.  Defaults to "00" for byte ordered partitioner
   #maximumToken:                              # Ignored for random partitioner.  Defaults to "ffffffffffffffffffffffffffffffff" for byte ordered partitioner
   #bootstrapClusterName:                      # Bootstrap cluster name (depends on another cass cluster)
@@ -11,16 +11,31 @@ cassandra:
   cassStopScript: "/etc/init.d/cassandra stop"    # Path to Cassandra stop script
   clusterName: "local_default"                # Cluster name (or App) name
   dataLocation: "/var/lib/cassandra/data"     # Location of the local data dir
-  sslStoragePort: 7101                        # Cassandra storage/cluster SSL communication port
+  sslStoragePort: 7102                        # Cassandra storage/cluster SSL communication port
   storagePort: 7101                           # Cassandra storage/cluster communication port
+  thriftEnabled: true
   thriftPort: 9160                            # Cassandra's thrift port
+  nativeTransportEnabled: true
+  nativeTransportPort: 9042
   jmxPort: 7199
+  rpcServerType: sync
+  authenticator: AllowAllAuthenticator
+  authorizer: AllowAllAuthorizer
   #compactionThroughputMBPerSec:              # Compaction throughput in MB/sec
-  inMemoryCompactionLimitMB: 128              # In memory compaction limit in MB
-  keyCacheSizeInMB: null                      # If used, should be an Integer like "16"
+  inMemoryCompactionLimitMB: 64               # In memory compaction limit in MB
+  streamingThroughputMbps: 400                # Throttles all outbound streaming file transfers. 400 Mbps = 50 MB/s
+  keyCacheSizeInMB: 0                         # If used, should be an Integer like "16"
   #keyCacheKeysToSave:                        # If used, should be an Integer like "32"
   rowCacheSizeInMB: 0                         # If used, should be an Integer like "16"
   #rowCacheKeysToSave:
+  concurrentReads: 32
+  concurrentWrites: 32
+  #concurrentCompactors: 1
+  clientSslEnabled: false
+  internodeEncryption: none
+  internodeCompression: dc
+  interDcTcpNodelay: false
+  indexInterval: 128
   directMaxHeapSize:
     m1.small: 10G
     m1.medium: 25G
@@ -46,18 +61,18 @@ cassandra:
     m2.2xlarge: 2G
     m2.4xlarge: 2G
   heapDumpLocation: "/var/log/cassandra"            # Directory where heap dumps will go when the JVM runs out of memory.
-  memTableTotalSpaceMB: 1024                        # Total memory to use for memtables.  Cassandra will flush the largest memtable when this much memory is used.
-  hintedHandoffThrottleDelayMS: 1                   # Sleep this long after delivering each hint
+  #memtableTotalSpaceMB: 2048                       # Total memory to use for memtables.  Cassandra will flush the largest memtable when this much memory is used.
+  hintedHandoffThrottleKB: 1024
   maxHintWindowMS: 3600000                          # this defines the maximum amount of time a dead host will have hints generated.  After it has been dead this long, hints will be dropped.
   localBootstrapEnable: false                       # true if Priam should use local config file for tokens and seeds
   cacheLocation: "/var/lib/cassandra/saved_caches"  # Location of local cache
-  seedProviderClassName: "com.netflix.priam.cassandra.NFSeedProvider"  # The name of seed provider
+  seedProviderClassName: "com.netflix.priam.cassandra.extensions.NFSeedProvider"  # The name of seed provider
+  extraConfigParams: {}
 
   nodeRepairEnabled: false
   #nodeRepairTime:                                  # Format: "sec min hour day-of-month month day-of-week". e.g. to run a job every sunday at 12 am, "0 0 0 ? * 1".
                                                     # For detail: http://quartz-scheduler.org/documentation/quartz-1.x/tutorials/crontrigger
   #nodeRepairMutexAcquireTimeOut:                   # node repair mutex lock aquire time out (unit: minute)
-
 
 
 amazon:
@@ -77,7 +92,7 @@ amazon:
 
 
 backup:
-  incrementalBackupEnabled: false                   # true if incremental backups are enabled
+  incrementalBackupEnabled: false                   # true if incremental backups are enabled for Priam
   incrementalBackupEnabledForCassandra: false       # true if incremental backups are enabled for just Cassandra--Priam will not process the incremental backup files
   snapShotBackupEnabled: false
   #snapShotBackupCronTime:                          # Format: "sec min hour day-of-month month day-of-week". e.g. to run a job every sunday at 12 am, "0 0 0 ? * 1".
@@ -90,15 +105,11 @@ backup:
   restoreThreads: 8                                 # Number of restore threads for downloading
   s3BucketName: "cassandra-archive"                 # S3 bucket for storing backups
   s3BaseDir: "dev-backup"                           # Folder within the S3 bucket for backups
-  commitLogEnabled: false                           # true if commit log backup is enabled
+  commitLogBackupEnabled: false                     # true if commit log backup is enabled
   commitLogLocation: "/var/lib/cassandra/commitlog" # Remote commit log location for backups
-  multiThreadedCompaction: false                    # When enabled, each compaction will use up to one thread per core, plus one thread per sstable being merged.
-                                                    # This is usually only useful for SSD-based hardware: otherwise, your concern is usually to get compaction to do LESS i/o
   restoreClosestToken: false                        #    true if restore should search for nearest token if current token is not found
   #restoreKeyspaces:                                # List of keyspaces to restore. If none, all keyspaces are restored.
   #restorePrefix:                                   # Location containing backup files. Typically bucket name followed by path to the clusters backup
-  streamingThroughputMbps: 400                      # Throttles all outbound streaming file transfers on this node to the given total throughput in Mbps. This is necessary because Cassandra does mostly sequential IO when streaming data during bootstrap or repair, which
-                                                    #    can lead to saturating the network connection and degrading rpc performance.
   uploadThrottleBytesPerSec: 2147483647             # Bytes per second to throttle for backups
 
 # Configure the HTTP server that listens for inbound requests

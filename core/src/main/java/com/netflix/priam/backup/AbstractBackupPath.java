@@ -1,3 +1,18 @@
+/**
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.priam.backup;
 
 import com.netflix.priam.config.AmazonConfiguration;
@@ -7,20 +22,20 @@ import com.netflix.priam.identity.InstanceIdentity;
 import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.io.util.RandomAccessReader;
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.regex.Pattern;
 
 public abstract class AbstractBackupPath implements Comparable<AbstractBackupPath> {
-    public static final SimpleDateFormat DAY_FORMAT = new SimpleDateFormat("yyyyMMddHHmm");
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormat.forPattern("yyyyMMddHHmm");
     public static final char PATH_SEP = File.separatorChar;
-    public static final Pattern clPattern = Pattern.compile(".*CommitLog-(\\d{13}).log");
 
     public static enum BackupFileType {
         SNAP, SST, CL, META
@@ -36,6 +51,7 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
     protected String region;
     protected Date time;
     protected long size;
+    protected boolean isCassandra1_0;
 
     protected final InstanceIdentity instanceIdentity;
     protected final CassandraConfiguration cassandraConfiguration;
@@ -50,8 +66,12 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
         this.backupConfiguration = backupConfiguration;
     }
 
-    public SimpleDateFormat getFormat() {
-        return DAY_FORMAT;
+    public String formatDate(Date d) {
+        return DATE_FORMAT.print(new DateTime(d));
+    }
+
+    public Date parseDate(String s) {
+        return DATE_FORMAT.parseDateTime(s).toDate();
     }
 
     public InputStream localReader() throws IOException {
@@ -70,13 +90,14 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
         this.region = amazonConfiguration.getRegionName();
         this.token = instanceIdentity.getInstance().getToken();
         this.type = type;
-        if (type != BackupFileType.META
-                && type != BackupFileType.CL) {
+        if (type != BackupFileType.META && type != BackupFileType.CL) {
             this.keyspace = elements[0];
-            this.columnFamily = elements[1];
+            if (!isCassandra1_0) {
+                this.columnFamily = elements[1];
+            }
         }
         if (type == BackupFileType.SNAP) {
-            time = DAY_FORMAT.parse(elements[3]);
+            time = parseDate(elements[3]);
         }
         if (type == BackupFileType.SST || type == BackupFileType.CL) {
             time = new Date(file.lastModified());
@@ -90,8 +111,8 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
      * 2012021
      */
     public String match(Date start, Date end) {
-        String sString = DAY_FORMAT.format(start);
-        String eString = DAY_FORMAT.format(end);
+        String sString = formatDate(start);
+        String eString = formatDate(end);
         int diff = StringUtils.indexOfDifference(sString, eString);
         if (diff < 0) {
             return sString;
@@ -104,10 +125,17 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
      */
     public File newRestoreFile() {
         StringBuilder buff = new StringBuilder();
-        buff.append(cassandraConfiguration.getDataLocation()).append(PATH_SEP);
-        if (type != BackupFileType.META) {
-            buff.append(keyspace).append(PATH_SEP);
-            buff.append(columnFamily).append(PATH_SEP);
+        if (type == BackupFileType.CL) {
+            buff.append(backupConfiguration.getCommitLogLocation()).append(PATH_SEP);
+        } else {
+
+            buff.append(cassandraConfiguration.getDataLocation()).append(PATH_SEP);
+            if (type != BackupFileType.META) {
+                buff.append(keyspace).append(PATH_SEP);
+                if (!isCassandra1_0) {
+                    buff.append(columnFamily).append(PATH_SEP);
+                }
+            }
         }
         buff.append(fileName);
         File return_ = new File(buff.toString());
@@ -199,6 +227,14 @@ public abstract class AbstractBackupPath implements Comparable<AbstractBackupPat
 
     public File getBackupFile() {
         return backupFile;
+    }
+
+    public boolean isCassandra1_0() {
+        return isCassandra1_0;
+    }
+
+    public void setCassandra1_0(boolean isCassandra1_0) {
+        this.isCassandra1_0 = isCassandra1_0;
     }
 
     public static class RafInputStream extends InputStream {

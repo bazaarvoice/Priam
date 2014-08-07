@@ -21,7 +21,7 @@ import java.util.List;
 @Ignore
 public abstract class InstanceTestUtils {
 
-    List<String> instances = new ArrayList<String>();
+    List<String> instances = new ArrayList<>();
     IMembership membership;
     TestCassandraConfiguration cassandraConfiguration;
     TestAmazonConfiguration amazonConfiguration;

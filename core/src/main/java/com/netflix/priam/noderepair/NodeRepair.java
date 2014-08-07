@@ -44,7 +44,7 @@ public final class NodeRepair extends Task {
             JMXNodeTool jmxNodeTool = new JMXNodeTool(cassandraConfig);
 
             logger.info("started node repairing");
-            Queue<String> keyspaceQueue = new LinkedList<String>();
+            Queue<String> keyspaceQueue = new LinkedList<>();
             keyspaceQueue.addAll(jmxNodeTool.getKeyspaces());
             logger.info("{} keyspaces are yet to repair", keyspaceQueue.size());
 
@@ -57,7 +57,7 @@ public final class NodeRepair extends Task {
                     logger.info("node repair is trying to get lock of keyspace {}, thread: {}", keyspace, Thread.currentThread().getId());
                     if (mutex.acquire(nodeRepairMutexAcquireTimeOut.getStandardMinutes(), TimeUnit.MINUTES)) {
                         logger.info("starting node repair of keyspace {}, thread: {}", keyspace, Thread.currentThread().getId());
-                        jmxNodeTool.repair(keyspace, true);
+                        jmxNodeTool.repair(keyspace, true, true, true);
                         logger.info("node repair of keyspace {} is done, thread: {}", keyspace, Thread.currentThread().getId());
                     } else {
                         logger.info("time out occurred acquiring lock for keyspace {}, thread: {}", keyspace, Thread.currentThread().getId());

@@ -1,3 +1,18 @@
+/**
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.priam.aws;
 
 import com.amazonaws.services.s3.AmazonS3;
@@ -9,6 +24,7 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.RateLimiter;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
@@ -20,8 +36,7 @@ import com.netflix.priam.compress.ICompression;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
-import com.netflix.priam.scheduler.CustomizedThreadPoolExecutor;
-import com.netflix.priam.utils.Throttle;
+import com.netflix.priam.scheduler.BlockingSubmitThreadPoolExecutor;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,8 +68,8 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
     private final CassandraConfiguration cassandraConfiguration;
     private final AmazonConfiguration amazonConfiguration;
     private final ICredential cred;
-    private final Throttle throttle;
-    private final CustomizedThreadPoolExecutor partUploadExecutor;
+    private RateLimiter rateLimiter;
+    private final BlockingSubmitThreadPoolExecutor partUploadExecutor;
 
     private final AtomicLong bytesDownloaded = new AtomicLong();
     private final AtomicLong bytesUploaded = new AtomicLong();
@@ -70,18 +85,11 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
         this.amazonConfiguration = amazonConfiguration;
         this.cred = cred;
         int numBackupThreads = backupConfiguration.getBackupThreads();
-        LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>(numBackupThreads);
-        this.partUploadExecutor = new CustomizedThreadPoolExecutor(numBackupThreads, queue, UPLOAD_TIMEOUT);
-        this.throttle = new Throttle(this.getClass().getCanonicalName(), new Throttle.ThroughputFunction() {
-            public int targetThroughput() {
-                int throttleLimit = backupConfiguration.getStreamingThroughputMbps();
-                if (throttleLimit < 1) {
-                    return 0;
-                }
-                int totalBytesPerMS = (throttleLimit * 1024 * 1024) / 1000;
-                return totalBytesPerMS;
-            }
-        });
+        LinkedBlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(numBackupThreads);
+        this.partUploadExecutor = new BlockingSubmitThreadPoolExecutor(numBackupThreads, queue, UPLOAD_TIMEOUT);
+        double throttleLimit = backupConfiguration.getUploadThrottleBytesPerSec();
+        rateLimiter = RateLimiter.create(throttleLimit < 1 ? Double.MAX_VALUE : throttleLimit);
+
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         String mbeanName = MBEAN_NAME;
         try {
@@ -130,7 +138,7 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
             int partNum = 0;
             while (chunks.hasNext()) {
                 byte[] chunk = chunks.next();
-                throttle.throttle(chunk.length);
+                rateLimiter.acquire(chunk.length);
                 DataPart dp = new DataPart(++partNum, chunk, backupConfiguration.getS3BucketName(), path.getRemotePath(), initResponse.getUploadId());
                 S3PartUploader partUploader = new S3PartUploader(s3Client, dp, partETags);
                 partUploadExecutor.submit(partUploader);
@@ -220,7 +228,7 @@ public class S3FileSystem implements IBackupFileSystem, S3FileSystemMBean {
     }
 
     private AmazonS3 getS3Client() {
-        return new AmazonS3Client(cred.getCredentials());
+        return new AmazonS3Client(cred.getCredentialsProvider());
     }
 
     /**

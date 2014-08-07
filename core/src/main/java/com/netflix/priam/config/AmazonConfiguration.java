@@ -1,5 +1,7 @@
 package com.netflix.priam.config;
 
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.AvailabilityZone;
@@ -59,6 +61,10 @@ public class AmazonConfiguration {
         return regionName;
     }
 
+    public Region getRegion() {
+        return RegionUtils.getRegion(regionName);
+    }
+
     public String getSecurityGroupName() {
         return securityGroupName;
     }
@@ -92,7 +98,7 @@ public class AmazonConfiguration {
     }
 
     public String getSimpleDbRegion() {
-        return simpleDbRegion;
+        return StringUtils.isNotBlank(simpleDbRegion) ? simpleDbRegion : "us-east-1";
     }
 
     public void setAutoScaleGroupName(String autoScaleGroupName) {
@@ -170,8 +176,8 @@ public class AmazonConfiguration {
     }
 
     private String populateSecurityGroup(ICredential credentialProvider) {
-        AmazonEC2 client = new AmazonEC2Client(credentialProvider.getCredentials());
-        client.setEndpoint("ec2." + regionName + ".amazonaws.com");
+        AmazonEC2 client = new AmazonEC2Client(credentialProvider.getCredentialsProvider());
+        client.setRegion(getRegion());
         try {
             String securityGroupNameOnEachLine = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/security-groups");
             if (StringUtils.isNotBlank(securityGroupNameOnEachLine)) {
@@ -191,8 +197,8 @@ public class AmazonConfiguration {
      * Query amazon to get ASG name. Currently not available as part of instance info api.
      */
     private String populateASGName(ICredential credentialProvider, String region, String instanceId) {
-        AmazonEC2 client = new AmazonEC2Client(credentialProvider.getCredentials());
-        client.setEndpoint("ec2." + region + ".amazonaws.com");
+        AmazonEC2 client = new AmazonEC2Client(credentialProvider.getCredentialsProvider());
+        client.setRegion(RegionUtils.getRegion(region));
         try {
             DescribeInstancesRequest desc = new DescribeInstancesRequest().withInstanceIds(instanceId);
             DescribeInstancesResult res = client.describeInstances(desc);
@@ -217,8 +223,8 @@ public class AmazonConfiguration {
      */
     private List<String> defineUsableAvailabilityZones(ICredential credentialProvider, String region) {
         List<String> zone = Lists.newArrayList();
-        AmazonEC2 client = new AmazonEC2Client(credentialProvider.getCredentials());
-        client.setEndpoint("ec2." + region + ".amazonaws.com");
+        AmazonEC2 client = new AmazonEC2Client(credentialProvider.getCredentialsProvider());
+        client.setRegion(RegionUtils.getRegion(region));
         try {
             DescribeAvailabilityZonesResult res = client.describeAvailabilityZones();
             for (AvailabilityZone reg : res.getAvailabilityZones()) {

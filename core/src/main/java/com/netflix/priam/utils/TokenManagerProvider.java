@@ -4,10 +4,10 @@ import com.google.common.base.Throwables;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.netflix.priam.config.CassandraConfiguration;
-import org.apache.cassandra.config.ConfigurationException;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.RandomPartitioner;
+import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.utils.FBUtilities;
 
 /**
@@ -25,7 +25,7 @@ public class TokenManagerProvider implements Provider<TokenManager> {
     public TokenManager get() {
         IPartitioner partitioner;
         try {
-            partitioner = FBUtilities.newPartitioner(_cassandraConfiguration.getPartitionerClassName());
+            partitioner = FBUtilities.newPartitioner(_cassandraConfiguration.getPartitioner());
         } catch (ConfigurationException e) {
             throw Throwables.propagate(e);
         }

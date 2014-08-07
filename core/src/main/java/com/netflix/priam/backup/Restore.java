@@ -1,3 +1,18 @@
+/**
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.priam.backup;
 
 import com.google.common.collect.Iterators;
@@ -5,6 +20,7 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Singleton;
+import com.netflix.priam.ICassandraProcess;
 import com.netflix.priam.backup.AbstractBackupPath.BackupFileType;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.BackupConfiguration;
@@ -28,21 +44,26 @@ import java.util.List;
  */
 @Singleton
 public class Restore extends AbstractRestore {
-    public static final String JOBNAME = "AUTO_RESTORE_JOB";
     private static final Logger logger = LoggerFactory.getLogger(Restore.class);
+
+    public static final String JOBNAME = "AUTO_RESTORE_JOB";
 
     private final CassandraConfiguration cassandraConfiguration;
     private final AmazonConfiguration amazonConfiguration;
+    private final ICassandraProcess cassProcess;
     private final Provider<AbstractBackupPath> pathProvider;
     private final RestoreTokenSelector tokenSelector;
     private final MetaData metaData;
     private final InstanceIdentity id;
 
     @Inject
-    public Restore(BackupConfiguration backupConfiguration, CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration, Sleeper sleeper, Provider<AbstractBackupPath> pathProvider, RestoreTokenSelector tokenSelector, MetaData metaData, InstanceIdentity id) {
+    public Restore(BackupConfiguration backupConfiguration, CassandraConfiguration cassandraConfiguration,
+                   AmazonConfiguration amazonConfiguration, ICassandraProcess cassProcess, Sleeper sleeper,
+                   Provider<AbstractBackupPath> pathProvider, RestoreTokenSelector tokenSelector, MetaData metaData, InstanceIdentity id) {
         super(backupConfiguration, JOBNAME, sleeper);
         this.cassandraConfiguration = cassandraConfiguration;
         this.amazonConfiguration = amazonConfiguration;
+        this.cassProcess = cassProcess;
         this.pathProvider = pathProvider;
         this.tokenSelector = tokenSelector;
         this.metaData = metaData;
@@ -55,8 +76,8 @@ public class Restore extends AbstractRestore {
             logger.info("Starting restore for {}", backupConfiguration.getAutoRestoreSnapshotName());
             String[] restore = backupConfiguration.getAutoRestoreSnapshotName().split(",");
             AbstractBackupPath path = pathProvider.get();
-            final Date startTime = path.getFormat().parse(restore[0]);
-            final Date endTime = path.getFormat().parse(restore[1]);
+            final Date startTime = path.parseDate(restore[0]);
+            final Date endTime = path.parseDate(restore[1]);
             String origToken = id.getInstance().getToken();
             try {
                 if (backupConfiguration.isRestoreClosestToken()) {
@@ -77,7 +98,7 @@ public class Restore extends AbstractRestore {
                 id.getInstance().setToken(origToken);
             }
         }
-        SystemUtils.startCassandra(true, cassandraConfiguration, backupConfiguration, amazonConfiguration.getInstanceType());
+        cassProcess.start(true);
     }
 
     /**
@@ -86,7 +107,7 @@ public class Restore extends AbstractRestore {
     public void restore(Date startTime, Date endTime) throws Exception {
         // Stop cassandra if its running and restoring all keyspaces
         if (backupConfiguration.getRestoreKeyspaces().size() == 0) {
-            SystemUtils.stopCassandra(cassandraConfiguration);
+            cassProcess.stop();
         }
 
         // Cleanup local data
@@ -103,7 +124,13 @@ public class Restore extends AbstractRestore {
                 metas.add(path);
             }
         }
-        assert metas.size() != 0 : "[cass_backup] No snapshots found, Restore Failed.";
+
+        if (metas.size() == 0) {
+            logger.info("[cass_backup] No meta file found, Restore Failed.");
+            assert false : "[cass_backup] No snapshots found, Restore Failed.";
+            return;
+        }
+
 
         Collections.sort(metas);
         AbstractBackupPath meta = Iterators.getLast(metas.iterator());

@@ -9,7 +9,7 @@ public class TestBackupConfiguration extends BackupConfiguration {
         setRestorePrefix("");
         setS3BaseDir("casstestbackup");
         setS3BucketName("TEST-netflix.platform.S3");
-        setCommitLogEnabled(false);
+        setCommitLogBackupEnabled(false);
         setCommitLogLocation("cass/backup/cl/");
         setBackupThreads(2);
         setRestoreThreads(3);
@@ -20,8 +20,6 @@ public class TestBackupConfiguration extends BackupConfiguration {
         setRestoreClosestToken(true);
         setRetentionDays(5);
         setAvailabilityZonesToBackup(Lists.<String>newArrayList());
-        setStreamingThroughputMbps(400);
-        setMultiThreadedCompaction(false);
     }
 
 }

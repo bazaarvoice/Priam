@@ -1,3 +1,18 @@
+/**
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.priam.aws;
 
 import com.amazonaws.services.autoscaling.AmazonAutoScaling;
@@ -46,9 +61,8 @@ public class AWSMembership implements IMembership {
 
     @Override
     public List<String> getAutoScaleGroupMembership() {
-        AmazonAutoScaling client = null;
+        AmazonAutoScaling client = getAutoScalingClient();
         try {
-            client = getAutoScalingClient();
             DescribeAutoScalingGroupsRequest asgReq = new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(amazonConfiguration.getAutoScaleGroupName());
             DescribeAutoScalingGroupsResult res = client.describeAutoScalingGroups(asgReq);
 
@@ -64,9 +78,7 @@ public class AWSMembership implements IMembership {
             logger.info("Querying Amazon returned the following instances in the ASG: {} --> {}", amazonConfiguration.getAutoScaleGroupName(), StringUtils.join(instanceIds, ","));
             return instanceIds;
         } finally {
-            if (client != null) {
-                client.shutdown();
-            }
+            client.shutdown();
         }
     }
 
@@ -75,9 +87,8 @@ public class AWSMembership implements IMembership {
      */
     @Override
     public int getAvailabilityZoneMembershipSize() {
-        AmazonAutoScaling client = null;
+        AmazonAutoScaling client = getAutoScalingClient();
         try {
-            client = getAutoScalingClient();
             DescribeAutoScalingGroupsRequest asgReq = new DescribeAutoScalingGroupsRequest().withAutoScalingGroupNames(amazonConfiguration.getAutoScaleGroupName());
             DescribeAutoScalingGroupsResult res = client.describeAutoScalingGroups(asgReq);
             int size = 0;
@@ -87,9 +98,7 @@ public class AWSMembership implements IMembership {
             logger.info("Max size of ASG is {} instances", size);
             return size;
         } finally {
-            if (client != null) {
-                client.shutdown();
-            }
+            client.shutdown();
         }
     }
 
@@ -102,17 +111,14 @@ public class AWSMembership implements IMembership {
      * Adds an IP list to the SG.
      */
     public void addACL(Collection<String> listIPs, int fromPort, int toPort) {
-        AmazonEC2 client = null;
+        AmazonEC2 client = getEc2Client();
         try {
-            client = getEc2Client();
             List<IpPermission> ipPermissions = ImmutableList.of(
                     new IpPermission().withFromPort(fromPort).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(toPort));
             client.authorizeSecurityGroupIngress(new AuthorizeSecurityGroupIngressRequest(amazonConfiguration.getSecurityGroupName(), ipPermissions));
             logger.info("Done adding ACL to: {}", StringUtils.join(listIPs, ","));
         } finally {
-            if (client != null) {
-                client.shutdown();
-            }
+            client.shutdown();
         }
     }
 
@@ -120,16 +126,13 @@ public class AWSMembership implements IMembership {
      * Removes an IP list from the SG
      */
     public void removeACL(Collection<String> listIPs, int fromPort, int toPort) {
-        AmazonEC2 client = null;
+        AmazonEC2 client = getEc2Client();
         try {
-            client = getEc2Client();
             List<IpPermission> ipPermissions = ImmutableList.of(
                     new IpPermission().withFromPort(fromPort).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(toPort));
             client.revokeSecurityGroupIngress(new RevokeSecurityGroupIngressRequest(amazonConfiguration.getSecurityGroupName(), ipPermissions));
         } finally {
-            if (client != null) {
-                client.shutdown();
-            }
+            client.shutdown();
         }
     }
 
@@ -137,10 +140,9 @@ public class AWSMembership implements IMembership {
      * List SG ACL's
      */
     public List<String> listACL(int from, int to) {
-        AmazonEC2 client = null;
+        AmazonEC2 client = getEc2Client();
         try {
-            client = getEc2Client();
-            List<String> ipPermissions = new ArrayList<String>();
+            List<String> ipPermissions = new ArrayList<>();
             DescribeSecurityGroupsRequest req = new DescribeSecurityGroupsRequest().withGroupNames(Arrays.asList(amazonConfiguration.getSecurityGroupName()));
             DescribeSecurityGroupsResult result = client.describeSecurityGroups(req);
             for (SecurityGroup group : result.getSecurityGroups()) {
@@ -150,24 +152,21 @@ public class AWSMembership implements IMembership {
                     }
                 }
             }
-
             return ipPermissions;
         } finally {
-            if (client != null) {
-                client.shutdown();
-            }
+            client.shutdown();
         }
     }
 
     protected AmazonAutoScaling getAutoScalingClient() {
-        AmazonAutoScaling client = new AmazonAutoScalingClient(provider.getCredentials());
-        client.setEndpoint("autoscaling." + amazonConfiguration.getRegionName() + ".amazonaws.com");
+        AmazonAutoScaling client = new AmazonAutoScalingClient(provider.getCredentialsProvider());
+        client.setRegion(amazonConfiguration.getRegion());
         return client;
     }
 
     protected AmazonEC2 getEc2Client() {
-        AmazonEC2 client = new AmazonEC2Client(provider.getCredentials());
-        client.setEndpoint("ec2." + amazonConfiguration.getRegionName() + ".amazonaws.com");
+        AmazonEC2 client = new AmazonEC2Client(provider.getCredentialsProvider());
+        client.setRegion(amazonConfiguration.getRegion());
         return client;
     }
 }

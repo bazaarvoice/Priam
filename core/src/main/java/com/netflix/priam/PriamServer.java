@@ -12,7 +12,6 @@ import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.identity.InstanceIdentity;
 import com.netflix.priam.noderepair.NodeRepair;
 import com.netflix.priam.scheduler.PriamScheduler;
-import com.netflix.priam.utils.SystemUtils;
 import com.netflix.priam.utils.TuneCassandra;
 import com.yammer.dropwizard.lifecycle.Managed;
 import org.apache.commons.collections.CollectionUtils;
@@ -34,6 +33,7 @@ public class PriamServer implements Managed {
     private final Restore restore;
     private final UpdateCleanupPolicy updateCleanupPolicy;
     private final InstanceIdentity id;
+    private final ICassandraProcess cassProcess;
 
     @Inject
     public PriamServer(CassandraConfiguration cassandraConfig,
@@ -45,7 +45,8 @@ public class PriamServer implements Managed {
                        IncrementalBackup incrementalBackup,
                        Restore restore,
                        UpdateCleanupPolicy updateCleanupPolicy,
-                       InstanceIdentity id) {
+                       InstanceIdentity id,
+                       ICassandraProcess cassProcess) {
         this.cassandraConfig = cassandraConfig;
         this.backupConfig = backupConfig;
         this.amazonConfig = amazonConfig;
@@ -56,6 +57,7 @@ public class PriamServer implements Managed {
         this.restore = restore;
         this.updateCleanupPolicy = updateCleanupPolicy;
         this.id = id;
+        this.cassProcess = cassProcess;
     }
 
     public InstanceIdentity getInstanceIdentity() {
@@ -78,7 +80,7 @@ public class PriamServer implements Managed {
         if (StringUtils.isNotBlank(backupConfig.getAutoRestoreSnapshotName())) {
             scheduler.addTask(restore.getJobDetail(), restore.getTriggerToStartNow());
         } else {
-            SystemUtils.startCassandra(true, cassandraConfig, backupConfig, amazonConfig.getInstanceType()); // Start cassandra.
+            cassProcess.start(true);                 // Start cassandra.
         }
 
         // Start the snapshot backup schedule - Always run this. (If you want to
@@ -90,12 +92,12 @@ public class PriamServer implements Managed {
             if (backupConfig.isIncrementalBackupEnabled()) {
                 scheduler.addTask(incrementalBackup.getJobDetail(), incrementalBackup.getTriggerToStartNowAndRepeatInMillis());
             }
+
+            // Configure S3 backup expiration policy
+            scheduler.addTask(updateCleanupPolicy.getJobDetail(), updateCleanupPolicy.getTriggerToStartNow());
         }
 
-        //Set cleanup
-        scheduler.addTask(updateCleanupPolicy.getJobDetail(), updateCleanupPolicy.getTriggerToStartNow());
-
-        //Schedule Node Repair
+        // Schedule Node Repair
         if (cassandraConfig.isNodeRepairEnabled()) {
             scheduler.addTask(nodeRepair.getJobDetail(), nodeRepair.getCronTimeTrigger());
         }

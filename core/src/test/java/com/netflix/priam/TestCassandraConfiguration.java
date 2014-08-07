@@ -18,15 +18,16 @@ public class TestCassandraConfiguration extends CassandraConfiguration {
         setMultiRegionEnabled(false);
         setLocalBootstrapEnable(false);
         setInMemoryCompactionLimitMB(8);
+        setStreamingThroughputMbps(400);
         setCompactionThroughputMBPerSec(0);
         setBootstrapClusterName("cass_bootstrap");
         setCassStopScript("teststopscript");
         setMaxHintWindowMS(36000);
-        setHintedHandoffThrottleDelayMS(0);
-        setMemTableTotalSpaceMB(0);
-        setKeyCacheSizeInMB("16");
-        setKeyCacheKeysToSave("32");
-        setRowCacheSizeInMB("4");
-        setRowCacheKeysToSave("4");
+        setHintedHandoffThrottleKB(0);
+        setMemtableTotalSpaceMB(0);
+        setKeyCacheSizeInMB(16);
+        setKeyCacheKeysToSave(32);
+        setRowCacheSizeInMB(4);
+        setRowCacheKeysToSave(4);
     }
 }

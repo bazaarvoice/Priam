@@ -6,7 +6,7 @@ import java.util.Map;
 
 public class CassandraConfiguration {
     @JsonProperty
-    private String partitionerClassName = "org.apache.cassandra.dht.RandomPartitioner";
+    private String partitioner = "org.apache.cassandra.dht.RandomPartitioner";
 
     @JsonProperty
     private String minimumToken;
@@ -45,7 +45,16 @@ public class CassandraConfiguration {
     private int storagePort;
 
     @JsonProperty
+    private boolean thriftEnabled;
+
+    @JsonProperty
     private int thriftPort;
+
+    @JsonProperty
+    private boolean nativeTransportEnabled;
+
+    @JsonProperty
+    private int nativeTransportPort;
 
     @JsonProperty
     private int jmxPort;
@@ -69,13 +78,28 @@ public class CassandraConfiguration {
     private String heapDumpLocation;
 
     @JsonProperty
-    private int memTableTotalSpaceMB;
+    private Integer memtableTotalSpaceMB;
 
     @JsonProperty
-    private long hintedHandoffThrottleDelayMS;
+    private Integer streamingThroughputMbps;
+
+    @JsonProperty
+    private long hintedHandoffThrottleKB;
 
     @JsonProperty
     private long maxHintWindowMS;
+
+    @JsonProperty
+    private String rpcServerType;
+
+    @JsonProperty
+    private int indexInterval;
+
+    @JsonProperty
+    private String authenticator;
+
+    @JsonProperty
+    private String authorizer;
 
     @JsonProperty
     private boolean localBootstrapEnable;
@@ -87,16 +111,37 @@ public class CassandraConfiguration {
     private String seedProviderClassName;
 
     @JsonProperty
-    private String keyCacheSizeInMB;
+    private Integer keyCacheSizeInMB;
 
     @JsonProperty
-    private String keyCacheKeysToSave;
+    private Integer keyCacheKeysToSave;
 
     @JsonProperty
-    private String rowCacheSizeInMB;
+    private Integer rowCacheSizeInMB;
 
     @JsonProperty
-    private String rowCacheKeysToSave;
+    private Integer rowCacheKeysToSave;
+
+    @JsonProperty
+    private String internodeCompression;
+
+    @JsonProperty
+    private boolean interDcTcpNodelay;
+
+    @JsonProperty
+    private int concurrentReads;
+
+    @JsonProperty
+    private int concurrentWrites;
+
+    @JsonProperty
+    private Integer concurrentCompactors;
+
+    @JsonProperty
+    private boolean clientSslEnabled;
+
+    @JsonProperty
+    private String internodeEncryption;
 
     @JsonProperty
     private String nodeRepairTime;
@@ -107,8 +152,11 @@ public class CassandraConfiguration {
     @JsonProperty
     private int nodeRepairMutexAcquireTimeOut;
 
-    public String getPartitionerClassName() {
-        return partitionerClassName;
+    @JsonProperty
+    private Map<String, String> extraConfigParams;
+
+    public String getPartitioner() {
+        return partitioner;
     }
 
     public String getMinimumToken() {
@@ -135,6 +183,10 @@ public class CassandraConfiguration {
         return cassHome;
     }
 
+    public String getYamlLocation() {
+        return cassHome + "/conf/cassandra.yaml";
+    }
+
     public String getCassStartScript() {
         return cassStartScript;
     }
@@ -159,8 +211,20 @@ public class CassandraConfiguration {
         return storagePort;
     }
 
+    public boolean isThriftEnabled() {
+        return thriftEnabled;
+    }
+
     public int getThriftPort() {
         return thriftPort;
+    }
+
+    public boolean isNativeTransportEnabled() {
+        return nativeTransportEnabled;
+    }
+
+    public int getNativeTransportPort() {
+        return nativeTransportPort;
     }
 
     public int getJmxPort() {
@@ -191,16 +255,36 @@ public class CassandraConfiguration {
         return heapDumpLocation;
     }
 
-    public int getMemTableTotalSpaceMB() {
-        return memTableTotalSpaceMB;
+    public Integer getMemtableTotalSpaceMB() {
+        return memtableTotalSpaceMB;
     }
 
-    public long getHintedHandoffThrottleDelayMS() {
-        return hintedHandoffThrottleDelayMS;
+    public Integer getStreamingThroughputMbps() {
+        return streamingThroughputMbps;
+    }
+
+    public long getHintedHandoffThrottleKB() {
+        return hintedHandoffThrottleKB;
     }
 
     public long getMaxHintWindowMS() {
         return maxHintWindowMS;
+    }
+
+    public String getRpcServerType() {
+        return rpcServerType;
+    }
+
+    public int getIndexInterval() {
+        return indexInterval;
+    }
+
+    public String getAuthenticator() {
+        return authenticator;
+    }
+
+    public String getAuthorizer() {
+        return authorizer;
     }
 
     public boolean isLocalBootstrapEnable() {
@@ -215,20 +299,48 @@ public class CassandraConfiguration {
         return seedProviderClassName;
     }
 
-    public String getKeyCacheSizeInMB() {
+    public Integer getKeyCacheSizeInMB() {
         return keyCacheSizeInMB;
     }
 
-    public String getKeyCacheKeysToSave() {
+    public Integer getKeyCacheKeysToSave() {
         return keyCacheKeysToSave;
     }
 
-    public String getRowCacheSizeInMB() {
+    public Integer getRowCacheSizeInMB() {
         return rowCacheSizeInMB;
     }
 
-    public String getRowCacheKeysToSave() {
+    public Integer getRowCacheKeysToSave() {
         return rowCacheKeysToSave;
+    }
+
+    public String getInternodeCompression() {
+        return internodeCompression;
+    }
+
+    public boolean isInterDcTcpNodelay() {
+        return interDcTcpNodelay;
+    }
+
+    public int getConcurrentReads() {
+        return concurrentReads;
+    }
+
+    public int getConcurrentWrites() {
+        return concurrentWrites;
+    }
+
+    public Integer getConcurrentCompactors() {
+        return concurrentCompactors;
+    }
+
+    public boolean isClientSslEnabled() {
+        return clientSslEnabled;
+    }
+
+    public String getInternodeEncryption() {
+        return internodeEncryption;
     }
 
     public String getNodeRepairTime() {
@@ -243,8 +355,12 @@ public class CassandraConfiguration {
         return nodeRepairMutexAcquireTimeOut;
     }
 
-    public void setPartitionerClassName(String partitionerClassName) {
-        this.partitionerClassName = partitionerClassName;
+    public Map<String, String> getExtraConfigParams() {
+        return extraConfigParams;
+    }
+
+    public void setPartitioner(String partitioner) {
+        this.partitioner = partitioner;
     }
 
     public void setMinimumToken(String minimumToken) {
@@ -295,8 +411,20 @@ public class CassandraConfiguration {
         this.storagePort = storagePort;
     }
 
+    public void setThriftEnabled(boolean thriftEnabled) {
+        this.thriftEnabled = thriftEnabled;
+    }
+
     public void setThriftPort(int thriftPort) {
         this.thriftPort = thriftPort;
+    }
+
+    public void setNativeTransportEnabled(boolean nativeTransportEnabled) {
+        this.nativeTransportEnabled = nativeTransportEnabled;
+    }
+
+    public void setNativeTransportPort(int nativeTransportPort) {
+        this.nativeTransportPort = nativeTransportPort;
     }
 
     public void setJmxPort(int jmxPort) {
@@ -327,16 +455,36 @@ public class CassandraConfiguration {
         this.heapDumpLocation = heapDumpLocation;
     }
 
-    public void setMemTableTotalSpaceMB(int memTableTotalSpaceMB) {
-        this.memTableTotalSpaceMB = memTableTotalSpaceMB;
+    public void setMemtableTotalSpaceMB(Integer memtableTotalSpaceMB) {
+        this.memtableTotalSpaceMB = memtableTotalSpaceMB;
     }
 
-    public void setHintedHandoffThrottleDelayMS(long hintedHandoffThrottleDelayMS) {
-        this.hintedHandoffThrottleDelayMS = hintedHandoffThrottleDelayMS;
+    public void setStreamingThroughputMbps(Integer streamingThroughputMbps) {
+        this.streamingThroughputMbps = streamingThroughputMbps;
+    }
+
+    public void setHintedHandoffThrottleKB(long hintedHandoffThrottleKB) {
+        this.hintedHandoffThrottleKB = hintedHandoffThrottleKB;
     }
 
     public void setMaxHintWindowMS(long maxHintWindowMS) {
         this.maxHintWindowMS = maxHintWindowMS;
+    }
+
+    public void setRpcServerType(String rpcServerType) {
+        this.rpcServerType = rpcServerType;
+    }
+
+    public void setIndexInterval(int indexInterval) {
+        this.indexInterval = indexInterval;
+    }
+
+    public void setAuthenticator(String authenticator) {
+        this.authenticator = authenticator;
+    }
+
+    public void setAuthorizer(String authorizer) {
+        this.authorizer = authorizer;
     }
 
     public void setLocalBootstrapEnable(boolean localBootstrapEnable) {
@@ -351,20 +499,48 @@ public class CassandraConfiguration {
         this.seedProviderClassName = seedProviderClassName;
     }
 
-    public void setKeyCacheSizeInMB(String keyCacheSizeInMB) {
+    public void setKeyCacheSizeInMB(Integer keyCacheSizeInMB) {
         this.keyCacheSizeInMB = keyCacheSizeInMB;
     }
 
-    public void setKeyCacheKeysToSave(String keyCacheKeysToSave) {
+    public void setKeyCacheKeysToSave(Integer keyCacheKeysToSave) {
         this.keyCacheKeysToSave = keyCacheKeysToSave;
     }
 
-    public void setRowCacheSizeInMB(String rowCacheSizeInMB) {
+    public void setRowCacheSizeInMB(Integer rowCacheSizeInMB) {
         this.rowCacheSizeInMB = rowCacheSizeInMB;
     }
 
-    public void setRowCacheKeysToSave(String rowCacheKeysToSave) {
+    public void setRowCacheKeysToSave(Integer rowCacheKeysToSave) {
         this.rowCacheKeysToSave = rowCacheKeysToSave;
+    }
+
+    public void setInternodeCompression(String internodeCompression) {
+        this.internodeCompression = internodeCompression;
+    }
+
+    public void setInterDcTcpNodelay(boolean interDcTcpNodelay) {
+        this.interDcTcpNodelay = interDcTcpNodelay;
+    }
+
+    public void setConcurrentReads(int concurrentReads) {
+        this.concurrentReads = concurrentReads;
+    }
+
+    public void setConcurrentWrites(int concurrentWrites) {
+        this.concurrentWrites = concurrentWrites;
+    }
+
+    public void setConcurrentCompactors(Integer concurrentCompactors) {
+        this.concurrentCompactors = concurrentCompactors;
+    }
+
+    public void setClientSslEnabled(boolean clientSslEnabled) {
+        this.clientSslEnabled = clientSslEnabled;
+    }
+
+    public void setInternodeEncryption(String internodeEncryption) {
+        this.internodeEncryption = internodeEncryption;
     }
 
     public void setNodeRepairEnabled(boolean nodeRepairEnabled) {
@@ -379,4 +555,7 @@ public class CassandraConfiguration {
         this.nodeRepairTime = nodeRepairTime;
     }
 
+    public void setExtraConfigParams(Map<String, String> extraConfigParams) {
+        this.extraConfigParams = extraConfigParams;
+    }
 }

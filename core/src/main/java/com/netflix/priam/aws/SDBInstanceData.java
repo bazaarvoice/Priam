@@ -1,6 +1,23 @@
+/**
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.priam.aws;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.simpledb.AmazonSimpleDB;
 import com.amazonaws.services.simpledb.AmazonSimpleDBClient;
 import com.amazonaws.services.simpledb.model.Attribute;
@@ -17,7 +34,6 @@ import com.google.inject.Singleton;
 import com.netflix.priam.ICredential;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.identity.PriamInstance;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +48,8 @@ import java.util.Set;
  */
 @Singleton
 public class SDBInstanceData {
+    private static final Logger logger = LoggerFactory.getLogger(SDBInstanceData.class);
+
     public static class Attributes {
         public final static String APP_ID = "appId";
         public final static String ID = "id";
@@ -44,37 +62,35 @@ public class SDBInstanceData {
         public final static String HOSTNAME = "hostname";
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(SDBInstanceData.class);
-
     private final ICredential provider;
-    private final String simpleDbDomain;
-    private final String simpleDbRegion;
+    private final Region sdbRegion;
+    private final String sdbDomain;
 
     @Inject
     public SDBInstanceData(ICredential provider, AmazonConfiguration amazonConfiguration) {
         this.provider = provider;
-        this.simpleDbDomain = amazonConfiguration.getSimpleDbDomain();
-        this.simpleDbRegion = amazonConfiguration.getSimpleDbRegion();
+        this.sdbRegion = RegionUtils.getRegion(amazonConfiguration.getSimpleDbRegion());
+        this.sdbDomain = amazonConfiguration.getSimpleDbDomain();
 
         createDomain();  // This is idempotent and won't affect the domain if it already exists
     }
 
     private String getAllApplicationsQuery() {
-        return String.format("select " + Attributes.APP_ID + " from %s", simpleDbDomain);
+        return String.format("select " + Attributes.APP_ID + " from %s", sdbDomain);
     }
 
     private String getAllQuery(String appId) {
-        return String.format("select * from %s where " + Attributes.APP_ID + "='%s'", simpleDbDomain, appId);
+        return String.format("select * from %s where " + Attributes.APP_ID + "='%s'", sdbDomain, appId);
     }
 
     private String getInstanceQuery(String appId, int id) {
-        return String.format("select * from %s where " + Attributes.APP_ID + "='%s' and " + Attributes.ID + "='%d'", simpleDbDomain, appId, id);
+        return String.format("select * from %s where " + Attributes.APP_ID + "='%s' and " + Attributes.ID + "='%d'", sdbDomain, appId, id);
     }
 
     private void createDomain() {
-        logger.info("Creating SimpleDB domain '{}'", simpleDbDomain);
+        logger.info("Creating SimpleDB domain '{}'", sdbDomain);
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
-        CreateDomainRequest request = new CreateDomainRequest(simpleDbDomain);
+        CreateDomainRequest request = new CreateDomainRequest(sdbDomain);
         simpleDBClient.createDomain(request);
     }
 
@@ -105,7 +121,7 @@ public class SDBInstanceData {
      */
     public Set<PriamInstance> getAllIds(String app) {
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
-        Set<PriamInstance> inslist = new HashSet<PriamInstance>();
+        Set<PriamInstance> inslist = new HashSet<>();
         String nextToken = null;
         String allQuery = getAllQuery(app);
         do {
@@ -130,7 +146,7 @@ public class SDBInstanceData {
     public void createInstance(PriamInstance instance) throws AmazonServiceException {
         logger.info("Creating PriamInstance in SimpleDB: {}", instance);
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
-        PutAttributesRequest putReq = new PutAttributesRequest(simpleDbDomain, getKey(instance), createAttributesToRegister(instance));
+        PutAttributesRequest putReq = new PutAttributesRequest(sdbDomain, getKey(instance), createAttributesToRegister(instance));
         simpleDBClient.putAttributes(putReq);
     }
 
@@ -142,7 +158,7 @@ public class SDBInstanceData {
     public void registerInstance(PriamInstance instance) throws AmazonServiceException {
         logger.info("Registering PriamInstance in SimpleDB: {}", instance);
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
-        PutAttributesRequest putReq = new PutAttributesRequest(simpleDbDomain, getKey(instance), createAttributesToRegister(instance));
+        PutAttributesRequest putReq = new PutAttributesRequest(sdbDomain, getKey(instance), createAttributesToRegister(instance));
         UpdateCondition expected = new UpdateCondition();
         expected.setName(Attributes.INSTANCE_ID);
         expected.setExists(false);
@@ -158,7 +174,7 @@ public class SDBInstanceData {
     public void deregisterInstance(PriamInstance instance) throws AmazonServiceException {
         logger.info("De-Registering PriamInstance from SimpleDB: {}", instance);
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
-        DeleteAttributesRequest delReq = new DeleteAttributesRequest(simpleDbDomain, getKey(instance));
+        DeleteAttributesRequest delReq = new DeleteAttributesRequest(sdbDomain, getKey(instance));
         simpleDBClient.deleteAttributes(delReq);
     }
 
@@ -170,7 +186,7 @@ public class SDBInstanceData {
     public Set<String> getAllAppIds() throws AmazonServiceException {
         logger.info("Listing all PriamInstance applications in SimpleDB.");
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
-        Set<String> appIds = new HashSet<String>();
+        Set<String> appIds = new HashSet<>();
         String nextToken = null;
         String allQuery = getAllApplicationsQuery();
         do {
@@ -188,7 +204,7 @@ public class SDBInstanceData {
 
     private List<ReplaceableAttribute> createAttributesToRegister(PriamInstance instance) {
         instance.setUpdatetime(new Date().getTime());
-        List<ReplaceableAttribute> attrs = new ArrayList<ReplaceableAttribute>();
+        List<ReplaceableAttribute> attrs = new ArrayList<>();
         attrs.add(new ReplaceableAttribute(Attributes.INSTANCE_ID, instance.getInstanceId(), false));
         attrs.add(new ReplaceableAttribute(Attributes.TOKEN, instance.getToken(), true));
         attrs.add(new ReplaceableAttribute(Attributes.APP_ID, instance.getApp(), true));
@@ -207,24 +223,34 @@ public class SDBInstanceData {
     private PriamInstance transform(Item item) {
         PriamInstance ins = new PriamInstance();
         for (Attribute att : item.getAttributes()) {
-            if (att.getName().equals(Attributes.INSTANCE_ID)) {
-                ins.setInstanceId(att.getValue());
-            } else if (att.getName().equals(Attributes.TOKEN)) {
-                ins.setToken(att.getValue());
-            } else if (att.getName().equals(Attributes.APP_ID)) {
-                ins.setApp(att.getValue());
-            } else if (att.getName().equals(Attributes.ID)) {
-                ins.setId(Integer.parseInt(att.getValue()));
-            } else if (att.getName().equals(Attributes.AVAILABILITY_ZONE)) {
-                ins.setAvailabilityZone(att.getValue());
-            } else if (att.getName().equals(Attributes.ELASTIC_IP)) {
-                ins.setHostIP(att.getValue());
-            } else if (att.getName().equals(Attributes.HOSTNAME)) {
-                ins.setHost(att.getValue());
-            } else if (att.getName().equals(Attributes.LOCATION)) {
-                ins.setRegionName(att.getValue());
-            } else if (att.getName().equals(Attributes.UPDATE_TS)) {
-                ins.setUpdatetime(Long.parseLong(att.getValue()));
+            switch (att.getName()) {
+                case Attributes.INSTANCE_ID:
+                    ins.setInstanceId(att.getValue());
+                    break;
+                case Attributes.TOKEN:
+                    ins.setToken(att.getValue());
+                    break;
+                case Attributes.APP_ID:
+                    ins.setApp(att.getValue());
+                    break;
+                case Attributes.ID:
+                    ins.setId(Integer.parseInt(att.getValue()));
+                    break;
+                case Attributes.AVAILABILITY_ZONE:
+                    ins.setAvailabilityZone(att.getValue());
+                    break;
+                case Attributes.ELASTIC_IP:
+                    ins.setHostIP(att.getValue());
+                    break;
+                case Attributes.HOSTNAME:
+                    ins.setHost(att.getValue());
+                    break;
+                case Attributes.LOCATION:
+                    ins.setRegionName(att.getValue());
+                    break;
+                case Attributes.UPDATE_TS:
+                    ins.setUpdatetime(Long.parseLong(att.getValue()));
+                    break;
             }
         }
         return ins;
@@ -236,15 +262,8 @@ public class SDBInstanceData {
 
     private AmazonSimpleDB getSimpleDBClient() {
         //Create per request
-        AmazonSimpleDB client = new AmazonSimpleDBClient(provider.getCredentials());
-
-        // The endpoint for us-east-1 is a special case.  See http://docs.amazonwebservices.com/general/latest/gr/rande.html#sdb_region
-        if (StringUtils.isBlank(simpleDbRegion) || "us-east-1".equals(simpleDbRegion)) {
-            client.setEndpoint("sdb.amazonaws.com");
-        } else {
-            client.setEndpoint("sdb." + simpleDbRegion + ".amazonaws.com");
-        }
-
+        AmazonSimpleDB client = new AmazonSimpleDBClient(provider.getCredentialsProvider());
+        client.setRegion(sdbRegion);
         return client;
     }
 }

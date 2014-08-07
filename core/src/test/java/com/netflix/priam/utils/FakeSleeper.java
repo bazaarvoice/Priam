@@ -8,4 +8,8 @@ public class FakeSleeper implements Sleeper {
     public void sleep(long waitTimeMs) throws InterruptedException {
         // no-op
     }
+
+    public void sleepQuietly(long waitTimeMs) {
+        //no-op
+    }
 }

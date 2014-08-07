@@ -7,7 +7,7 @@ import com.netflix.priam.ICredential;
 
 public class FakeNullCredential implements ICredential {
     @Override
-    public AWSCredentialsProvider getCredentials() {
+    public AWSCredentialsProvider getCredentialsProvider() {
         return new StaticCredentialsProvider(new BasicAWSCredentials("testid", "testkey"));
     }
 }

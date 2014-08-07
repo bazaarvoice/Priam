@@ -16,7 +16,7 @@ public class DefaultCredentials implements ICredential {
     private final AWSCredentialsProvider _credentials = new DefaultAWSCredentialsProviderChain();
 
     @Override
-    public AWSCredentialsProvider getCredentials() {
+    public AWSCredentialsProvider getCredentialsProvider() {
         return _credentials;
     }
 }

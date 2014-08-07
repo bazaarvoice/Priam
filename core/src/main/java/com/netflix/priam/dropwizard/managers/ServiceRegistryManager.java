@@ -84,7 +84,7 @@ public class ServiceRegistryManager implements Managed {
         // Include the partitioner in the Ostrich end point data to support clients that need to know the
         // partitioner type before they connect to the ring (eg. Astyanax).
         Map<String, Object> payload = ImmutableMap.<String, Object>of(
-                "partitioner", FBUtilities.newPartitioner(casConfiguration.getPartitionerClassName()).getClass().getName(),
+                "partitioner", FBUtilities.newPartitioner(casConfiguration.getPartitioner()).getClass().getName(),
                 "url", priamServiceBaseURL);
         String payloadString = new ObjectMapper().writeValueAsString(payload);
 

@@ -12,6 +12,7 @@ import com.netflix.priam.backup.IncrementalRestore;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
+import com.netflix.priam.defaultimpl.StandardTuner;
 import com.netflix.priam.identity.InstanceIdentity;
 import com.netflix.priam.utils.FifoQueue;
 import org.apache.cassandra.io.sstable.SSTableLoaderWrapper;
@@ -30,14 +31,15 @@ public class StreamingTest {
         AmazonConfiguration amazonConfiguration = injector.getInstance(TestAmazonConfiguration.class);
         BackupConfiguration backupConfiguration = injector.getInstance(TestBackupConfiguration.class);
 
-        SSTableLoaderWrapper loader = new SSTableLoaderWrapper();
+        SSTableLoaderWrapper loader = new SSTableLoaderWrapper(cassandraConfiguration, new StandardTuner(
+                cassandraConfiguration, backupConfiguration, amazonConfiguration));
         Collection<PendingFile> ssts = loader.stream(new File("/tmp/Keyspace2/"));
         loader.deleteCompleted(ssts);
     }
 
     @Test
     public void testFifoAddAndRemove() {
-        FifoQueue<Long> queue = new FifoQueue<Long>(10);
+        FifoQueue<Long> queue = new FifoQueue<>(10);
         for (long i = 0; i < 100; i++) {
             queue.adjustAndAdd(i);
         }
@@ -53,7 +55,7 @@ public class StreamingTest {
         BackupConfiguration backupConfiguration = new TestBackupConfiguration();
         InstanceIdentity factory = injector.getInstance(InstanceIdentity.class);
 
-        FifoQueue<AbstractBackupPath> queue = new FifoQueue<AbstractBackupPath>(10);
+        FifoQueue<AbstractBackupPath> queue = new FifoQueue<>(10);
         for (int i = 10; i < 30; i++) {
             S3BackupPath path = new S3BackupPath(cassandraConfiguration, amazonConfiguration, backupConfiguration, factory);
             path.parseRemote("test_backup/fake-region/fakecluster/123456/201108" + i + "0000" + "/SNAP/ks1/cf2/f1" + i + ".db");

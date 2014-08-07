@@ -79,7 +79,7 @@ public class TestBackupFile {
         Assert.assertEquals("fake-app", backupfile.clusterName);
         Assert.assertEquals("fake-region", backupfile.region);
         Assert.assertEquals("casstestbackup", backupfile.baseDir);
-        String datestr = AbstractBackupPath.DAY_FORMAT.format(new Date(bfile.lastModified()));
+        String datestr = backupfile.formatDate(new Date(bfile.lastModified()));
         Assert.assertEquals("casstestbackup/fake-region/fake-app/1234567/" + datestr + "/SST/Keyspace1/Standard1/Keyspace1-Standard1-ia-5-Data.db", backupfile.getRemotePath());
     }
 
@@ -89,7 +89,7 @@ public class TestBackupFile {
         String filestr = "cass/data/1234567.meta";
         File bfile = new File(filestr);
         S3BackupPath backupfile = injector.getInstance(S3BackupPath.class);
-        backupfile.time = backupfile.getFormat().parse("201108082320");
+        backupfile.time = backupfile.parseDate("201108082320");
         backupfile.parseLocal(bfile, BackupFileType.META);
         Assert.assertEquals(BackupFileType.META, backupfile.type);
         Assert.assertEquals("1234567", backupfile.token);

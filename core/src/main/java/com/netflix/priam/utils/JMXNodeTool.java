@@ -1,5 +1,21 @@
+/**
+ * Copyright 2013 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.priam.utils;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -8,7 +24,6 @@ import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.netflix.priam.config.CassandraConfiguration;
-import org.apache.cassandra.config.ConfigurationException;
 import org.apache.cassandra.db.ColumnFamilyStoreMBean;
 import org.apache.cassandra.db.HintedHandOffManagerMBean;
 import org.apache.cassandra.tools.NodeProbe;
@@ -22,6 +37,7 @@ import javax.management.ObjectName;
 import java.io.IOException;
 import java.lang.management.MemoryUsage;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -62,7 +78,7 @@ public class JMXNodeTool extends NodeProbe {
     /**
      * try to create if it is null.
      */
-    public static JMXNodeTool instance(CassandraConfiguration config) throws Exception {
+    public static JMXNodeTool instance(CassandraConfiguration config) throws JMXConnectionException {
         if (!testConnection()) {
             reconnect(config);
         }
@@ -88,7 +104,7 @@ public class JMXNodeTool extends NodeProbe {
         return true;
     }
 
-    private static synchronized void reconnect(CassandraConfiguration config) throws Exception {
+    private static synchronized void reconnect(CassandraConfiguration config) throws JMXConnectionException {
         // Recheck connection in case we were beaten to the punch by another reconnect call.
         if (testConnection()) {
             return;
@@ -96,24 +112,33 @@ public class JMXNodeTool extends NodeProbe {
         tool = connect(config);
     }
 
-    public static synchronized JMXNodeTool connect(final CassandraConfiguration config) throws Exception {
-        return new RetryableCallable<JMXNodeTool>(false) {
-            @Override
-            public JMXNodeTool retriableCall() throws Exception {
-                JMXNodeTool nodetool = new JMXNodeTool("localhost", config.getJmxPort());
-                Field fields[] = NodeProbe.class.getDeclaredFields();
-                for (Field field : fields) {
-                    if (!field.getName().equals("mbeanServerConn")) {
-                        continue;
+    public static synchronized JMXNodeTool connect(final CassandraConfiguration config) throws JMXConnectionException {
+        try {
+            return new BoundedExponentialRetryCallable<JMXNodeTool>() {
+                @Override
+                public JMXNodeTool retriableCall() throws Exception {
+                    JMXNodeTool nodetool = new JMXNodeTool("localhost", config.getJmxPort());
+                    Field fields[] = NodeProbe.class.getDeclaredFields();
+                    for (Field field : fields) {
+                        if (!field.getName().equals("mbeanServerConn")) {
+                            continue;
+                        }
+                        field.setAccessible(true);
+                        nodetool.mbeanServerConn = (MBeanServerConnection) field.get(nodetool);
                     }
-                    field.setAccessible(true);
-                    nodetool.mbeanServerConn = (MBeanServerConnection) field.get(nodetool);
+                    return nodetool;
                 }
-                return nodetool;
-            }
-        }.call();
+            }.call();
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw new JMXConnectionException(e.toString());
+        }
     }
 
+    /**
+     * You must do the compaction before running this to get an accurate number.  Otherwise the result
+     * will likely significantly overestimate the actual number of keys.
+     */
     public List<Map<String, Object>> estimateKeys(Optional<Collection<String>> keyspaces) {
         Iterator<Entry<String, ColumnFamilyStoreMBean>> it = getColumnFamilyStoreMBeanProxies();
         List<Map<String, Object>> list = Lists.newArrayList();
@@ -133,10 +158,10 @@ public class JMXNodeTool extends NodeProbe {
     @SuppressWarnings("unchecked")
     public Map<String, Object> info() {
         logger.info("JMX info being called");
-        Map<String, Object> object = Maps.newHashMap();
+        Map<String, Object> object = Maps.newLinkedHashMap();
         object.put("gossip_active", isInitialized());
         object.put("thrift_active", isThriftServerRunning());
-        object.put("token", getToken());
+        object.put("token", getTokens().toString());
         object.put("load", getLoadString());
         object.put("generation_no", getCurrentGenerationNumber());
         object.put("uptime", getUptime() / 1000);
@@ -170,7 +195,7 @@ public class JMXNodeTool extends NodeProbe {
         logger.info("JMX ring being called");
         List<Map<String, Object>> ring = Lists.newArrayList();
         Map<String, String> tokenToEndpoint = getTokenToEndpointMap();
-        List<String> sortedTokens = new ArrayList<String>(tokenToEndpoint.keySet());
+        List<String> sortedTokens = new ArrayList<>(tokenToEndpoint.keySet());
 
         Collection<String> liveNodes = getLiveNodes();
         Collection<String> deadNodes = getUnreachableNodes();
@@ -180,15 +205,11 @@ public class JMXNodeTool extends NodeProbe {
         Map<String, String> loadMap = getLoadMap();
 
         // Calculate per-token ownership of the ring
-        Map<String, Float> ownerships;
-        try {
-            if (Strings.isNullOrEmpty(keyspace)) {
-                ownerships = getOwnership();
-            } else {
-                ownerships = effectiveOwnership(keyspace);
-            }
-        } catch (ConfigurationException ex) {
+        Map<InetAddress, Float> ownerships;
+        if (Strings.isNullOrEmpty(keyspace)) {
             ownerships = getOwnership();
+        } else {
+            ownerships = effectiveOwnership(keyspace);
         }
 
         for (String token : sortedTokens) {
@@ -221,10 +242,9 @@ public class JMXNodeTool extends NodeProbe {
                 state = "Moving";
             }
 
-            String load = loadMap.containsKey(primaryEndpoint)
-                    ? loadMap.get(primaryEndpoint)
-                    : "?";
-            String owns = new DecimalFormat("##0.00%").format(ownerships.get(token) == null ? 0.0F : ownerships.get(token));
+            String load = Objects.firstNonNull(loadMap.get(primaryEndpoint), "?");
+            // TODO: ownerships is keyed by InetAddress, lookup is by String
+            String owns = new DecimalFormat("##0.00%").format(Objects.firstNonNull(ownerships.get(primaryEndpoint), 0.0F));
             ring.add(createJson(primaryEndpoint, dataCenter, rack, status, state, load, owns, token));
         }
         logger.info(ring.toString());
@@ -232,7 +252,7 @@ public class JMXNodeTool extends NodeProbe {
     }
 
     private Map<String, Object> createJson(String primaryEndpoint, String dataCenter, String rack, String status, String state, String load, String owns, String token) {
-        Map<String, Object> object = Maps.newHashMap();
+        Map<String, Object> object = Maps.newLinkedHashMap();
         object.put("endpoint", primaryEndpoint);
         object.put("dc", dataCenter);
         object.put("rack", rack);
@@ -250,27 +270,23 @@ public class JMXNodeTool extends NodeProbe {
         }
     }
 
-    public void repair(boolean isSequential) throws IOException {
+    public void repair(boolean isSequential, boolean localDataCenterOnly, boolean primaryRange) throws IOException {
         for (String keyspace : getKeyspaces()) {
-            forceTableRepair(keyspace, isSequential);
+            repair(keyspace, isSequential, localDataCenterOnly, primaryRange);
         }
     }
 
-    public void repairPrimaryRange(boolean isSequential) throws IOException {
-        for (String keyspace : getKeyspaces()) {
-            forceTableRepairPrimaryRange(keyspace, isSequential);
+    public void repair(String keyspace, boolean isSequential, boolean localDataCenterOnly, boolean primaryRange) throws IOException {
+        if (primaryRange) {
+            forceTableRepairPrimaryRange(keyspace, isSequential, localDataCenterOnly);
+        } else {
+            forceTableRepair(keyspace, isSequential, localDataCenterOnly);
         }
-    }
-
-    public void repair(String keyspace, boolean isSequential) throws IOException {
-        // Turns out that when a range is repaired, it is repaired on "all" replica. Therefore, it is redundant and in-efficient to do node repair on all ranges on all nodes.
-        // Only repairing the primary range on each node in the cluster will repair the whole cluster
-        forceTableRepairPrimaryRange(keyspace, isSequential);
     }
 
     public void cleanup() throws IOException, ExecutionException, InterruptedException {
         for (String keyspace : getKeyspaces()) {
-            if ("system".equals(keyspace)) {
+            if ("system".equalsIgnoreCase(keyspace)) {
                 continue; // It is an error to attempt to cleanup the system column family.
             }
             forceTableCleanup(keyspace);
