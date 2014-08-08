@@ -15,11 +15,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class RandomPartitionerTokenManagerTest {
-    private static final BigInteger MINIMUM_TOKEN = RandomPartitioner.ZERO;
-    private static final BigInteger MAXIMUM_TOKEN = RandomPartitioner.MAXIMUM;
+public class Murmur3PartitionerTokenManagerTest {
+    private static final BigInteger MINIMUM_TOKEN = BigInteger.valueOf(Long.MIN_VALUE);
+    private static final BigInteger MAXIMUM_TOKEN = BigInteger.valueOf(Long.MAX_VALUE);
 
-    private static final BigIntegerTokenManager tokenManager = BigIntegerTokenManager.forRandomPartitioner();
+    private static final BigIntegerTokenManager tokenManager = BigIntegerTokenManager.forMurmur3Partitioner();
 
     @Test(expected = IllegalArgumentException.class)
     public void initialToken_zeroSize() {
@@ -61,31 +61,33 @@ public class RandomPartitionerTokenManagerTest {
 
     @Test
     public void createToken() {
-        assertEquals(MAXIMUM_TOKEN.divide(BigInteger.valueOf(8 * 32))
+        assertEquals(MAXIMUM_TOKEN
+                        .add(BigInteger.ONE)
+                        .subtract(MINIMUM_TOKEN)
+                        .divide(BigInteger.valueOf(8 * 32))
                         .multiply(BigInteger.TEN)
                         .add(BigInteger.valueOf(TokenManager.regionOffset("region")))
+                        .add(MINIMUM_TOKEN)
                         .toString(),
                 tokenManager.createToken(10, 8, 32, "region"));
     }
 
-    /*
-     */
     @Test
     public void createToken_typical() {
-        // 6 node clusters should have 6 tokens distributed evenly from 0 to 2^127 (exclusive) + region offset
-        assertEquals("1808575600", tokenManager.createToken(0, 3, 2, "us-east-1"));
-        assertEquals("28356863910078205288614550621122593221", tokenManager.createToken(1, 3, 2, "us-east-1"));
-        assertEquals("56713727820156410577229101240436610842", tokenManager.createToken(2, 3, 2, "us-east-1"));
-        assertEquals("85070591730234615865843651859750628463", tokenManager.createToken(3, 3, 2, "us-east-1"));
-        assertEquals("113427455640312821154458202479064646084", tokenManager.createToken(4, 3, 2, "us-east-1"));
-        assertEquals("141784319550391026443072753098378663705", tokenManager.createToken(5, 3, 2, "us-east-1"));
+        // 6 node clusters should have 6 tokens distributed evenly from -2^63 to 2^63 (exclusive) + region offset
+        assertEquals("-9223372035046200208", tokenManager.createToken(0, 3, 2, "us-east-1"));
+        assertEquals("-6148914689427941606", tokenManager.createToken(1, 3, 2, "us-east-1"));
+        assertEquals("-3074457343809683004", tokenManager.createToken(2, 3, 2, "us-east-1"));
+        assertEquals("1808575598", tokenManager.createToken(3, 3, 2, "us-east-1"));
+        assertEquals("3074457347426834200", tokenManager.createToken(4, 3, 2, "us-east-1"));
+        assertEquals("6148914693045092802", tokenManager.createToken(5, 3, 2, "us-east-1"));
 
-        assertEquals("372748112", tokenManager.createToken(0, 3, 2, "eu-west-1"));
-        assertEquals("28356863910078205288614550619686765733", tokenManager.createToken(1, 3, 2, "eu-west-1"));
-        assertEquals("56713727820156410577229101239000783354", tokenManager.createToken(2, 3, 2, "eu-west-1"));
-        assertEquals("85070591730234615865843651858314800975", tokenManager.createToken(3, 3, 2, "eu-west-1"));
-        assertEquals("113427455640312821154458202477628818596", tokenManager.createToken(4, 3, 2, "eu-west-1"));
-        assertEquals("141784319550391026443072753096942836217", tokenManager.createToken(5, 3, 2, "eu-west-1"));
+        assertEquals("-9223372036482027696", tokenManager.createToken(0, 3, 2, "eu-west-1"));
+        assertEquals("-6148914690863769094", tokenManager.createToken(1, 3, 2, "eu-west-1"));
+        assertEquals("-3074457345245510492", tokenManager.createToken(2, 3, 2, "eu-west-1"));
+        assertEquals("372748110", tokenManager.createToken(3, 3, 2, "eu-west-1"));
+        assertEquals("3074457345991006712", tokenManager.createToken(4, 3, 2, "eu-west-1"));
+        assertEquals("6148914691609265314", tokenManager.createToken(5, 3, 2, "eu-west-1"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -117,9 +119,7 @@ public class RandomPartitionerTokenManagerTest {
 
     @Test
     public void test4Splits() {
-        // example tokens from http://wiki.apache.org/cassandra/Operations
-        final String expectedTokens = "0,42535295865117307932921825928971026432,"
-                + "85070591730234615865843651857942052864,127605887595351923798765477786913079296";
+        final String expectedTokens = "-9223372036854775808,-4611686018427387904,0,4611686018427387904";
         String[] tokens = expectedTokens.split(",");
         int splits = tokens.length;
         for (int i = 0; i < splits; i++) {
@@ -129,14 +129,11 @@ public class RandomPartitionerTokenManagerTest {
 
     @Test
     public void test16Splits() {
-        final String expectedTokens = "0,10633823966279326983230456482242756608,"
-                + "21267647932558653966460912964485513216,31901471898837980949691369446728269824,"
-                + "42535295865117307932921825928971026432,53169119831396634916152282411213783040,"
-                + "63802943797675961899382738893456539648,74436767763955288882613195375699296256,"
-                + "85070591730234615865843651857942052864,95704415696513942849074108340184809472,"
-                + "106338239662793269832304564822427566080,116972063629072596815535021304670322688,"
-                + "127605887595351923798765477786913079296,138239711561631250781995934269155835904,"
-                + "148873535527910577765226390751398592512,159507359494189904748456847233641349120";
+        final String expectedTokens =
+                "-9223372036854775808,-8070450532247928832,-6917529027641081856,-5764607523034234880," +
+                        "-4611686018427387904,-3458764513820540928,-2305843009213693952,-1152921504606846976," +
+                        "0,1152921504606846976,2305843009213693952,3458764513820540928," +
+                        "4611686018427387904,5764607523034234880,6917529027641081856,8070450532247928832";
         String[] tokens = expectedTokens.split(",");
         int splits = tokens.length;
         for (int i = 0; i < splits; i++) {

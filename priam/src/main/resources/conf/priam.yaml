@@ -1,7 +1,8 @@
 cassandra:
   partitioner: "org.apache.cassandra.dht.RandomPartitioner" # The partitioner responsible for distributing rows (by key) across nodes in the cluster
-  #minimumToken:                              # Ignored for random partitioner.  Defaults to "00" for byte ordered partitioner
-  #maximumToken:                              # Ignored for random partitioner.  Defaults to "ffffffffffffffffffffffffffffffff" for byte ordered partitioner
+  #tokenLength:                               # ByteOrderedPartitioner-only.  Length of token in bytes.  Defaults to 16.
+  #minimumToken:                              # ByteOrderedPartitioner-only.  Defaults to "00000000000000000000000000000000"
+  #maximumToken:                              # ByteOrderedPartitioner-only.  Defaults to "ffffffffffffffffffffffffffffffff"
   endpointSnitch: "org.apache.cassandra.locator.Ec2Snitch"  # Snitch to be used in cassandra.yaml
                                                             # Needs to be changed in conjunction with multiRegionEnabled
   cassHome: "/etc/cassandra"                  # Path to the home dir of Cassandra

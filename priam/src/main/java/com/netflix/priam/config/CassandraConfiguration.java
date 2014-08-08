@@ -1,12 +1,17 @@
 package com.netflix.priam.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Objects;
+import com.google.common.base.Strings;
 
 import java.util.Map;
 
 public class CassandraConfiguration {
     @JsonProperty
     private String partitioner = "org.apache.cassandra.dht.RandomPartitioner";
+
+    @JsonProperty
+    private int tokenLength = 16;  // in bytes
 
     @JsonProperty
     private String minimumToken;
@@ -148,6 +153,10 @@ public class CassandraConfiguration {
 
     public String getPartitioner() {
         return partitioner;
+    }
+
+    public int getTokenLength() {
+        return tokenLength;
     }
 
     public String getMinimumToken() {
@@ -342,12 +351,16 @@ public class CassandraConfiguration {
         this.partitioner = partitioner;
     }
 
+    public void setTokenLength(int tokenLength) {
+        this.tokenLength = tokenLength;
+    }
+
     public void setMinimumToken(String minimumToken) {
-        this.minimumToken = minimumToken;
+        this.minimumToken = Objects.firstNonNull(minimumToken, Strings.repeat("00", tokenLength));
     }
 
     public void setMaximumToken(String maximumToken) {
-        this.maximumToken = maximumToken;
+        this.maximumToken = Objects.firstNonNull(maximumToken, Strings.repeat("ff", tokenLength));
     }
 
     public void setEndpointSnitch(String endpointSnitch) {

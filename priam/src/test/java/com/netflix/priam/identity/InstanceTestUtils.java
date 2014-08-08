@@ -5,8 +5,8 @@ import com.netflix.priam.FakePriamInstanceRegistry;
 import com.netflix.priam.TestAmazonConfiguration;
 import com.netflix.priam.TestBackupConfiguration;
 import com.netflix.priam.TestCassandraConfiguration;
+import com.netflix.priam.utils.BigIntegerTokenManager;
 import com.netflix.priam.utils.FakeSleeper;
-import com.netflix.priam.utils.RandomPartitionerTokenManager;
 import com.netflix.priam.utils.Sleeper;
 import com.netflix.priam.utils.TokenManager;
 import org.junit.Before;
@@ -45,7 +45,7 @@ public abstract class InstanceTestUtils {
         amazonConfiguration = new TestAmazonConfiguration("fake-app", "fake", "az1", "fakeinstance1");
         backupConfiguration = new TestBackupConfiguration();
         instanceRegistry = new FakePriamInstanceRegistry(amazonConfiguration);
-        tokenManager = new RandomPartitionerTokenManager();
+        tokenManager = BigIntegerTokenManager.forRandomPartitioner();
         sleeper = new FakeSleeper();
     }
 

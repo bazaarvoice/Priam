@@ -29,6 +29,8 @@ public class DoubleRingTest extends InstanceTestUtils {
 
         }
 
+        int numZones = amazonConfiguration.getUsableAvailabilityZones().size();
+
         for (int i = 0; i < doubled.size(); i++) {
             PriamInstance ins = doubled.get(i);
             assertEquals(validator.get(i), ins.getToken());
@@ -37,6 +39,8 @@ public class DoubleRingTest extends InstanceTestUtils {
             if (0 != id % 2) {
                 assertEquals(ins.getInstanceId(), "new_slot");
             }
+            // Verify that instances are spread across AZs evenly and in sequence.
+            assertEquals(ins.getAvailabilityZone(), doubled.get((i + numZones) % numZones).getAvailabilityZone());
         }
     }
 

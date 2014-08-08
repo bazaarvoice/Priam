@@ -72,7 +72,7 @@ public class DoubleRing {
         int numZones = amazonConfiguration.getUsableAvailabilityZones().size();
 
         for (PriamInstance priamInstance : instancesInRegion) {
-            // Move existing slots
+            // Move an existing instance by doubling the old slot #.
             int slot = (priamInstance.getId() - regionOffsetHash) * 2;
             instanceRegistry.create(priamInstance.getApp(),
                     regionOffsetHash + slot,
@@ -83,7 +83,8 @@ public class DoubleRing {
                     priamInstance.getVolumes(),
                     priamInstance.getToken());
 
-            // Add new slots
+            // Add a new slot in the same zone, numZones away.  Because slot is even and numZones is odd the
+            // new slot # will be odd and won't conflict with slot #s for existing instances.
             int newSlot = (slot + numZones) % newRingSize;
             String token = tokenManager.createToken(newSlot, newRingSize, amazonConfiguration.getRegionName());
             instanceRegistry.create(priamInstance.getApp(),

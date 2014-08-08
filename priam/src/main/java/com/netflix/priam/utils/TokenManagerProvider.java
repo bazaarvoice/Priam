@@ -6,6 +6,7 @@ import com.google.inject.Provider;
 import com.netflix.priam.config.CassandraConfiguration;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.IPartitioner;
+import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.dht.RandomPartitioner;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.cassandra.utils.FBUtilities;
@@ -30,10 +31,14 @@ public class TokenManagerProvider implements Provider<TokenManager> {
             throw Throwables.propagate(e);
         }
         if (partitioner instanceof RandomPartitioner) {
-            return new RandomPartitionerTokenManager();
+            return BigIntegerTokenManager.forRandomPartitioner();
+        }
+        if (partitioner instanceof Murmur3Partitioner) {
+            return BigIntegerTokenManager.forMurmur3Partitioner();
         }
         if (partitioner instanceof ByteOrderedPartitioner) {
-            return new ByteOrderedPartitionerTokenManager(_cassandraConfiguration);
+            return new BOPTokenManager(_cassandraConfiguration.getTokenLength(),
+                    _cassandraConfiguration.getMinimumToken(), _cassandraConfiguration.getMaximumToken());
         }
         throw new UnsupportedOperationException(partitioner.getClass().getName());
     }

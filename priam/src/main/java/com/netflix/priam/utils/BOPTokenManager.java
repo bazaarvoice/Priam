@@ -1,46 +1,59 @@
+/**
+ * Copyright 2014 Bazaarvoice, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.priam.utils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
-import com.google.common.base.Objects;
 import com.google.common.collect.Ordering;
 import com.google.inject.Inject;
-import com.netflix.priam.config.CassandraConfiguration;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.BytesToken;
 import org.apache.cassandra.dht.Token;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.List;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class ByteOrderedPartitionerTokenManager extends TokenManager {
-    // The most minimum token is the empty byte array, but that look like blank token when stringified and can be
-    // confused with an unspecified token.  For our token calculations the min & max don't have to be exact, just
-    // close enough to pick balanced ranges.  So use "00" as a less confusing minimum token.
-    private static final String DEFAULT_MINIMUM_TOKEN = "00";
-    private static final String DEFAULT_MAXIMUM_TOKEN = "ffffffffffffffffffffffffffffffff";
-
+/**
+ * Token manager for clusters using ByteOrderedPartitioner.  By default, generates and assigns 16-byte tokens
+ * evenly distributed between 0x00000000000000000000000000000000 and 0xffffffffffffffffffffffffffffffff.  This
+ * is a good choice for ByteOrderedPartitioner-based clusters where the first {@code n} bits of partition keys are
+ * distributed evenly across all possible combinations, where {@code (2^n)*replicationFactor >= clusterSize}.
+ * <p/>
+ * 16-byte tokens are the same size as RandomPartitioner tokens, but the tokens aren't interchangeable.  Among other
+ * things, RandomPartitioner tokens are formatted as decimal numbers, ByteOrderedPartitioner tokens are formatted as
+ * hex strings.  RandomPartitioner tokens range from 0 to 2^127, ByteOrderedPartitioner tokens w/this class range
+ * from 0 to 2^128-1.
+ */
+public class BOPTokenManager extends TokenManager {
     // Tokens are expected to be lowercase hex.  The findClosestToken method will break if uppercase hex.
     private static final CharMatcher VALID_TOKEN = CharMatcher.inRange('0', '9').or(CharMatcher.inRange('a', 'f'));
 
     private final ByteOrderedPartitioner partitioner = new ByteOrderedPartitioner();
+    private final int tokenLength; // In bytes
     private final Token<byte[]> minimumToken;
     private final Token<byte[]> maximumToken;
 
     @Inject
-    public ByteOrderedPartitionerTokenManager(CassandraConfiguration config) {
-        this(Objects.firstNonNull(config.getMinimumToken(), DEFAULT_MINIMUM_TOKEN),
-                Objects.firstNonNull(config.getMaximumToken(), DEFAULT_MAXIMUM_TOKEN));
-    }
-
-    @VisibleForTesting
-    ByteOrderedPartitionerTokenManager(String minimumToken, String maximumToken) {
-        this.minimumToken = partitioner.getTokenFactory().fromString(minimumToken);
-        this.maximumToken = partitioner.getTokenFactory().fromString(maximumToken);
+    public BOPTokenManager(int tokenLength, String minimumToken, String maximumToken) {
+        this.tokenLength = tokenLength;
+        this.minimumToken = partitioner.getTokenFactory().fromString(checkTokenString(minimumToken));
+        this.maximumToken = partitioner.getTokenFactory().fromString(checkTokenString(maximumToken));
         checkArgument(this.minimumToken.compareTo(this.maximumToken) < 0,
                 "Minimum token must be < maximum token: %s %s", minimumToken, maximumToken);
     }
@@ -60,13 +73,12 @@ public class ByteOrderedPartitionerTokenManager extends TokenManager {
         checkArgument(offset >= 0, "offset must be >= 0");
         checkArgument(position >= 0, "position must be >= 0");
 
-        // Assume keys are distributed evenly between the minimum and maximum token.  This is often a bad assumption
-        // with the ByteOrderedPartitioner, but that's why everyone is discouraged from using it.
+        // Assume keys are distributed evenly between the minimum and maximum token.  This is often a bad
+        // assumption with the ByteOrderedPartitioner, but that's why everyone is discouraged from using it.
 
-        // Subdivide between the min and max using roughly 16 bytes of precision, same size as RandomPartitioner tokens.
-        int tokenLength = getIndexOfFirstDifference(minimumToken.token, maximumToken.token) + 16;
-        BigInteger min = tokenToNumber(minimumToken, tokenLength);
-        BigInteger max = tokenToNumber(maximumToken, tokenLength);
+        // Subdivide between the min and max using tokenLength bytes of precision.
+        BigInteger min = new BigInteger(1, minimumToken.token);
+        BigInteger max = new BigInteger(1, maximumToken.token);
 
         BigInteger value = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s
                 .subtract(min)
@@ -74,7 +86,7 @@ public class ByteOrderedPartitionerTokenManager extends TokenManager {
                 .multiply(BigInteger.valueOf(position))
                 .add(BigInteger.valueOf(offset))
                 .add(min);
-        Token<byte[]> token = numberToToken(value, tokenLength);
+        Token<byte[]> token = numberToToken(value);
 
         // Make sure the token stays within the configured bounds.
         return Ordering.natural().min(Ordering.natural().max(token, minimumToken), maximumToken);
@@ -88,23 +100,22 @@ public class ByteOrderedPartitionerTokenManager extends TokenManager {
     @Override
     public String findClosestToken(String tokenToSearch, List<String> tokenList) {
         checkArgument(!tokenList.isEmpty(), "token list must not be empty");
-        checkArgument(VALID_TOKEN.matchesAllOf(tokenToSearch), "token must be lowercase hex: %s", tokenToSearch);
+        checkTokenString(tokenToSearch);
         for (String token : tokenList) {
-            checkArgument(VALID_TOKEN.matchesAllOf(token), "token must be lowercase hex: %s", token);
+            checkTokenString(token);
         }
 
         // Rely on the fact that hex-encoded strings sort in the same relative order as the BytesToken byte arrays.
         List<String> sortedTokens = Ordering.natural().sortedCopy(tokenList);
-        int index = Ordering.natural().binarySearch(sortedTokens, tokenToSearch);
-        if (index < 0) {
-            int i = -index - 1;
+        int i = Ordering.natural().binarySearch(sortedTokens, tokenToSearch);
+        if (i < 0) {
+            i = -i - 1;
             if ((i >= sortedTokens.size()) ||
                     (i > 0 && lessThanMidPoint(sortedTokens.get(i - 1), tokenToSearch, sortedTokens.get(i)))) {
                 --i;
             }
-            return sortedTokens.get(i);
         }
-        return sortedTokens.get(index);
+        return sortedTokens.get(i);
     }
 
     private boolean lessThanMidPoint(String min, String token, String max) {
@@ -114,28 +125,12 @@ public class ByteOrderedPartitionerTokenManager extends TokenManager {
     }
 
     @VisibleForTesting
-    BigInteger tokenToNumber(Token<byte[]> token, int tokenLength) {
-        // Right-pad with zeros up to the token length
-        return new BigInteger(1, Arrays.copyOf(token.token, tokenLength));
-    }
-
-    @VisibleForTesting
-    Token<byte[]> numberToToken(BigInteger number, int tokenLength) {
+    Token<byte[]> numberToToken(BigInteger number) {
         checkArgument(number.signum() >= 0, "Token math should not yield negative numbers: %s", number);
         byte[] numberBytes = number.toByteArray();
         int numberOffset = numberBytes[0] != 0 ? 0 : 1;  // Ignore the first if it's zero ("sign byte") to ensure byte[] length <= tokenLength.
         int numberLength = numberBytes.length - numberOffset;
         checkArgument(numberLength <= tokenLength, "Token math should not yield tokens bigger than maxToken (%s bytes): %s", tokenLength, number);
-
-        // Trim trailing zeros that we likely added in tokenToNumber() when right-padding the number up to the token length.
-        while (numberLength > 0 && numberBytes[numberOffset + numberLength - 1] == 0) {
-            numberLength--;
-            tokenLength--;
-        }
-        // Special case for number==0.  Trim down to a byte array of length 1.
-        if (numberLength == 0) {
-            tokenLength = 1;
-        }
 
         // Left-pad the number with zeros when creating the number array.
         byte[] tokenBytes = new byte[tokenLength];
@@ -143,20 +138,6 @@ public class ByteOrderedPartitionerTokenManager extends TokenManager {
         return partitioner.getToken(ByteBuffer.wrap(tokenBytes));
     }
 
-    /**
-     * Returns the index of the first byte following the prefix common to A and B.
-     */
-    private int getIndexOfFirstDifference(byte[] tokenA, byte[] tokenB) {
-        int length = Math.min(tokenA.length, tokenB.length);
-        for (int i = 0; i < length; i++) {
-            if (tokenA[i] != tokenB[i]) {
-                return i;
-            }
-        }
-        return length;
-    }
-
-    @Override
     public String sanitizeToken(String jmxTokenString) {
         // BytesToken.toString() returns "Token(bytes[<hex>])" but ByteOrderedPartitioner expects just "<hex>".
         String prefix = "Token(bytes[", suffix = "])";
@@ -164,5 +145,12 @@ public class ByteOrderedPartitionerTokenManager extends TokenManager {
             jmxTokenString = jmxTokenString.substring(prefix.length(), jmxTokenString.length() - suffix.length());
         }
         return jmxTokenString;
+    }
+
+    private String checkTokenString(String token) {
+        checkArgument(token.length() == tokenLength * 2,
+                "Token string should be %s characters long (%s bytes): %s", tokenLength * 2, tokenLength, token);
+        checkArgument(VALID_TOKEN.matchesAllOf(token), "Token must be lowercase hex: %s", token);
+        return token;
     }
 }
