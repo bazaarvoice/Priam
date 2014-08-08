@@ -16,6 +16,7 @@
 package com.netflix.priam.aws;
 
 import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.simpledb.AmazonSimpleDB;
@@ -31,7 +32,6 @@ import com.amazonaws.services.simpledb.model.SelectResult;
 import com.amazonaws.services.simpledb.model.UpdateCondition;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.netflix.priam.ICredential;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.identity.PriamInstance;
 import org.slf4j.Logger;
@@ -62,12 +62,12 @@ public class SDBInstanceData {
         public final static String HOSTNAME = "hostname";
     }
 
-    private final ICredential provider;
+    private final AWSCredentialsProvider provider;
     private final Region sdbRegion;
     private final String sdbDomain;
 
     @Inject
-    public SDBInstanceData(ICredential provider, AmazonConfiguration amazonConfiguration) {
+    public SDBInstanceData(AWSCredentialsProvider provider, AmazonConfiguration amazonConfiguration) {
         this.provider = provider;
         this.sdbRegion = RegionUtils.getRegion(amazonConfiguration.getSimpleDbRegion());
         this.sdbDomain = amazonConfiguration.getSimpleDbDomain();
@@ -262,7 +262,7 @@ public class SDBInstanceData {
 
     private AmazonSimpleDB getSimpleDBClient() {
         //Create per request
-        AmazonSimpleDB client = new AmazonSimpleDBClient(provider.getCredentialsProvider());
+        AmazonSimpleDB client = new AmazonSimpleDBClient(provider);
         client.setRegion(sdbRegion);
         return client;
     }

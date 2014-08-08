@@ -1,15 +1,14 @@
 package com.netflix.priam.dropwizard;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.netflix.priam.ICredential;
 import com.netflix.priam.PriamServer;
 import com.netflix.priam.config.PriamConfiguration;
 import com.netflix.priam.defaultimpl.PriamGuiceModule;
 import com.netflix.priam.dropwizard.managers.ManagedCloseable;
 import com.netflix.priam.dropwizard.managers.ServiceMonitorManager;
 import com.netflix.priam.dropwizard.managers.ServiceRegistryManager;
-import com.netflix.priam.resources.BackupResource;
 import com.netflix.priam.resources.CassandraAdminResource;
 import com.netflix.priam.resources.CassandraConfigResource;
 import com.netflix.priam.resources.MonitoringEnablementResource;
@@ -51,13 +50,12 @@ public class PriamService extends Service<PriamConfiguration> {
 
         Injector injector = Guice.createInjector(new PriamGuiceModule(config, environment));
         try {
-            config.getAmazonConfiguration().discoverConfiguration(injector.getInstance(ICredential.class));
+            config.getAmazonConfiguration().discoverConfiguration(injector.getInstance(AWSCredentialsProvider.class));
 
             environment.manage(injector.getInstance(PriamServer.class));
             environment.manage(injector.getInstance(ServiceRegistryManager.class));
             environment.manage(injector.getInstance(ServiceMonitorManager.class));
 
-            environment.addResource(injector.getInstance(BackupResource.class));
             environment.addResource(injector.getInstance(CassandraAdminResource.class));
             environment.addResource(injector.getInstance(CassandraConfigResource.class));
             environment.addResource(injector.getInstance(PriamInstanceResource.class));

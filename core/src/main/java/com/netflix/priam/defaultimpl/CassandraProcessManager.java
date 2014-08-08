@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.netflix.priam.ICassandraProcess;
 import com.netflix.priam.config.AmazonConfiguration;
-import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.utils.Sleeper;
 import org.apache.commons.lang.StringUtils;
@@ -24,21 +23,19 @@ public class CassandraProcessManager implements ICassandraProcess {
     private static final String SUDO_STRING = "/usr/bin/sudo";
     private static final int SCRIPT_EXECUTE_WAIT_TIME_MS = 5000;
     private final CassandraConfiguration cassandraConfig;
-    private final BackupConfiguration backupConfig;
     private final AmazonConfiguration amazonConfig;
     private final Sleeper sleeper;
 
     @Inject
-    public CassandraProcessManager(CassandraConfiguration cassandraConfig, BackupConfiguration backupConfig,
-                                   AmazonConfiguration amazonConfig, Sleeper sleeper) {
+    public CassandraProcessManager(CassandraConfiguration cassandraConfig, AmazonConfiguration amazonConfig, Sleeper sleeper) {
         this.cassandraConfig = cassandraConfig;
-        this.backupConfig = backupConfig;
         this.amazonConfig = amazonConfig;
         this.sleeper = sleeper;
     }
 
-    public void start(boolean join_ring) throws IOException {
-        logger.info("Starting cassandra server ....Join ring={}", join_ring);
+    @Override
+    public void start(boolean joinRing) throws IOException {
+        logger.info("Starting cassandra server ....Join ring={}", joinRing);
 
         List<String> command = Lists.newArrayList();
         if (!"root".equals(System.getProperty("user.name"))) {
@@ -52,14 +49,9 @@ public class CassandraProcessManager implements ICassandraProcess {
         Map<String, String> env = startCass.environment();
         env.put("HEAP_NEWSIZE", cassandraConfig.getMaxNewGenHeapSize().get(amazonConfig.getInstanceType()));
         env.put("MAX_HEAP_SIZE", cassandraConfig.getMaxHeapSize().get(amazonConfig.getInstanceType()));
-        env.put("DATA_DIR", cassandraConfig.getDataLocation());
-        env.put("COMMIT_LOG_DIR", backupConfig.getCommitLogLocation());
-        env.put("LOCAL_BACKUP_DIR", backupConfig.getS3BaseDir());
-        env.put("CACHE_DIR", cassandraConfig.getCacheLocation());
         env.put("CASSANDRA_HEAPDUMP_DIR", cassandraConfig.getHeapDumpLocation());
-        env.put("JMX_PORT", "" + cassandraConfig.getJmxPort());
-        env.put("MAX_DIRECT_MEMORY", cassandraConfig.getDirectMaxHeapSize().get(amazonConfig.getInstanceType()));
-        env.put("cassandra.join_ring", join_ring ? "true" : "false");
+        env.put("JMX_PORT", Integer.toString(cassandraConfig.getJmxPort()));
+        env.put("cassandra.join_ring", Boolean.toString(joinRing));
         startCass.directory(new File("/"));
         startCass.redirectErrorStream(true);
         Process starter = startCass.start();
@@ -110,7 +102,7 @@ public class CassandraProcessManager implements ICassandraProcess {
         return baos.toString();
     }
 
-
+    @Override
     public void stop() throws IOException {
         logger.info("Stopping cassandra server ....");
         List<String> command = Lists.newArrayList();

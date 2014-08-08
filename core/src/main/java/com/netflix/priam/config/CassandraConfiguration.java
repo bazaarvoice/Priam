@@ -15,12 +15,6 @@ public class CassandraConfiguration {
     private String maximumToken;
 
     @JsonProperty
-    private String bootstrapClusterName;
-
-    @JsonProperty
-    private boolean multiRegionEnabled;
-
-    @JsonProperty
     private String endpointSnitch;
 
     @JsonProperty
@@ -66,9 +60,6 @@ public class CassandraConfiguration {
     private int inMemoryCompactionLimitMB;
 
     @JsonProperty
-    private Map<String, String> directMaxHeapSize;
-
-    @JsonProperty
     private Map<String, String> maxHeapSize;
 
     @JsonProperty
@@ -102,10 +93,10 @@ public class CassandraConfiguration {
     private String authorizer;
 
     @JsonProperty
-    private boolean localBootstrapEnable;
+    private String cacheLocation;
 
     @JsonProperty
-    private String cacheLocation;
+    private String commitLogLocation;
 
     @JsonProperty
     private String seedProviderClassName;
@@ -165,14 +156,6 @@ public class CassandraConfiguration {
 
     public String getMaximumToken() {
         return maximumToken;
-    }
-
-    public String getBootstrapClusterName() {
-        return bootstrapClusterName;
-    }
-
-    public boolean isMultiRegionEnabled() {
-        return multiRegionEnabled;
     }
 
     public String getEndpointSnitch() {
@@ -239,10 +222,6 @@ public class CassandraConfiguration {
         return inMemoryCompactionLimitMB;
     }
 
-    public Map<String, String> getDirectMaxHeapSize() {
-        return directMaxHeapSize;
-    }
-
     public Map<String, String> getMaxHeapSize() {
         return maxHeapSize;
     }
@@ -287,12 +266,12 @@ public class CassandraConfiguration {
         return authorizer;
     }
 
-    public boolean isLocalBootstrapEnable() {
-        return localBootstrapEnable;
-    }
-
     public String getCacheLocation() {
         return cacheLocation;
+    }
+
+    public String getCommitLogLocation() {
+        return commitLogLocation;
     }
 
     public String getSeedProviderClassName() {
@@ -371,14 +350,6 @@ public class CassandraConfiguration {
         this.maximumToken = maximumToken;
     }
 
-    public void setBootstrapClusterName(String bootstrapClusterName) {
-        this.bootstrapClusterName = bootstrapClusterName;
-    }
-
-    public void setMultiRegionEnabled(boolean multiRegionEnabled) {
-        this.multiRegionEnabled = multiRegionEnabled;
-    }
-
     public void setEndpointSnitch(String endpointSnitch) {
         this.endpointSnitch = endpointSnitch;
     }
@@ -439,10 +410,6 @@ public class CassandraConfiguration {
         this.inMemoryCompactionLimitMB = inMemoryCompactionLimitMB;
     }
 
-    public void setDirectMaxHeapSize(Map<String, String> directMaxHeapSize) {
-        this.directMaxHeapSize = directMaxHeapSize;
-    }
-
     public void setMaxHeapSize(Map<String, String> maxHeapSize) {
         this.maxHeapSize = maxHeapSize;
     }
@@ -487,12 +454,12 @@ public class CassandraConfiguration {
         this.authorizer = authorizer;
     }
 
-    public void setLocalBootstrapEnable(boolean localBootstrapEnable) {
-        this.localBootstrapEnable = localBootstrapEnable;
-    }
-
     public void setCacheLocation(String cacheLocation) {
         this.cacheLocation = cacheLocation;
+    }
+
+    public void setCommitLogLocation(String commitLogLocation) {
+        this.commitLogLocation = commitLogLocation;
     }
 
     public void setSeedProviderClassName(String seedProviderClassName) {

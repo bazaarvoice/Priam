@@ -15,6 +15,7 @@
  */
 package com.netflix.priam.aws;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.autoscaling.AmazonAutoScaling;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingClient;
 import com.amazonaws.services.autoscaling.model.AutoScalingGroup;
@@ -32,7 +33,6 @@ import com.amazonaws.services.ec2.model.SecurityGroup;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
-import com.netflix.priam.ICredential;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.identity.IMembership;
 import org.apache.commons.lang.StringUtils;
@@ -51,10 +51,10 @@ import java.util.List;
 public class AWSMembership implements IMembership {
     private static final Logger logger = LoggerFactory.getLogger(AWSMembership.class);
     private final AmazonConfiguration amazonConfiguration;
-    private final ICredential provider;
+    private final AWSCredentialsProvider provider;
 
     @Inject
-    public AWSMembership(AmazonConfiguration amazonConfiguration, ICredential provider) {
+    public AWSMembership(AmazonConfiguration amazonConfiguration, AWSCredentialsProvider provider) {
         this.amazonConfiguration = amazonConfiguration;
         this.provider = provider;
     }
@@ -159,13 +159,13 @@ public class AWSMembership implements IMembership {
     }
 
     protected AmazonAutoScaling getAutoScalingClient() {
-        AmazonAutoScaling client = new AmazonAutoScalingClient(provider.getCredentialsProvider());
+        AmazonAutoScaling client = new AmazonAutoScalingClient(provider);
         client.setRegion(amazonConfiguration.getRegion());
         return client;
     }
 
     protected AmazonEC2 getEc2Client() {
-        AmazonEC2 client = new AmazonEC2Client(provider.getCredentialsProvider());
+        AmazonEC2 client = new AmazonEC2Client(provider);
         client.setRegion(amazonConfiguration.getRegion());
         return client;
     }

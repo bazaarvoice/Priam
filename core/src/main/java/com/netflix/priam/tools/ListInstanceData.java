@@ -1,7 +1,7 @@
 package com.netflix.priam.tools;
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.google.common.collect.Ordering;
-import com.netflix.priam.aws.DefaultCredentials;
 import com.netflix.priam.aws.SDBInstanceData;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.identity.PriamInstance;
@@ -46,6 +46,6 @@ public class ListInstanceData extends Command {
         AmazonConfiguration awsConfig = new AmazonConfiguration();
         awsConfig.setSimpleDbDomain(domain);
         awsConfig.setSimpleDbRegion(region);
-        return new SDBInstanceData(new DefaultCredentials(), awsConfig);
+        return new SDBInstanceData(new DefaultAWSCredentialsProviderChain(), awsConfig);
     }
 }

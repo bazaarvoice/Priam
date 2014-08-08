@@ -1,25 +1,11 @@
 package com.netflix.priam;
 
-import com.google.common.collect.Lists;
 import com.netflix.priam.config.BackupConfiguration;
 
 public class TestBackupConfiguration extends BackupConfiguration {
 
     public TestBackupConfiguration() {
-        setRestorePrefix("");
-        setS3BaseDir("casstestbackup");
-        setS3BucketName("TEST-netflix.platform.S3");
         setCommitLogBackupEnabled(false);
-        setCommitLogLocation("cass/backup/cl/");
-        setBackupThreads(2);
-        setRestoreThreads(3);
-        setIncrementalBackupEnabled(true);
-        setUploadThrottleBytesPerSec(0);
-        setRestoreKeyspaces(Lists.<String>newArrayList());
-        setChunkSizeMB(5 * 1024 * 1024);
-        setRestoreClosestToken(true);
-        setRetentionDays(5);
-        setAvailabilityZonesToBackup(Lists.<String>newArrayList());
     }
 
 }

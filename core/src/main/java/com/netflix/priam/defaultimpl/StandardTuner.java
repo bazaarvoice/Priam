@@ -3,12 +3,10 @@ package com.netflix.priam.defaultimpl;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import com.netflix.priam.backup.Restore;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.utils.CassandraTuner;
-import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
@@ -47,11 +45,6 @@ public class StandardTuner implements CassandraTuner {
         File yamlFile = new File(yamlLocation);
         Map<String, Object> map = load(yaml, yamlFile);
 
-        String availabilityZone = amazonConfiguration.getAvailabilityZone();
-        boolean enableIncremental = (backupConfiguration.isSnapShotBackupEnabled() && backupConfiguration.isIncrementalBackupEnabled())
-                && (CollectionUtils.isEmpty(backupConfiguration.getAvailabilityZonesToBackup()) || backupConfiguration.getAvailabilityZonesToBackup().contains(availabilityZone))
-                || backupConfiguration.isIncrementalBackupEnabledForCassandra();
-
         put(map, "cluster_name", cassandraConfiguration.getClusterName());
         put(map, "storage_port", cassandraConfiguration.getStoragePort());
         put(map, "ssl_storage_port", cassandraConfiguration.getSslStoragePort());
@@ -61,11 +54,11 @@ public class StandardTuner implements CassandraTuner {
         put(map, "native_transport_port", cassandraConfiguration.getNativeTransportPort());
         put(map, "listen_address", hostIp);
         put(map, "rpc_address", hostIp);
-        put(map, "auto_bootstrap", !Restore.isRestoreEnabled(backupConfiguration, availabilityZone)); // Don't bootstrap in restore mode
+        put(map, "auto_bootstrap", false);
         put(map, "saved_caches_directory", cassandraConfiguration.getCacheLocation());
-        put(map, "commitlog_directory", backupConfiguration.getCommitLogLocation());
+        put(map, "commitlog_directory", cassandraConfiguration.getCommitLogLocation());
         put(map, "data_file_directories", ImmutableList.of(cassandraConfiguration.getDataLocation()));
-        put(map, "incremental_backups", enableIncremental);
+        put(map, "incremental_backups", backupConfiguration.isIncrementalBackupEnabledForCassandra());
         put(map, "endpoint_snitch", cassandraConfiguration.getEndpointSnitch());
         put(map, "in_memory_compaction_limit_in_mb", cassandraConfiguration.getInMemoryCompactionLimitMB());
         put(map, "compaction_throughput_mb_per_sec", cassandraConfiguration.getCompactionThroughputMBPerSec());

@@ -15,12 +15,9 @@ public class TestCassandraConfiguration extends CassandraConfiguration {
         setSslStoragePort(7103);
         setEndpointSnitch("org.apache.cassandra.locator.SimpleSnitch");
         setSeedProviderClassName("org.apache.cassandra.locator.SimpleSeedProvider");
-        setMultiRegionEnabled(false);
-        setLocalBootstrapEnable(false);
         setInMemoryCompactionLimitMB(8);
         setStreamingThroughputMbps(400);
         setCompactionThroughputMBPerSec(0);
-        setBootstrapClusterName("cass_bootstrap");
         setCassStopScript("teststopscript");
         setMaxHintWindowMS(36000);
         setHintedHandoffThrottleKB(0);
