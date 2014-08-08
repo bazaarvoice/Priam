@@ -11,9 +11,11 @@ import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
+import com.amazonaws.services.ec2.model.Tag;
+import com.amazonaws.util.EC2MetadataUtils;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.netflix.priam.utils.SystemUtils;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 
@@ -147,56 +149,38 @@ public class AmazonConfiguration {
 
     public void discoverConfiguration(AWSCredentialsProvider credentialProvider) {
         if (StringUtils.isBlank(availabilityZone)) {
-            availabilityZone = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/placement/availability-zone");
+            availabilityZone = EC2MetadataUtils.getAvailabilityZone();
         }
         if (StringUtils.isBlank(regionName)) {
-            regionName = StringUtils.isBlank(System.getProperty("EC2_REGION")) ? availabilityZone.substring(0, availabilityZone.length() - 1) : System.getProperty("EC2_REGION");
+            regionName = availabilityZone.substring(0, availabilityZone.length() - 1);
         }
         if (StringUtils.isBlank(instanceID)) {
-            instanceID = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/instance-id");
+            instanceID = EC2MetadataUtils.getInstanceId();
         }
         if (StringUtils.isBlank(autoScaleGroupName)) {
-            autoScaleGroupName = StringUtils.isBlank(System.getProperty("ASG_NAME")) ? populateASGName(credentialProvider, regionName, instanceID) : System.getProperty("ASG_NAME");
+            autoScaleGroupName = getAutoScaleGroupName(credentialProvider, regionName, instanceID);
         }
         if (StringUtils.isBlank(instanceType)) {
-            instanceType = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/instance-type");
+            instanceType = EC2MetadataUtils.getInstanceType();
         }
         if (StringUtils.isBlank(privateHostName)) {
-            privateHostName = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/local-hostname");
+            privateHostName = EC2MetadataUtils.getLocalHostName();
         }
         if (StringUtils.isBlank(privateIP)) {
-            privateIP = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/local-ipv4");
+            privateIP = EC2MetadataUtils.getPrivateIpAddress();
         }
         if (CollectionUtils.isEmpty(usableAvailabilityZones)) {
-            usableAvailabilityZones = defineUsableAvailabilityZones(credentialProvider, regionName);
+            usableAvailabilityZones = getUsableAvailabilityZones(credentialProvider, regionName);
         }
         if (StringUtils.isBlank(securityGroupName)) {
-            securityGroupName = populateSecurityGroup(credentialProvider);
+            securityGroupName = Iterables.getFirst(EC2MetadataUtils.getSecurityGroups(), null);
         }
     }
-
-    private String populateSecurityGroup(AWSCredentialsProvider credentialProvider) {
-        AmazonEC2 client = new AmazonEC2Client(credentialProvider);
-        client.setRegion(getRegion());
-        try {
-            String securityGroupNameOnEachLine = SystemUtils.getDataFromUrl("http://169.254.169.254/latest/meta-data/security-groups");
-            if (StringUtils.isNotBlank(securityGroupNameOnEachLine)) {
-                String[] securityGroupNames = StringUtils.split(securityGroupNameOnEachLine, "\n");
-                if (securityGroupNames.length >= 1) {
-                    return securityGroupNames[0];
-                }
-            }
-        } finally {
-            client.shutdown();
-        }
-        return null;
-    }
-
 
     /**
      * Query amazon to get ASG name. Currently not available as part of instance info api.
      */
-    private String populateASGName(AWSCredentialsProvider credentialProvider, String region, String instanceId) {
+    private String getAutoScaleGroupName(AWSCredentialsProvider credentialProvider, String region, String instanceId) {
         AmazonEC2 client = new AmazonEC2Client(credentialProvider);
         client.setRegion(RegionUtils.getRegion(region));
         try {
@@ -205,7 +189,7 @@ public class AmazonConfiguration {
 
             for (Reservation resr : res.getReservations()) {
                 for (Instance ins : resr.getInstances()) {
-                    for (com.amazonaws.services.ec2.model.Tag tag : ins.getTags()) {
+                    for (Tag tag : ins.getTags()) {
                         if (tag.getKey().equals("aws:autoscaling:groupName")) {
                             return tag.getValue();
                         }
@@ -219,25 +203,25 @@ public class AmazonConfiguration {
     }
 
     /**
-     * Get the fist 3 availability zones in the region
+     * Returns the first 3 availability zones in the region.
      */
-    private List<String> defineUsableAvailabilityZones(AWSCredentialsProvider credentialProvider, String region) {
-        List<String> zone = Lists.newArrayList();
+    private List<String> getUsableAvailabilityZones(AWSCredentialsProvider credentialProvider, String region) {
+        List<String> zones = Lists.newArrayList();
         AmazonEC2 client = new AmazonEC2Client(credentialProvider);
         client.setRegion(RegionUtils.getRegion(region));
         try {
             DescribeAvailabilityZonesResult res = client.describeAvailabilityZones();
-            for (AvailabilityZone reg : res.getAvailabilityZones()) {
-                if (reg.getState().equals("available")) {
-                    zone.add(reg.getZoneName());
+            for (AvailabilityZone zone : res.getAvailabilityZones()) {
+                if (zone.getState().equals("available")) {
+                    zones.add(zone.getZoneName());
                 }
-                if (zone.size() == 3) {
+                if (zones.size() == 3) {
                     break;
                 }
             }
         } finally {
             client.shutdown();
         }
-        return zone;
+        return zones;
     }
 }

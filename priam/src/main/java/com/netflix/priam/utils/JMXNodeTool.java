@@ -21,6 +21,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.io.Closeables;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.netflix.priam.config.CassandraConfiguration;
@@ -34,6 +35,7 @@ import javax.management.JMX;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import java.io.Closeable;
 import java.io.IOException;
 import java.lang.management.MemoryUsage;
 import java.lang.reflect.Field;
@@ -53,7 +55,7 @@ import java.util.concurrent.ExecutionException;
  * Class to get data out of Cassandra JMX
  */
 @Singleton
-public class JMXNodeTool extends NodeProbe {
+public class JMXNodeTool extends NodeProbe implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(JMXNodeTool.class);
     private static volatile JMXNodeTool tool = null;
     private MBeanServerConnection mbeanServerConn = null;
@@ -98,7 +100,11 @@ public class JMXNodeTool extends NodeProbe {
         try {
             tool.isInitialized();
         } catch (Throwable ex) {
-            SystemUtils.closeQuietly(tool);
+            try {
+                Closeables.close(tool, true);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
             return false;
         }
         return true;
