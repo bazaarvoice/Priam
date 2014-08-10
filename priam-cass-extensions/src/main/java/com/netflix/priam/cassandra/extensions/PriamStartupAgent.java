@@ -26,6 +26,7 @@ import java.lang.instrument.Instrumentation;
  */
 public class PriamStartupAgent {
     public static String REPLACED_ADDRESS_MIN_VER = "1.2.11";
+    public static String REPLACED_ADDRESS_FIRST_BOOT_MIN_VER = "1.2.17";
 
     public static void premain(String agentArgs, Instrumentation inst) {
         PriamStartupAgent agent = new PriamStartupAgent();
@@ -65,8 +66,10 @@ public class PriamStartupAgent {
             System.out.println("Detect cassandra version : " + FBUtilities.getReleaseVersionString());
             if (FBUtilities.getReleaseVersionString().compareTo(REPLACED_ADDRESS_MIN_VER) < 0) {
                 System.setProperty("cassandra.replace_token", token);
-            } else {
+            } else if (FBUtilities.getReleaseVersionString().compareTo(REPLACED_ADDRESS_FIRST_BOOT_MIN_VER) < 0) {
                 System.setProperty("cassandra.replace_address", replacedIp);
+            } else {
+                System.setProperty("cassandra.replace_address_first_boot", replacedIp);
             }
         }
 

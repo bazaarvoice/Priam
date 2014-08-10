@@ -36,21 +36,22 @@ public class DataFetcher {
             conn.setReadTimeout(10000);
             conn.setRequestMethod("GET");
             if (conn.getResponseCode() != 200) {
-                throw new RuntimeException("Unable to get data for URL: " + url);
+                throw new RuntimeException("Unexpected HTTP response " + conn.getResponseCode() + " for URL: " + url);
             }
 
-            byte[] b = new byte[2048];
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            try (DataInputStream responseStream = new DataInputStream((FilterInputStream) conn.getContent())) {
+            try (DataInputStream in = new DataInputStream((FilterInputStream) conn.getContent())) {
+                byte[] b = new byte[2048];
                 int len;
-                while ((len = responseStream.read(b, 0, b.length)) != -1) {
+                while ((len = in.read(b, 0, b.length)) != -1) {
                     bos.write(b, 0, len);
                 }
-                String return_ = new String(bos.toByteArray(), Charsets.UTF_8);
-                logger.info("Calling URL API: {} returns: {}", url, return_);
-                conn.disconnect();
-                return return_;
             }
+            conn.disconnect();
+            String result = new String(bos.toByteArray(), Charsets.UTF_8);
+            logger.info("Calling URL API: {} returns: {}", url, result);
+            return result;
+
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }

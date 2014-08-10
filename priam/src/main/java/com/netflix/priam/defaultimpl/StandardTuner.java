@@ -54,7 +54,7 @@ public class StandardTuner implements CassandraTuner {
         put(map, "native_transport_port", cassandraConfiguration.getNativeTransportPort());
         put(map, "listen_address", hostIp);
         put(map, "rpc_address", hostIp);
-        put(map, "auto_bootstrap", false);
+        put(map, "auto_bootstrap", true);
         put(map, "saved_caches_directory", cassandraConfiguration.getCacheLocation());
         put(map, "commitlog_directory", cassandraConfiguration.getCommitLogLocation());
         put(map, "data_file_directories", ImmutableList.of(cassandraConfiguration.getDataLocation()));

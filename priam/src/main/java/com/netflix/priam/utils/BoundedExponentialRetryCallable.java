@@ -15,7 +15,6 @@
  */
 package com.netflix.priam.utils;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,28 +46,21 @@ public abstract class BoundedExponentialRetryCallable<T> extends RetryableCallab
     public T call() throws Exception {
         long delay = min;// ms
         int retry = 0;
-        int logCounter = 0;
-        while (true) {
+        for (;;) {
             try {
                 return retriableCall();
             } catch (CancellationException e) {
                 throw e;
             } catch (Exception e) {
-                retry++;
-
-                if (delay < max && retry <= maxRetries) {
-                    delay *= 2;
-                    logger.error("Retry #{} for: {}", retry, e.getMessage());
-                    if (++logCounter == 1) {
-                        logger.info("Exception --> {}", ExceptionUtils.getFullStackTrace(e));
-                    }
-                    sleeper.sleep(delay);
-                } else if (delay >= max && retry <= maxRetries) {
-                    logger.error("Retry #{} for: {}", retry, ExceptionUtils.getFullStackTrace(e));
-                    sleeper.sleep(max);
-                } else {
+                if (++retry > maxRetries) {
                     throw e;
                 }
+
+                logger.warn("Retry #{} for: {}", retry, e.toString());
+
+                delay = Math.min(delay * 2, max);
+                sleeper.sleep(delay);
+
             } finally {
                 forEachExecution();
             }
