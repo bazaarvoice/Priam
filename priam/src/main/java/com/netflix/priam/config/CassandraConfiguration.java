@@ -160,11 +160,11 @@ public class CassandraConfiguration {
     }
 
     public String getMinimumToken() {
-        return minimumToken;
+        return Objects.firstNonNull(minimumToken, Strings.repeat("00", tokenLength));
     }
 
     public String getMaximumToken() {
-        return maximumToken;
+        return Objects.firstNonNull(maximumToken, Strings.repeat("ff", tokenLength));
     }
 
     public String getEndpointSnitch() {
@@ -356,11 +356,11 @@ public class CassandraConfiguration {
     }
 
     public void setMinimumToken(String minimumToken) {
-        this.minimumToken = Objects.firstNonNull(minimumToken, Strings.repeat("00", tokenLength));
+        this.minimumToken = minimumToken;
     }
 
     public void setMaximumToken(String maximumToken) {
-        this.maximumToken = Objects.firstNonNull(maximumToken, Strings.repeat("ff", tokenLength));
+        this.maximumToken = maximumToken;
     }
 
     public void setEndpointSnitch(String endpointSnitch) {
