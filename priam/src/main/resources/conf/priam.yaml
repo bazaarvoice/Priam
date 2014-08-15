@@ -1,5 +1,6 @@
 cassandra:
   partitioner: "org.apache.cassandra.dht.RandomPartitioner" # The partitioner responsible for distributing rows (by key) across nodes in the cluster
+  autoBootstrap: true                         # This should be true unless you're about to restore from backup.
   #tokenLength:                               # ByteOrderedPartitioner-only.  Length of token in bytes.  Defaults to 16.
   #minimumToken:                              # ByteOrderedPartitioner-only.  Defaults to "00000000000000000000000000000000"
   #maximumToken:                              # ByteOrderedPartitioner-only.  Defaults to "ffffffffffffffffffffffffffffffff"

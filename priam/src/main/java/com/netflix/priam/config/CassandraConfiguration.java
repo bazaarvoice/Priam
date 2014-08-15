@@ -11,6 +11,9 @@ public class CassandraConfiguration {
     private String partitioner = "org.apache.cassandra.dht.RandomPartitioner";
 
     @JsonProperty
+    private boolean autoBootstrap = true;
+
+    @JsonProperty
     private int tokenLength = 16;  // in bytes
 
     @JsonProperty
@@ -153,6 +156,10 @@ public class CassandraConfiguration {
 
     public String getPartitioner() {
         return partitioner;
+    }
+
+    public boolean getAutoBootstrap() {
+        return autoBootstrap;
     }
 
     public int getTokenLength() {
@@ -349,6 +356,10 @@ public class CassandraConfiguration {
 
     public void setPartitioner(String partitioner) {
         this.partitioner = partitioner;
+    }
+
+    public void setAutoBootstrap(boolean autoBootstrap) {
+        this.autoBootstrap = autoBootstrap;
     }
 
     public void setTokenLength(int tokenLength) {
