@@ -7,7 +7,6 @@ import com.netflix.priam.identity.IPriamInstanceRegistry;
 import com.netflix.priam.identity.PriamInstance;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -53,11 +52,6 @@ public class FakePriamInstanceRegistry implements IPriamInstanceRegistry {
     @Override
     public void update(PriamInstance inst) {
         instances.put(inst.getId(), inst);
-    }
-
-    @Override
-    public void sort(List<PriamInstance> return_) {
-        Collections.sort(return_);
     }
 
 }

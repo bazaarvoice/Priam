@@ -54,11 +54,23 @@ public class BOPTokenManagerTest {
 
     @Test
     public void initialToken_cannotExceedMaximumToken() {
+        // With 16-byte min/max and 4-byte size/position/offset it's impossible to get an initial token > max-token
         BOPTokenManager tokenManager = newBOPTokenManager(16);
         int maxRingSize = Integer.MAX_VALUE;
         int maxPosition = maxRingSize - 1;
         int maxOffset = Integer.MAX_VALUE;
         assertTrue(toToken("ffffffffffffffffffffffffffffffff")
+                .compareTo(tokenManager.initialToken(maxRingSize, maxPosition, maxOffset)) > 0);
+    }
+
+    @Test
+    public void initialToken_cannotExceedMaximumTokenWrapAround() {
+        // With 5-byte min/max and 4-byte size/position/offset the offset can cause the initial token to wrap around
+        BOPTokenManager tokenManager = newBOPTokenManager(5);
+        int maxRingSize = Integer.MAX_VALUE;
+        int maxPosition = maxRingSize - 1;
+        int maxOffset = Integer.MAX_VALUE;
+        assertTrue(toToken("7ffffc00")
                 .compareTo(tokenManager.initialToken(maxRingSize, maxPosition, maxOffset)) > 0);
     }
 

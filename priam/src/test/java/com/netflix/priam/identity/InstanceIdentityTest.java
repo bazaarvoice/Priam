@@ -1,5 +1,6 @@
 package com.netflix.priam.identity;
 
+import com.google.common.collect.Ordering;
 import com.netflix.priam.utils.TokenManager;
 import org.junit.Test;
 
@@ -69,7 +70,7 @@ public class InstanceIdentityTest extends InstanceTestUtils {
         new DoubleRing(cassandraConfiguration, amazonConfiguration, instanceRegistry, tokenManager).doubleSlots();
         List<PriamInstance> lst = instanceRegistry.getAllIds(cassandraConfiguration.getClusterName());
         // sort it so it will look good if you want to print it.
-        instanceRegistry.sort(lst);
+        lst = Ordering.natural().immutableSortedCopy(lst);
         for (int i = 0; i < lst.size(); i++) {
             //System.out.println(lst.get(i));
             if (0 == i % 2) {

@@ -46,10 +46,4 @@ public interface IPriamInstanceRegistry {
      */
     void update(PriamInstance inst);
 
-    /**
-     * Sort the list by instance ID
-     *
-     * @param return_ the list of nodes to sort
-     */
-    void sort(List<PriamInstance> return_);
 }

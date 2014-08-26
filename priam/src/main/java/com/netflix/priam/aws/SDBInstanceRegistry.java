@@ -25,7 +25,6 @@ import com.netflix.priam.identity.PriamInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -84,11 +83,6 @@ public class SDBInstanceRegistry implements IPriamInstanceRegistry {
         } catch (AmazonServiceException e) {
             throw new RuntimeException("Unable to update/create priam instance", e);
         }
-    }
-
-    @Override
-    public void sort(List<PriamInstance> return_) {
-        Collections.sort(return_);
     }
 
 }

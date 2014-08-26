@@ -79,12 +79,14 @@ public class BOPTokenManager extends TokenManager {
         // Subdivide between the min and max using tokenLength bytes of precision.
         BigInteger min = new BigInteger(1, minimumToken.token);
         BigInteger max = new BigInteger(1, maximumToken.token);
+        BigInteger range = max.subtract(min);
 
         BigInteger value = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s
                 .subtract(min)
                 .divide(BigInteger.valueOf(size))
                 .multiply(BigInteger.valueOf(position))
                 .add(BigInteger.valueOf(offset))
+                .mod(range)  // Wrap around if out of range
                 .add(min);
         Token<byte[]> token = numberToToken(value);
 

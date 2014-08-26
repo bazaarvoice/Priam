@@ -3,7 +3,6 @@ package com.netflix.priam.defaultimpl;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.utils.CassandraTuner;
@@ -28,13 +27,11 @@ public class StandardTuner implements CassandraTuner {
 
     private final CassandraConfiguration cassandraConfiguration;
     private final BackupConfiguration backupConfiguration;
-    private final AmazonConfiguration amazonConfiguration;
 
     @Inject
-    public StandardTuner(CassandraConfiguration cassandraConfiguration, BackupConfiguration backupConfiguration, AmazonConfiguration amazonConfiguration) {
+    public StandardTuner(CassandraConfiguration cassandraConfiguration, BackupConfiguration backupConfiguration) {
         this.cassandraConfiguration = cassandraConfiguration;
         this.backupConfiguration = backupConfiguration;
-        this.amazonConfiguration = amazonConfiguration;
     }
 
     @Override
