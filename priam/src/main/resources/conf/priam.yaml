@@ -1,0 +1,113 @@
+cassandra:
+  partitioner: "org.apache.cassandra.dht.RandomPartitioner" # The partitioner responsible for distributing rows (by key) across nodes in the cluster
+  autoBootstrap: true                         # This should be true unless you're about to restore from backup.
+  #tokenLength:                               # ByteOrderedPartitioner-only.  Length of token in bytes.  Defaults to 16.
+  #minimumToken:                              # ByteOrderedPartitioner-only.  Defaults to "00000000000000000000000000000000"
+  #maximumToken:                              # ByteOrderedPartitioner-only.  Defaults to "ffffffffffffffffffffffffffffffff"
+  endpointSnitch: "org.apache.cassandra.locator.Ec2Snitch"  # Snitch to be used in cassandra.yaml
+                                                            # Needs to be changed in conjunction with multiRegionEnabled
+  cassHome: "/etc/cassandra"                  # Path to the home dir of Cassandra
+  cassStartScript: "/etc/init.d/cassandra start"  # Path to Cassandra startup script
+  cassStopScript: "/etc/init.d/cassandra stop"    # Path to Cassandra stop script
+  clusterName: "local_default"                # Cluster name (or App) name
+  dataLocation: "/var/lib/cassandra/data"     # Location of the local data dir
+  sslStoragePort: 7102                        # Cassandra storage/cluster SSL communication port
+  storagePort: 7101                           # Cassandra storage/cluster communication port
+  thriftEnabled: true
+  thriftPort: 9160                            # Cassandra's thrift port
+  nativeTransportEnabled: true
+  nativeTransportPort: 9042
+  jmxPort: 7199
+  rpcServerType: sync
+  authenticator: AllowAllAuthenticator
+  authorizer: AllowAllAuthorizer
+  #compactionThroughputMBPerSec:              # Compaction throughput in MB/sec
+  inMemoryCompactionLimitMB: 64               # In memory compaction limit in MB
+  streamingThroughputMbps: 400                # Throttles all outbound streaming file transfers. 400 Mbps = 50 MB/s
+  keyCacheSizeInMB: 0                         # If used, should be an Integer like "16"
+  #keyCacheKeysToSave:                        # If used, should be an Integer like "32"
+  rowCacheSizeInMB: 0                         # If used, should be an Integer like "16"
+  #rowCacheKeysToSave:
+  concurrentReads: 32
+  concurrentWrites: 32
+  #concurrentCompactors: 1
+  clientSslEnabled: false
+  internodeEncryption: none
+  internodeCompression: dc
+  interDcTcpNodelay: false
+  indexInterval: 128
+  maxHeapSize:
+    m1.small: 1G
+    m1.medium: 2G
+    m1.large: 3G
+    m1.xlarge: 8G
+    m2.xlarge: 8G
+    m2.2xlarge: 8G
+    m2.4xlarge: 8G
+  maxNewGenHeapSize:
+    m1.small: 256M
+    m1.medium: 500M
+    m1.large: 1G
+    m1.xlarge: 2G
+    m2.xlarge: 2G
+    m2.2xlarge: 2G
+    m2.4xlarge: 2G
+  heapDumpLocation: "/var/log/cassandra"            # Directory where heap dumps will go when the JVM runs out of memory.
+  #memtableTotalSpaceMB: 2048                       # Total memory to use for memtables.  Cassandra will flush the largest memtable when this much memory is used.
+  hintedHandoffThrottleKB: 1024
+  maxHintWindowMS: 3600000                          # this defines the maximum amount of time a dead host will have hints generated.  After it has been dead this long, hints will be dropped.
+  cacheLocation: "/var/lib/cassandra/saved_caches"  # Location of local cache
+  commitLogLocation: "/var/lib/cassandra/commitlog"
+  seedProviderClassName: "com.netflix.priam.cassandra.extensions.NFSeedProvider"  # The name of seed provider
+  extraConfigParams: {}
+
+  nodeRepairEnabled: false
+  #nodeRepairTime:                                  # Format: "sec min hour day-of-month month day-of-week". e.g. to run a job every sunday at 12 am, "0 0 0 ? * 1".
+                                                    # For detail: http://quartz-scheduler.org/documentation/quartz-1.x/tutorials/crontrigger
+  #nodeRepairMutexAcquireTimeOut:                   # node repair mutex lock aquire time out (unit: minute)
+
+
+amazon:
+  # These properties below should be retrievable from the AWS instance metadata API.  Any setting
+  #     provided here will override what can be discovered from the instance metadata API.
+  #usableAvailabilityZones:                    # List of all availability zones used for the cluster.  If empty, region will be queried for first three "available" zones.
+  #autoScaleGroupName:
+  #regionName:
+  #securityGroupName:
+  #availabilityZone:
+  #privateHostName:
+  #privateIP:
+  #instanceID:
+  #instanceType:
+  simpleDbDomain: "InstanceIdentity"
+  #simpleDbRegion:                             # Defaults to us-east-1 for backward compatibility.  This can be set to the local region for better cross-region isolation.
+
+
+backup:
+  incrementalBackupEnabledForCassandra: false       # true if incremental backups are enabled for just Cassandra--Priam will not process the incremental backup files
+  commitLogBackupEnabled: false                     # true if commit log backup is enabled
+
+# Configure the HTTP server that listens for inbound requests
+http:
+  port: 9090
+  adminPort: 9091
+
+zooKeeper:
+  enabled: false                     # Whether or not ZooKeeper registration is enabled.
+  connectString: localhost:2181      # Comma-separated list of ZooKeeper servers, eg. "host:port,host:port,..."
+  #namespace:                        # Root namespace in ZooKeeper, eg. "us-east-1"
+
+# Priam will register the Cassandra node in ZooKeeper using the BV Ostrich library under the specified service names.
+ostrichServiceNames:
+  - local_default-cassandra
+
+monitoring:
+  defaultBadgerRegistrationState: true
+  badgerServiceName: cassandra.cass_cluster         # Should be cassandra.<clustername>
+
+# Configure Logback logging
+logging:
+  level: INFO
+  loggers:
+    "org.apache.curator": WARN
+    "org.apache.zookeeper": OFF
