@@ -33,61 +33,6 @@
 
     <profiles>
         <profile>
-            <id>rpm</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>rpm-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>attached-rpm</goal>
-                                </goals>
-                                <configuration>
-                                    <group>com.bazaarvoice.priam</group>
-                                    <name>priam</name>
-                                </configuration>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <group>BV/Priam</group>
-                            <copyright>Other/Proprietary</copyright>
-                            <defaultDirmode>755</defaultDirmode>
-                            <defaultFilemode>644</defaultFilemode>
-                            <defaultUsername>root</defaultUsername>
-                            <defaultGroupname>root</defaultGroupname>
-                            <mappings>
-                                <mapping>
-                                    <directory>/opt/bazaarvoice/priam</directory>
-                                    <dependency>
-                                        <includes>
-                                            <!-- Main shaded Priam server jar. -->
-                                            <include>${project.groupId}:priam</include>
-                                            <!-- Small Cassandra extensions jar installed as a Cassandra javaagent. -->
-                                            <include>${project.groupId}:priam-cass-extensions</include>
-                                        </includes>
-                                    </dependency>
-                                    <sources>
-                                        <!-- Create symbolic links without the version number for use by supervisord. -->
-                                        <softlinkSource>
-                                            <location>priam-${project.version}.jar</location>
-                                            <destination>priam.jar</destination>
-                                        </softlinkSource>
-                                        <softlinkSource>
-                                            <location>priam-cass-extensions-${project.version}.jar</location>
-                                            <destination>priam-cass-extensions.jar</destination>
-                                        </softlinkSource>
-                                    </sources>
-                                </mapping>
-                            </mappings>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
             <id>yum-deploy</id>
             <build>
                 <plugins>
@@ -96,7 +41,8 @@
                         <artifactId>s3repo-maven-plugin</artifactId>
                         <executions>
                             <execution>
-                                <phase>deploy</phase>
+                                <!-- use install phase so we don't have to go through standard lifecycle that includes deploy -->
+                                <phase>install</phase>
                                 <goals>
                                     <goal>create-update</goal>
                                 </goals>
