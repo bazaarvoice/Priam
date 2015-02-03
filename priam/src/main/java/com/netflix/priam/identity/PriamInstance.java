@@ -35,7 +35,7 @@ public class PriamInstance implements Serializable, Comparable<PriamInstance> {
         ins.setRegionName(regionName);
         ins.setToken(token);
         ins.setVolumes(v);
-        ins.setPersistenRead("true");
+        ins.setConsistentRead("true");
         return ins;
     }
 
@@ -80,12 +80,12 @@ public class PriamInstance implements Serializable, Comparable<PriamInstance> {
         return hostIp;
     }
 
-    public String getPersistenRead() {
+    public String getConsistentRead() {
         return "true";
     }
  
-    public void setPersistenRead(String persistentread) {
-        this.persistentread= persistentread;
+    public void setConsistentRead(String consistentread) {
+        this.consistentread = consistentread ;
     }
 
     public void setHost(String hostname, String hostIp) {

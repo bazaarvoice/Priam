@@ -56,7 +56,7 @@ public class AmazonConfiguration {
     private String simpleDbRegion;   // Defaults to the current region.  Set explicitly for cross-dc rings.
 
     @JsonProperty
-    private String persistentread;
+    private String consistentread;
 
     public String getAutoScaleGroupName() {
         return autoScaleGroupName;
@@ -92,6 +92,11 @@ public class AmazonConfiguration {
 
     public String getInstanceType() {
         return instanceType;
+    }
+
+    public String getPersistenRead() {
+        //return persistentread;
+        return StringUtils.isNotBlank(persistentread) ? persistentread : "true";
     }
 
     public List<String> getUsableAvailabilityZones() {
