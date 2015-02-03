@@ -127,7 +127,7 @@ public class AmazonConfiguration {
         this.availabilityZone = availabilityZone;
     }
 
-    public void setPersistenRead(String consistentread) {
+    public void setConsistenRead(String consistentread) {
         this.consistentread = consistentread;
     }
 
