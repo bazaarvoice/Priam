@@ -18,6 +18,7 @@ public class PriamInstance implements Serializable, Comparable<PriamInstance> {
     private String instanceId;
     private String availabilityZone;
     private String hostIp;
+    private String consistentread;
     private String regionName;
     private String token;
     //Handles Storage objects
