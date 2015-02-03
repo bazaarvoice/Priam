@@ -94,9 +94,9 @@ public class AmazonConfiguration {
         return instanceType;
     }
 
-    public String getPersistenRead() {
-        //return persistentread;
-        return StringUtils.isNotBlank(persistentread) ? persistentread : "true";
+    public String getConsistentRead() {
+        //return consistentread;
+        return StringUtils.isNotBlank(consistentread) ? consistentread: "true";
     }
 
     public List<String> getUsableAvailabilityZones() {
@@ -127,8 +127,8 @@ public class AmazonConfiguration {
         this.availabilityZone = availabilityZone;
     }
 
-    public void setPersistenRead(String persistentread) {
-        this.persistentread = persistentread;
+    public void setPersistenRead(String consistentread) {
+        this.consistentread = consistentread;
     }
 
     public void setPrivateHostName(String privateHostName) {
