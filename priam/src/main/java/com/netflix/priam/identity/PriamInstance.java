@@ -35,6 +35,7 @@ public class PriamInstance implements Serializable, Comparable<PriamInstance> {
         ins.setRegionName(regionName);
         ins.setToken(token);
         ins.setVolumes(v);
+        ins.setPersistenRead("true");
         return ins;
     }
 
@@ -74,13 +75,17 @@ public class PriamInstance implements Serializable, Comparable<PriamInstance> {
     public String getHostName() {
         return hostname;
     }
-    
-    public String getPersistenRead() {
-        return "true";
-    }
 
     public String getHostIP() {
         return hostIp;
+    }
+
+    public String getPersistenRead() {
+        return "true";
+    }
+ 
+    public void setPersistenRead(String persistentread) {
+        this.persistentread= persistentread;
     }
 
     public void setHost(String hostname, String hostIp) {

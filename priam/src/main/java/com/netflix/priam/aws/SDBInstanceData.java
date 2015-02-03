@@ -205,7 +205,7 @@ public class SDBInstanceData {
 
     private List<ReplaceableAttribute> createAttributesToRegister(PriamInstance instance) {
         instance.setUpdatetime(new Date().getTime());
-        instance.setConsistentread(new String().getPersistenRead());
+        //instance.setConsistentread(new String().getPersistenRead());
         List<ReplaceableAttribute> attrs = new ArrayList<>();
         attrs.add(new ReplaceableAttribute(Attributes.INSTANCE_ID, instance.getInstanceId(), false));
         attrs.add(new ReplaceableAttribute(Attributes.TOKEN, instance.getToken(), true));
@@ -255,7 +255,8 @@ public class SDBInstanceData {
                     ins.setUpdatetime(Long.parseLong(att.getValue()));
                     break;
                 case Attributes.CONSISTENT_READ:
-                    ins.setConsistentread(att.getValue());
+                    //ins.setConsistentread(att.getValue());
+                    ins.setConsistentread("true");
                     break;
             }
         }

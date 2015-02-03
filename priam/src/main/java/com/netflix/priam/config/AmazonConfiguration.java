@@ -119,6 +119,10 @@ public class AmazonConfiguration {
         this.availabilityZone = availabilityZone;
     }
 
+    public void setPersistenRead(String persistentread) {
+        this.persistentread = persistentread;
+    }
+
     public void setPrivateHostName(String privateHostName) {
         this.privateHostName = privateHostName;
     }
