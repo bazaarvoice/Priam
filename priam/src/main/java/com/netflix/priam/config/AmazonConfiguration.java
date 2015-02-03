@@ -55,6 +55,9 @@ public class AmazonConfiguration {
     @JsonProperty
     private String simpleDbRegion;   // Defaults to the current region.  Set explicitly for cross-dc rings.
 
+    @JsonProperty
+    private String persistentread;
+
     public String getAutoScaleGroupName() {
         return autoScaleGroupName;
     }
