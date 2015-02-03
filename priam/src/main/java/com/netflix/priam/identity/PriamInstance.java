@@ -74,6 +74,10 @@ public class PriamInstance implements Serializable, Comparable<PriamInstance> {
     public String getHostName() {
         return hostname;
     }
+    
+    public String getPersistenRead() {
+        return "true";
+    }
 
     public String getHostIP() {
         return hostIp;
