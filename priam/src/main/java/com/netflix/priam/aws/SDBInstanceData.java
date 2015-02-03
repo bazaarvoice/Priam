@@ -255,8 +255,8 @@ public class SDBInstanceData {
                     ins.setUpdatetime(Long.parseLong(att.getValue()));
                     break;
                 case Attributes.CONSISTENT_READ:
-                    //ins.setConsistentRead(att.getValue());
-                    ins.setConsistentRead("true");
+                    ins.setConsistentRead(att.getValue());
+                    //ins.setConsistentRead(true");
                     break;
             }
         }
