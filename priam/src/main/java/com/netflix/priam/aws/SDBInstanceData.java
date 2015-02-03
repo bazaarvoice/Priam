@@ -216,7 +216,7 @@ public class SDBInstanceData {
         attrs.add(new ReplaceableAttribute(Attributes.HOSTNAME, instance.getHostName(), true));
         attrs.add(new ReplaceableAttribute(Attributes.LOCATION, instance.getRegionName(), true));
         attrs.add(new ReplaceableAttribute(Attributes.UPDATE_TS, Long.toString(instance.getUpdatetime()), true));
-        attrs.add(new ReplaceableAttribute(Attributes.CONSISTENT_READ, instance.getPersistenRead(), true));
+        attrs.add(new ReplaceableAttribute(Attributes.CONSISTENT_READ, instance.getConsistentRead(), true));
         return attrs;
     }
 
