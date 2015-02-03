@@ -60,6 +60,7 @@ public class SDBInstanceData {
         public final static String UPDATE_TS = "updateTimestamp";
         public final static String LOCATION = "location";
         public final static String HOSTNAME = "hostname";
+        public final static String CONSISTENT_READ = "ConsistentRead";
     }
 
     private final AWSCredentialsProvider provider;
@@ -204,6 +205,7 @@ public class SDBInstanceData {
 
     private List<ReplaceableAttribute> createAttributesToRegister(PriamInstance instance) {
         instance.setUpdatetime(new Date().getTime());
+        instance.setConsistentread(new String("true"));
         List<ReplaceableAttribute> attrs = new ArrayList<>();
         attrs.add(new ReplaceableAttribute(Attributes.INSTANCE_ID, instance.getInstanceId(), false));
         attrs.add(new ReplaceableAttribute(Attributes.TOKEN, instance.getToken(), true));
@@ -214,6 +216,7 @@ public class SDBInstanceData {
         attrs.add(new ReplaceableAttribute(Attributes.HOSTNAME, instance.getHostName(), true));
         attrs.add(new ReplaceableAttribute(Attributes.LOCATION, instance.getRegionName(), true));
         attrs.add(new ReplaceableAttribute(Attributes.UPDATE_TS, Long.toString(instance.getUpdatetime()), true));
+        attrs.add(new ReplaceableAttribute(Attributes.CONSISTENT_READ, "true", true));
         return attrs;
     }
 
@@ -250,6 +253,9 @@ public class SDBInstanceData {
                     break;
                 case Attributes.UPDATE_TS:
                     ins.setUpdatetime(Long.parseLong(att.getValue()));
+                    break;
+                case Attributes.CONSISTENT_READ:
+                    ins.setConsistentread(att.getValue());
                     break;
             }
         }
