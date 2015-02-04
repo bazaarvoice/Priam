@@ -22,10 +22,13 @@ import com.google.inject.Inject;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.BytesToken;
 import org.apache.cassandra.dht.Token;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.util.List;
+
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -41,6 +44,7 @@ import static com.google.common.base.Preconditions.checkArgument;
  * from 0 to 2^128-1.
  */
 public class BOPTokenManager extends TokenManager {
+    private static final Logger logger = LoggerFactory.getLogger(BOPTokenManager.class);
     // Tokens are expected to be lowercase hex.  The findClosestToken method will break if uppercase hex.
     private static final CharMatcher VALID_TOKEN = CharMatcher.inRange('0', '9').or(CharMatcher.inRange('a', 'f'));
 
