@@ -89,6 +89,7 @@ public class BOPTokenManager extends TokenManager {
                 .mod(range)  // Wrap around if out of range
                 .add(min);
         Token<byte[]> token = numberToToken(value);
+        logger.info("Tracing Token Determination minimumToken {} maximumToken {} range {} size {} position {} offset {} value {} token {}", min.toString(), max.toString(), range.toString(), BigInteger.valueOf(size).toString(), BigInteger.valueOf(position).toString(),BigInteger.valueOf(offset).toString(), value.toString(), numberToToken(value).toString() );
 
         // Make sure the token stays within the configured bounds.
         return Ordering.natural().min(Ordering.natural().max(token, minimumToken), maximumToken);
