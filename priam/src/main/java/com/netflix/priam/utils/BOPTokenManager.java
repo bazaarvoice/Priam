@@ -95,6 +95,39 @@ public class BOPTokenManager extends TokenManager {
         Token<byte[]> token = numberToToken(value);
         logger.info("Tracing Token Determination minimumToken {} maximumToken {} range {} size {} position {} offset {} value {} token {}", min.toString(), max.toString(), range.toString(), BigInteger.valueOf(size).toString(), BigInteger.valueOf(position).toString(),BigInteger.valueOf(offset).toString(), value.toString(), numberToToken(value).toString() );
 
+        BigInteger value1 = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s
+                .subtract(min)
+                .divide(BigInteger.valueOf(size))
+                .multiply(BigInteger.valueOf(position))
+                .add(BigInteger.valueOf(offset))
+                .mod(range);  // Wrap around if out of range
+
+
+
+        BigInteger value2 = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s
+                .subtract(min)
+                .divide(BigInteger.valueOf(size))
+                .multiply(BigInteger.valueOf(position))
+                .add(BigInteger.valueOf(offset));
+
+        BigInteger value3 = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s
+                .subtract(min)
+                .divide(BigInteger.valueOf(size))
+                .multiply(BigInteger.valueOf(position));
+
+
+        BigInteger value4 = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s
+                .subtract(min)
+                .divide(BigInteger.valueOf(size)); 
+
+        BigInteger value5 = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s
+                .subtract(min);
+
+        BigInteger value6 = max.add(BigInteger.ONE)
+
+        logger.info("Tracing Token Determination value6 {} value5 {} value4 {} value3 {} value2 {} value1 {} value {}", value6.toString(),value5.toString(),value4.toString(),value3.toString(),value2.toString(),value1.toString(),value.toString()  );
+
+
         // Make sure the token stays within the configured bounds.
         return Ordering.natural().min(Ordering.natural().max(token, minimumToken), maximumToken);
     }
