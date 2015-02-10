@@ -123,7 +123,7 @@ public class BOPTokenManager extends TokenManager {
         BigInteger value5 = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s
                 .subtract(min);
 
-        BigInteger value6 = max.add(BigInteger.ONE)
+        BigInteger value6 = max.add(BigInteger.ONE);
 
         logger.info("Tracing Token Determination value6 {} value5 {} value4 {} value3 {} value2 {} value1 {} value {}", value6.toString(),value5.toString(),value4.toString(),value3.toString(),value2.toString(),value1.toString(),value.toString()  );
 
