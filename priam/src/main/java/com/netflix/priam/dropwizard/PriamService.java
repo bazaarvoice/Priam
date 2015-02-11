@@ -17,13 +17,13 @@ import com.netflix.priam.tools.CopyInstanceData;
 import com.netflix.priam.tools.DeleteInstanceData;
 import com.netflix.priam.tools.ListClusters;
 import com.netflix.priam.tools.ListInstanceData;
-import com.yammer.dropwizard.Service;
-import com.yammer.dropwizard.config.Bootstrap;
-import com.yammer.dropwizard.config.Environment;
+import io.dropwizard.Application;
+import io.dropwizard.setup.Bootstrap;
+import io.dropwizard.setup.Environment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PriamService extends Service<PriamConfiguration> {
+public class PriamService extends Application<PriamConfiguration> {
     protected static final Logger logger = LoggerFactory.getLogger(PriamService.class);
 
     public static void main(String[] args) throws Exception {
@@ -32,7 +32,6 @@ public class PriamService extends Service<PriamConfiguration> {
 
     @Override
     public void initialize(Bootstrap<PriamConfiguration> bootstrap) {
-        bootstrap.setName("priam");
         bootstrap.addCommand(new ListClusters());
         bootstrap.addCommand(new ListInstanceData());
         bootstrap.addCommand(new CopyInstanceData());
@@ -43,7 +42,7 @@ public class PriamService extends Service<PriamConfiguration> {
     public void run(PriamConfiguration config, Environment environment) throws Exception {
         // Protect from running multiple copies of Priam at the same time.  Jetty will enforce this because only one
         // instance can listen on 8080, but that check doesn't occur until the end of initialization which is too late.
-        environment.manage(new ManagedCloseable(new JvmMutex(config.getJvmMutexPort())));
+        environment.lifecycle().manage(new ManagedCloseable(new JvmMutex(config.getJvmMutexPort())));
 
         // Don't ping www.terracotta.org on startup (Quartz).
         System.setProperty("org.terracotta.quartz.skipUpdateCheck", "true");
@@ -52,14 +51,14 @@ public class PriamService extends Service<PriamConfiguration> {
         try {
             config.getAmazonConfiguration().discoverConfiguration(injector.getInstance(AWSCredentialsProvider.class));
 
-            environment.manage(injector.getInstance(PriamServer.class));
-            environment.manage(injector.getInstance(ServiceRegistryManager.class));
-            environment.manage(injector.getInstance(ServiceMonitorManager.class));
+            environment.lifecycle().manage(injector.getInstance(PriamServer.class));
+            environment.lifecycle().manage(injector.getInstance(ServiceRegistryManager.class));
+            environment.lifecycle().manage(injector.getInstance(ServiceMonitorManager.class));
 
-            environment.addResource(injector.getInstance(CassandraAdminResource.class));
-            environment.addResource(injector.getInstance(CassandraConfigResource.class));
-            environment.addResource(injector.getInstance(PriamInstanceResource.class));
-            environment.addResource(injector.getInstance(MonitoringEnablementResource.class));
+            environment.jersey().register(injector.getInstance(CassandraAdminResource.class));
+            environment.jersey().register(injector.getInstance(CassandraConfigResource.class));
+            environment.jersey().register(injector.getInstance(PriamInstanceResource.class));
+            environment.jersey().register(injector.getInstance(MonitoringEnablementResource.class));
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);

@@ -4,6 +4,7 @@ import com.bazaarvoice.ostrich.ServiceEndPoint;
 import com.bazaarvoice.ostrich.ServiceEndPointBuilder;
 import com.bazaarvoice.ostrich.ServiceRegistry;
 import com.bazaarvoice.ostrich.registry.zookeeper.ZooKeeperServiceRegistry;
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
@@ -16,9 +17,9 @@ import com.google.inject.Singleton;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
+import com.netflix.priam.dropwizard.Port;
 import com.netflix.priam.utils.JMXNodeTool;
-import com.yammer.dropwizard.config.HttpConfiguration;
-import com.yammer.dropwizard.lifecycle.Managed;
+import io.dropwizard.lifecycle.Managed;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.curator.framework.CuratorFramework;
 import org.slf4j.Logger;
@@ -51,7 +52,8 @@ public class ServiceRegistryManager implements Managed {
     private final ScheduledExecutorService executor;
     private final List<ServiceEndPoint> endPoints = Lists.newArrayList();
     private ServiceRegistry zkRegistry;
-    private final HttpConfiguration httpConfiguration;
+    private final Integer port;
+    private final MetricRegistry metricRegistry;
     private boolean registered;
 
     @Inject
@@ -59,12 +61,14 @@ public class ServiceRegistryManager implements Managed {
                                   CassandraConfiguration casConfiguration,
                                   AmazonConfiguration awsConfiguration,
                                   Optional<CuratorFramework> zkConnection,
-                                  HttpConfiguration httpConfiguration) {
+                                  @Port Integer port,
+                                  MetricRegistry metricRegistry) {
         this.priamConfiguration = priamConfiguration;
         this.casConfiguration = casConfiguration;
         this.awsConfiguration = awsConfiguration;
         this.zkConnection = zkConnection;
-        this.httpConfiguration = httpConfiguration;
+        this.port = port;
+        this.metricRegistry = metricRegistry;
 
         String nameFormat = "ServiceRegistryManager-%d";
         ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build();
@@ -79,7 +83,7 @@ public class ServiceRegistryManager implements Managed {
 
         HostAndPort host = HostAndPort.fromParts(awsConfiguration.getPrivateIP(), casConfiguration.getThriftPort());
         String priamServiceBaseURL = String.format("http://%s:%s/%s", awsConfiguration.getPrivateIP(),
-                httpConfiguration.getPort(), "v1");
+                port, "v1");
 
         // Include the partitioner in the Ostrich end point data to support clients that need to know the
         // partitioner type before they connect to the ring (eg. Astyanax).
@@ -100,7 +104,7 @@ public class ServiceRegistryManager implements Managed {
         }
 
         // Connect to ZooKeeper
-        zkRegistry = new ZooKeeperServiceRegistry(zkConnection.get());
+        zkRegistry = new ZooKeeperServiceRegistry(zkConnection.get(), metricRegistry);
 
         // Ping Cassandra every few seconds and register/deregister Cassandra when the thrift API is available.
         executor.scheduleWithFixedDelay(new Runnable() {

@@ -2,8 +2,8 @@ package com.netflix.priam.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.inject.Singleton;
-import com.yammer.dropwizard.client.JerseyClientConfiguration;
-import com.yammer.dropwizard.config.Configuration;
+import io.dropwizard.Configuration;
+import io.dropwizard.client.JerseyClientConfiguration;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;

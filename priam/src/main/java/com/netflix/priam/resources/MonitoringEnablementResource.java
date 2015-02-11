@@ -1,11 +1,11 @@
 package com.netflix.priam.resources;
 
+import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.netflix.priam.dropwizard.managers.ServiceMonitorManager;
-import com.yammer.dropwizard.jersey.params.BooleanParam;
-import com.yammer.metrics.annotation.Timed;
+import io.dropwizard.jersey.params.BooleanParam;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;

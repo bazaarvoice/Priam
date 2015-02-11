@@ -26,6 +26,7 @@ import com.netflix.priam.ICassandraProcess;
 import com.netflix.priam.PriamServer;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
+import com.netflix.priam.dropwizard.Port;
 import com.netflix.priam.utils.JMXConnectionException;
 import com.netflix.priam.utils.JMXNodeTool;
 import com.sun.jersey.api.client.Client;
@@ -74,15 +75,17 @@ public class CassandraAdminResource {
     private final PriamConfiguration priamConfiguration;
     private final ICassandraProcess cassProcess;
     private final Client jersey;
+    private final Integer port;
 
     @Inject
     public CassandraAdminResource(PriamServer priamServer, CassandraConfiguration cassandraConfiguration,
-                                  PriamConfiguration priamConfiguration, ICassandraProcess cassProcess, Client jersey) {
+                                  PriamConfiguration priamConfiguration, ICassandraProcess cassProcess, Client jersey, @Port Integer port) {
         this.priamServer = priamServer;
         this.cassandraConfiguration = cassandraConfiguration;
         this.priamConfiguration = priamConfiguration;
         this.cassProcess = cassProcess;
         this.jersey = jersey;
+        this.port = port;
     }
 
     private JMXNodeTool getNodeTool() {
@@ -170,8 +173,7 @@ public class CassandraAdminResource {
                     Map<String, Object> nodeResponse = endpointsPendingHints();
                     fullNodeInfo.putAll(nodeResponse);
                 } else {
-                    String url = String.format("http://%s:%s/v1/cassadmin/hints/node", endpoint,
-                            priamConfiguration.getHttpConfiguration().getPort());
+                    String url = String.format("http://%s:%s/v1/cassadmin/hints/node", endpoint, port);
                     Map<String, Object> nodeResponse = jersey.resource(url)
                             .get(new GenericType<Map<String, Object>>() {
                             });

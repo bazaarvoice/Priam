@@ -17,6 +17,7 @@ package com.netflix.priam.defaultimpl;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
@@ -29,6 +30,7 @@ import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.config.MonitoringConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
 import com.netflix.priam.config.ZooKeeperConfiguration;
+import com.netflix.priam.dropwizard.Port;
 import com.netflix.priam.dropwizard.managers.ServiceRegistryManager;
 import com.netflix.priam.identity.IMembership;
 import com.netflix.priam.identity.IPriamInstanceRegistry;
@@ -37,10 +39,17 @@ import com.netflix.priam.utils.ThreadSleeper;
 import com.netflix.priam.utils.TokenManager;
 import com.netflix.priam.utils.TokenManagerProvider;
 import com.sun.jersey.api.client.Client;
-import com.yammer.dropwizard.client.JerseyClientBuilder;
-import com.yammer.dropwizard.config.Environment;
-import com.yammer.dropwizard.config.HttpConfiguration;
+import io.dropwizard.client.JerseyClientBuilder;
+import io.dropwizard.jetty.ConnectorFactory;
+import io.dropwizard.jetty.HttpConnectorFactory;
+import io.dropwizard.server.DefaultServerFactory;
+import io.dropwizard.server.ServerFactory;
+import io.dropwizard.server.SimpleServerFactory;
+import io.dropwizard.setup.Environment;
 import org.apache.curator.framework.CuratorFramework;
+
+import java.util.Collections;
+import java.util.List;
 
 public class PriamGuiceModule extends AbstractModule {
     private final PriamConfiguration priamConfiguration;
@@ -55,7 +64,6 @@ public class PriamGuiceModule extends AbstractModule {
     protected void configure() {
         // Configuration bindings
         bind(PriamConfiguration.class).toInstance(priamConfiguration);
-        bind(HttpConfiguration.class).toInstance(priamConfiguration.getHttpConfiguration());
         bind(CassandraConfiguration.class).toInstance(priamConfiguration.getCassandraConfiguration());
         bind(AmazonConfiguration.class).toInstance(priamConfiguration.getAmazonConfiguration());
         bind(BackupConfiguration.class).toInstance(priamConfiguration.getBackupConfiguration());
@@ -70,6 +78,7 @@ public class PriamGuiceModule extends AbstractModule {
         bind(Sleeper.class).to(ThreadSleeper.class).asEagerSingleton();
 
         bind(ServiceRegistryManager.class).asEagerSingleton();
+        bind(MetricRegistry.class).toInstance(environment.metrics());
     }
 
     @Provides
@@ -86,10 +95,38 @@ public class PriamGuiceModule extends AbstractModule {
 
     @Provides
     @Singleton
-    Client provideJerseyClient() {
-        return new JerseyClientBuilder()
+    Client provideJerseyClient(MetricRegistry metricRegistry) {
+        return new JerseyClientBuilder(metricRegistry)
                 .using(priamConfiguration.getHttpClientConfiguration())
                 .using(environment)
-                .build();
+                .build("priam");
+    }
+
+    @Provides
+    @Singleton
+    @Port
+    Integer providePort(PriamConfiguration configuration) {
+        ServerFactory serverFactory = configuration.getServerFactory();
+
+        // Our method for obtaining connector factories from the server factory varies depending on the latter's type
+        List<ConnectorFactory> connectorFactories;
+        if (serverFactory instanceof DefaultServerFactory) {
+            connectorFactories = ((DefaultServerFactory) serverFactory).getApplicationConnectors();
+        } else if (serverFactory instanceof SimpleServerFactory) {
+            connectorFactories = Collections.singletonList(((SimpleServerFactory) serverFactory).getConnector());
+        } else {
+            throw new IllegalStateException("Encountered an unexpected ServerFactory type");
+        }
+
+        // find the first connector that matches and return its port information (in practice there should
+        // be one, and just one, match)
+        for (ConnectorFactory connector : connectorFactories) {
+            if (connector.getClass().isAssignableFrom(HttpConnectorFactory.class)) {
+                HttpConnectorFactory httpConnectorFactory = ((HttpConnectorFactory) connector);
+                return httpConnectorFactory.getPort();
+            }
+        }
+
+        throw new IllegalStateException("Did not find a valid HttpConnector for the server");
     }
 }
