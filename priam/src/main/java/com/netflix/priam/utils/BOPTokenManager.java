@@ -73,6 +73,7 @@ public class BOPTokenManager extends TokenManager {
      */
     @VisibleForTesting
     Token<byte[]> initialToken(int size, int position, int offset) {
+        int coefficient;
         checkArgument(size > 0, "size must be > 0");
         checkArgument(offset >= 0, "offset must be >= 0");
         checkArgument(position >= 0, "position must be >= 0");
@@ -87,12 +88,12 @@ public class BOPTokenManager extends TokenManager {
 
         // Fix per EMO-5319
         if( size == 3 ){
-            int coefficient = position;
+            coefficient = position;
         }else if( size < 3 ){
             logger.info("Cluster size is too small. It needs to be at least 3. Terminating program.");
             System.exit(0); 
         }else{
-            int coefficient = (1 + 2 * position - size );     // coefficient as per the formula in EMO-5319,but not divided by size
+            coefficient = (1 + 2 * position - size );     // coefficient as per the formula in EMO-5319,but not divided by size
         }
         BigInteger value = max.add(BigInteger.ONE)     // add 1 since max is inclusive, helps get the splits to round #s
                 .subtract(min)
