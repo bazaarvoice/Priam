@@ -73,7 +73,7 @@ public class BOPTokenManager extends TokenManager {
      */
     @VisibleForTesting
     Token<byte[]> initialToken(int size, int position, int offset) {
-        int coefficient;
+        int coefficient=0;
         checkArgument(size > 0, "size must be > 0");
         checkArgument(offset >= 0, "offset must be >= 0");
         checkArgument(position >= 0, "position must be >= 0");
