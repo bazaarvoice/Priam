@@ -90,8 +90,8 @@ public class BOPTokenManager extends TokenManager {
         if( size == 3 ){
             coefficient = position;
         }else if( size < 3 ){
-            logger.info("Cluster size is too small. It needs to be at least 3. Terminating program.");
-            System.exit(0); 
+            logger.info("Cluster size is too small. It needs to be at least 3.");
+            coefficient = position;
         }else{
             coefficient = (1 + 2 * position - size );     // coefficient as per the formula in EMO-5319,but not divided by size
         }
