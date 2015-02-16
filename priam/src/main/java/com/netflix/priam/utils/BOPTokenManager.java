@@ -103,7 +103,7 @@ public class BOPTokenManager extends TokenManager {
                 .mod(range)  // Wrap around if out of range
                 .add(min);
         Token<byte[]> token = numberToToken(value);
-        logger.info("Token data per EMO-5319 coefficient / size: {} / {}, position: {}, token: {}, tokenchecked:", coefficient.toString() , size.toString(), position.toString(), numberToToken(value).toString(), Ordering.natural().min(Ordering.natural().max(token, minimumToken).toString(), maximumToken).toString());
+        logger.info("Token data per EMO-5319 coefficient / size: {} / {}, position: {}, token: {}, tokenchecked: {}", coefficient.toString() , size.toString(), position.toString(), numberToToken(value).toString(), Ordering.natural().min(Ordering.natural().max(token, minimumToken), maximumToken).toString());
 
         // Make sure the token stays within the configured bounds.
         return Ordering.natural().min(Ordering.natural().max(token, minimumToken), maximumToken);
