@@ -258,7 +258,7 @@ public class BOPTokenManagerTest {
         BOPTokenManager tokenManager1 = new BOPTokenManager(18,
                 "555500112233445566778899aabbccddeeff",
                 "5555ffeeddccbbaa99887766554433221100");
-        assertEquals("55558000000000000000000000001637af51", tokenManager1.createToken(1, 3, 2, "eu-west-1"));
+        assertEquals("555500112233445566778899aabbe3159e4f", tokenManager1.createToken(1, 3, 2, "eu-west-1"));
 
         // Next, test with much longer min/max values.
         BOPTokenManager tokenManager2 = new BOPTokenManager(50,
