@@ -87,34 +87,34 @@ public class BOPTokenManager extends TokenManager {
         BigInteger range = max.subtract(min);
 
         // Fix per EMO-5319
+        // Initial clusters send params like size=6 position=0, hence we need to recalc size to 3 or so to reflect
+        // which is the slicing phase (size) in which we need to do the math calc as per EMO-5319.
+        // Think of this as a workaround to the inconsistent values provided to this method when scaling from 3 to 6 
+        // vs starting with 6 instances. Position/size: 0/3,1/3,2/3,3/6,4/6,5/6 vs 0/6,1/6,2/6,3/6,4/6,5/6.
+        // Below we convert to the first format in order to achieve consistency and also follow EMO-5319 further. 
+        boolean foundrange = false;    // Did we found to which ring size this position would belong
+        int sizefind = 3;              // Add to the size until we find it
+        if (position < size/2) { // You can remove this check and it will let you calc even if pos-1>size
+                                 // It is here only for speeding up the calculation process (calc for initial clusters only)
+                do {
+                        if (position < sizefind) {
+                                foundrange=true;
+                                size=sizefind;
+                        }
+                        else {
+                                sizefind=sizefind*2;
+                                if (sizefind > 100000) { System.out.println("Cannot find size for splitting."); }//anti-loop
+                        }
+                } while (!foundrange);
+
+        }
+        // Now do the math for calculating as per the formula in EMO-5319
         if( size == 3 ){
             coefficient = position;
         }else if( size < 3 ){
             logger.info("Cluster size is too small. It needs to be at least 3.");
             coefficient = position;
         }else{
-            // Initial clusters send params like size=6 position=0, hence we need to recalc size to 3 or so to reflect
-            // which is the slicing phase (size) in which we need to do the math calc as per EMO-5319.
-            // Think of this as a workaround to the inconsistent values provided to this method when scaling from 3 to 6 
-            // vs starting with 6 instances. Position/size: 0/3,1/3,2/3,3/6,4/6,5/6 vs 0/6,1/6,2/6,3/6,4/6,5/6.
-            // Below we convert to the first format in order to achieve consistency and also follow EMO-5319 further. 
-            boolean foundrange = false;    // Did we found to which ring size this position would belong
-            int sizefind = 3;              // Add to the size until we find it
-            if (position < size/2) { // You can remove this check and it will let you calc even if pos-1>size
-                                     // It is here only for speeding up the calculation process (calc for initial clusters only)
-                    do {    
-                            if (position < sizefind) {
-                                    foundrange=true;
-                                    size=sizefind;
-                            }
-                            else {
-                                    sizefind=sizefind*2;
-                                    if (sizefind > 100000) { System.out.println("Cannot find size for splitting."); }//anti-loop
-                            }
-                    } while (!foundrange);
-
-            }           
-
             coefficient = (1 + 2 * position - size );     // coefficient as per the formula in EMO-5319,but not divided by size
         }
         BigInteger value = max.add(BigInteger.ONE)     // add 1 since max is inclusive, helps get the splits to round #s
