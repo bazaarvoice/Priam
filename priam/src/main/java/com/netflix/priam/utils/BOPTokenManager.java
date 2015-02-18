@@ -103,7 +103,7 @@ public class BOPTokenManager extends TokenManager {
                         }
                         else {
                                 sizefind=sizefind*2;
-                                if (sizefind > 100000) { System.out.println("Cannot find size for splitting."); }//anti-loop
+                                if (sizefind > 100000) { logger.info("Cannot find size for splitting."); }//anti-loop
                         }
                 } while (!foundrange);
 
