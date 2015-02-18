@@ -133,7 +133,7 @@ public class BOPTokenManager extends TokenManager {
 
     @Override
     public String createToken(int mySlot, int totalCount, String region) {
-        logger.info("createToken position: {}, size: {}, region: {}", myslot, totalCount, region);
+        logger.info("createToken position: {}, size: {}, region: {}", mySlot, totalCount, region);
         return partitioner.getTokenFactory().toString(initialToken(totalCount, mySlot, regionOffset(region)));
     }
 
