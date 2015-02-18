@@ -264,7 +264,7 @@ public class BOPTokenManagerTest {
         BOPTokenManager tokenManager2 = new BOPTokenManager(50,
                 "555500112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
                 "5555ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100");
-        assertEquals("5555555b0b666c1c777d2d888e3e999f4faa555b0b666c1c777d2d888e3e999f4faa555b0b666c1c777d2d88",
+        assertEquals("5555555b0b666c1c777d2d888e3e999f4faa555b0b666c1c777d2d888e3e999f4faa555b0b666c1c777d2d888e3eafd6fefa",
                 tokenManager2.createToken(1, 3, 2, "eu-west-1"));
     }
 
