@@ -59,7 +59,7 @@ public class SDBInstanceRegistry implements IPriamInstanceRegistry {
     public PriamInstance create(String app, int id, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String token) {
         try {
             PriamInstance ins = PriamInstance.from(app, id, instanceID, hostname, ip, rac, volumes, token, amazonConfiguration.getRegionName());
-            dao.registerInstance(ins);
+            dao.registerInstance(ins, null);
             return ins;
         } catch (Exception e) {
             logger.error(e.getMessage());
@@ -85,4 +85,14 @@ public class SDBInstanceRegistry implements IPriamInstanceRegistry {
         }
     }
 
+    @Override
+    public boolean acquireInstanceId(int slotId, PriamInstance inst, String expectedInstanceId) {
+        try {
+            inst.setId(slotId);
+            dao.registerInstance(inst, expectedInstanceId);
+            return (dao.getInstance(inst.getApp(), inst.getId(), true).getInstanceId() == inst.getInstanceId());
+        } catch (AmazonServiceException e) {
+            throw new RuntimeException("Unable to update/create priam instance", e);
+        }
+    }
 }

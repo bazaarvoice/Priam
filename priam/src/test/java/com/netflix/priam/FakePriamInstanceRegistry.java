@@ -54,4 +54,13 @@ public class FakePriamInstanceRegistry implements IPriamInstanceRegistry {
         instances.put(inst.getId(), inst);
     }
 
+    @Override
+    public boolean acquireInstanceId(int slotId, PriamInstance inst, String expectedInstanceId) {
+        if (!instances.containsKey(slotId)) {
+            instances.put(slotId, inst);
+            return true;
+        } else {
+            return false;
+        }
+    }
 }

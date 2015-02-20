@@ -94,6 +94,10 @@ public class SDBInstanceData {
         simpleDBClient.createDomain(request);
     }
 
+    public PriamInstance getInstance(String app, int id) {
+        return getInstance(app, id, false);
+    }
+
     /**
      * Get the instance details from SimpleDB
      *
@@ -101,9 +105,10 @@ public class SDBInstanceData {
      * @param id  Node ID
      * @return the node with the given {@code id}, or {@code null} if no such node exists
      */
-    public PriamInstance getInstance(String app, int id) {
+    public PriamInstance getInstance(String app, int id,  boolean consistentRead) {
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
         SelectRequest request = new SelectRequest(getInstanceQuery(app, id));
+        request.setConsistentRead(consistentRead);
         SelectResult result = simpleDBClient.select(request);
         if (result.getItems().size() == 0) {
             return null;
@@ -155,13 +160,17 @@ public class SDBInstanceData {
      *
      * @throws AmazonServiceException
      */
-    public void registerInstance(PriamInstance instance) throws AmazonServiceException {
+    public void registerInstance(PriamInstance instance, String expectedInstanceId) throws AmazonServiceException {
         logger.info("Registering PriamInstance in SimpleDB: {}", instance);
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
         PutAttributesRequest putReq = new PutAttributesRequest(sdbDomain, getKey(instance), createAttributesToRegister(instance));
         UpdateCondition expected = new UpdateCondition();
         expected.setName(Attributes.INSTANCE_ID);
-        expected.setExists(false);
+        if (expectedInstanceId == null) {
+            expected.setExists(false);
+        } else {
+            expected.setValue(expectedInstanceId);
+        }
         putReq.setExpected(expected);
         simpleDBClient.putAttributes(putReq);
     }

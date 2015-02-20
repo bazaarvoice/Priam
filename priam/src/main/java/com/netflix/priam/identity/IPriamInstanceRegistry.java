@@ -46,4 +46,11 @@ public interface IPriamInstanceRegistry {
      */
     void update(PriamInstance inst);
 
+    /**
+     * Overwrite the details of the server node in registry if it matches the provided instance ID
+     *
+     * @param inst the node to update
+     */
+    boolean acquireInstanceId(int slotId, PriamInstance inst, String expectedInstanceId);
+
 }

@@ -118,21 +118,20 @@ public class InstanceIdentity {
                 // If we're here, it means we had a record in our instance registry pointing to something in our same availability zone, but that isn't
                 // a current part of our ASG.  This would normally mean the node has died.
 
-                logger.info("Found dead instance {} with token {}.", deadInstance.getInstanceId(), deadInstance.getToken());
-                instanceRegistry.delete(deadInstance);
+                logger.info("Found dead instance {} with token {} - trying to grab its slot.", deadInstance.getInstanceId(), deadInstance.getToken());
+                PriamInstance newInstance = PriamInstance.from(cassandraConfiguration.getClusterName(), deadInstance.getId(), amazonConfiguration.getInstanceID(),
+                        amazonConfiguration.getPrivateHostName(), amazonConfiguration.getPrivateIP(), amazonConfiguration.getAvailabilityZone(), deadInstance.getVolumes(), deadInstance.getToken(),
+                        amazonConfiguration.getRegionName());
+                boolean successful = instanceRegistry.acquireInstanceId(deadInstance.getId(), newInstance, deadInstance.getInstanceId());
+                if (successful) {
+                    isReplace = true;
+                    replacedIp = deadInstance.getHostIP();
+                    return newInstance;
+                }
 
-                logger.info("Trying to grab slot {} in availability zone {} with token {}", deadInstance.getId(), deadInstance.getAvailabilityZone(), deadInstance.getToken());
-                isReplace = true;
-                replacedIp = deadInstance.getHostIP();
-                return instanceRegistry.create(
-                        cassandraConfiguration.getClusterName(),
-                        deadInstance.getId(),
-                        amazonConfiguration.getInstanceID(),
-                        amazonConfiguration.getPrivateHostName(),
-                        amazonConfiguration.getPrivateIP(),
-                        amazonConfiguration.getAvailabilityZone(),
-                        deadInstance.getVolumes(),
-                        deadInstance.getToken());
+                // failed to acquire the slot . . throw an exception so that we retry the operation
+                logger.info("New instance {} failed to acquire slot {}", newInstance.getInstanceId(), deadInstance.getId());
+                throw new Exception("Failed to acquire token");
             }
             return null;
         }
