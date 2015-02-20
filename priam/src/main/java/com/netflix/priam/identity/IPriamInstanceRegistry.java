@@ -33,6 +33,13 @@ public interface IPriamInstanceRegistry {
     PriamInstance create(String app, int id, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String token);
 
     /**
+     * Overwrite the details of the server node in registry if the present values matches the expected instance ID
+     *
+     * @return the new node, or null if it failed to acquire the slot
+     */
+    PriamInstance acquireSlotId(int slotId, String expectedInstanceId, String app, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String token);
+
+    /**
      * Delete the server node from the registry
      *
      * @param inst the node to delete
@@ -45,12 +52,5 @@ public interface IPriamInstanceRegistry {
      * @param inst the node to update
      */
     void update(PriamInstance inst);
-
-    /**
-     * Overwrite the details of the server node in registry if it matches the provided instance ID
-     *
-     * @param inst the node to update
-     */
-    boolean acquireInstanceId(int slotId, PriamInstance inst, String expectedInstanceId);
 
 }

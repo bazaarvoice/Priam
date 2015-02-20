@@ -119,11 +119,10 @@ public class InstanceIdentity {
                 // a current part of our ASG.  This would normally mean the node has died.
 
                 logger.info("Found dead instance {} with token {} - trying to grab its slot.", deadInstance.getInstanceId(), deadInstance.getToken());
-                PriamInstance newInstance = PriamInstance.from(cassandraConfiguration.getClusterName(), deadInstance.getId(), amazonConfiguration.getInstanceID(),
-                        amazonConfiguration.getPrivateHostName(), amazonConfiguration.getPrivateIP(), amazonConfiguration.getAvailabilityZone(), deadInstance.getVolumes(), deadInstance.getToken(),
-                        amazonConfiguration.getRegionName());
-                boolean successful = instanceRegistry.acquireInstanceId(deadInstance.getId(), newInstance, deadInstance.getInstanceId());
-                if (successful) {
+                PriamInstance newInstance = instanceRegistry.acquireSlotId(deadInstance.getId(), deadInstance.getInstanceId(), cassandraConfiguration.getClusterName(),
+                        amazonConfiguration.getInstanceID(), amazonConfiguration.getPrivateHostName(), amazonConfiguration.getPrivateIP(), amazonConfiguration.getAvailabilityZone(),
+                        deadInstance.getVolumes(), deadInstance.getToken());
+                if (newInstance != null) {
                     isReplace = true;
                     replacedIp = deadInstance.getHostIP();
                     return newInstance;
