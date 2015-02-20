@@ -1,12 +1,20 @@
 package com.netflix.priam.identity;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.netflix.priam.utils.ThreadSleeper;
 import com.netflix.priam.utils.TokenManager;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 public class InstanceIdentityTest extends InstanceTestUtils {
 
@@ -51,6 +59,10 @@ public class InstanceIdentityTest extends InstanceTestUtils {
         identity = createInstanceIdentity("az2", "fakeinstancex");
         int hash = TokenManager.regionOffset(amazonConfiguration.getRegionName());
         assertEquals(1, identity.getInstance().getId() - hash);
+
+        // Ensure that we are flagged as replacing the proper instance
+        assertTrue(identity.isReplace());
+        assertEquals(identity.getReplacedIp(), amazonConfiguration.getPrivateIP());
     }
 
     @Test
@@ -58,9 +70,11 @@ public class InstanceIdentityTest extends InstanceTestUtils {
         createInstances();
         identity = createInstanceIdentity("az1", "fakeinstancex");
         assertEquals(2, identity.getSeeds().size());
+        assertFalse(identity.isReplace());
 
         identity = createInstanceIdentity("az1", "fakeinstance1");
         assertEquals(2, identity.getSeeds().size());
+        assertFalse(identity.isReplace());
     }
 
     @Test
@@ -76,7 +90,7 @@ public class InstanceIdentityTest extends InstanceTestUtils {
             if (0 == i % 2) {
                 continue;
             }
-            assertEquals("new_slot", lst.get(i).getInstanceId());
+            assertEquals(PriamInstance.NEW_INSTANCE_PLACEHOLDER_ID, lst.get(i).getInstanceId());
         }
         assertEquals(before * 2, lst.size());
     }
@@ -90,6 +104,10 @@ public class InstanceIdentityTest extends InstanceTestUtils {
         int hash = TokenManager.regionOffset(amazonConfiguration.getRegionName());
         identity = createInstanceIdentity("az1", "fakeinstancex");
         printInstance(identity.getInstance(), hash);
+
+        // Ensure that we are not flagged for replacing an instance, since the slot we took should have been unoccupied
+        assertFalse(identity.isReplace());
+        assertEquals(identity.getReplacedIp().length(), 0);
     }
 
     public void printInstance(PriamInstance ins, int hash) {

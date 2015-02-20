@@ -38,7 +38,7 @@ public class DoubleRingTest extends InstanceTestUtils {
             int id = ins.getId() - TokenManager.regionOffset(amazonConfiguration.getRegionName());
             //System.out.println(ins);
             if (0 != id % 2) {
-                assertEquals(ins.getInstanceId(), "new_slot");
+                assertEquals(ins.getInstanceId(), PriamInstance.NEW_INSTANCE_PLACEHOLDER_ID);
             }
             // Verify that instances are spread across AZs evenly and in sequence.
             assertEquals(ins.getAvailabilityZone(), doubled.get((i + numZones) % numZones).getAvailabilityZone());

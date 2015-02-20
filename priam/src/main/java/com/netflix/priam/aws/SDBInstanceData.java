@@ -102,8 +102,21 @@ public class SDBInstanceData {
      * @return the node with the given {@code id}, or {@code null} if no such node exists
      */
     public PriamInstance getInstance(String app, int id) {
+        return getInstance(app, id, false);
+    }
+
+    /**
+     * Get the instance details from SimpleDB
+     *
+     * @param app Cluster name
+     * @param id  Node ID
+     * @param consistentRead  Whether to require strong consistency on the read
+     * @return the node with the given {@code id}, or {@code null} if no such node exists
+     */
+    public PriamInstance getInstance(String app, int id,  boolean consistentRead) {
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
         SelectRequest request = new SelectRequest(getInstanceQuery(app, id));
+        request.setConsistentRead(consistentRead);
         SelectResult result = simpleDBClient.select(request);
         if (result.getItems().size() == 0) {
             return null;
@@ -120,12 +133,24 @@ public class SDBInstanceData {
      * @return the set of all instances in the given {@code app}
      */
     public Set<PriamInstance> getAllIds(String app) {
+        return getAllIds(app, false);
+    }
+
+    /**
+     * Get the set of all nodes in the cluster
+     *
+     * @param app Cluster name
+     * @param consistentRead  Whether to require strong consistency on the read
+     * @return the set of all instances in the given {@code app}
+     */
+    public Set<PriamInstance> getAllIds(String app, boolean consistentRead) {
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
         Set<PriamInstance> inslist = new HashSet<>();
         String nextToken = null;
         String allQuery = getAllQuery(app);
         do {
             SelectRequest request = new SelectRequest(allQuery);
+            request.setConsistentRead(consistentRead);
             request.setNextToken(nextToken);
             SelectResult result = simpleDBClient.select(request);
             nextToken = result.getNextToken();
@@ -155,13 +180,17 @@ public class SDBInstanceData {
      *
      * @throws AmazonServiceException
      */
-    public void registerInstance(PriamInstance instance) throws AmazonServiceException {
+    public void registerInstance(PriamInstance instance, String expectedPreviousInstanceId) throws AmazonServiceException {
         logger.info("Registering PriamInstance in SimpleDB: {}", instance);
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
         PutAttributesRequest putReq = new PutAttributesRequest(sdbDomain, getKey(instance), createAttributesToRegister(instance));
         UpdateCondition expected = new UpdateCondition();
         expected.setName(Attributes.INSTANCE_ID);
-        expected.setExists(false);
+        if (expectedPreviousInstanceId == null) {
+            expected.setExists(false);
+        } else {
+            expected.setValue(expectedPreviousInstanceId);
+        }
         putReq.setExpected(expected);
         simpleDBClient.putAttributes(putReq);
     }
@@ -205,7 +234,7 @@ public class SDBInstanceData {
     private List<ReplaceableAttribute> createAttributesToRegister(PriamInstance instance) {
         instance.setUpdatetime(new Date().getTime());
         List<ReplaceableAttribute> attrs = new ArrayList<>();
-        attrs.add(new ReplaceableAttribute(Attributes.INSTANCE_ID, instance.getInstanceId(), false));
+        attrs.add(new ReplaceableAttribute(Attributes.INSTANCE_ID, instance.getInstanceId(), true));
         attrs.add(new ReplaceableAttribute(Attributes.TOKEN, instance.getToken(), true));
         attrs.add(new ReplaceableAttribute(Attributes.APP_ID, instance.getApp(), true));
         attrs.add(new ReplaceableAttribute(Attributes.ID, Integer.toString(instance.getId()), true));

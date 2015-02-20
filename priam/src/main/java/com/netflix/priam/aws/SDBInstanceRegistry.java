@@ -47,7 +47,7 @@ public class SDBInstanceRegistry implements IPriamInstanceRegistry {
 
     @Override
     public List<PriamInstance> getAllIds(String appName) {
-        return Ordering.natural().immutableSortedCopy(dao.getAllIds(appName));
+        return Ordering.natural().immutableSortedCopy(dao.getAllIds(appName, true));
     }
 
     @Override
@@ -57,13 +57,24 @@ public class SDBInstanceRegistry implements IPriamInstanceRegistry {
 
     @Override
     public PriamInstance create(String app, int id, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String token) {
+        return acquireSlotId(id, null, app, instanceID, hostname, ip, rac, volumes, token);
+    }
+
+    @Override
+    public PriamInstance acquireSlotId(int slotId, String expectedInstanceId, String app, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String token) {
         try {
-            PriamInstance ins = PriamInstance.from(app, id, instanceID, hostname, ip, rac, volumes, token, amazonConfiguration.getRegionName());
-            dao.registerInstance(ins);
-            return ins;
-        } catch (Exception e) {
+            PriamInstance ins = PriamInstance.from(app, slotId, instanceID, hostname, ip, rac, volumes, token, amazonConfiguration.getRegionName());
+            dao.registerInstance(ins, expectedInstanceId);
+            // Only return a result if we successfully overwrote the previous value; otherwise return null to indicate failure
+            PriamInstance storedInstance = dao.getInstance(ins.getApp(), ins.getId(), true);
+            if (storedInstance.getInstanceId().equals(ins.getInstanceId())) {
+                return ins;
+            } else {
+                return null;
+            }
+        } catch (AmazonServiceException e) {
             logger.error(e.getMessage());
-            throw new RuntimeException(e);
+            throw new RuntimeException("Unable to update/create priam instance", e);
         }
     }
 
@@ -84,5 +95,4 @@ public class SDBInstanceRegistry implements IPriamInstanceRegistry {
             throw new RuntimeException("Unable to update/create priam instance", e);
         }
     }
-
 }
