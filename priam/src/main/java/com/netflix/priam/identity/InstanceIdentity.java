@@ -17,6 +17,7 @@ package com.netflix.priam.identity;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.netflix.priam.config.AmazonConfiguration;
@@ -107,32 +108,45 @@ public class InstanceIdentity {
             List<String> asgInstanceIDs = membership.getAutoScaleGroupMembership();
             // Sleep random interval - 10 to 15 sec
             sleeper.sleep(new Random().nextInt(5000) + 10000);
-            for (final PriamInstance deadInstance : priamInstances) {
+
+            // Build a list of "dead" instances that we might replace (those that are in our availability zone but not associated with an instance active in our ASG)
+            List<PriamInstance> deadInstances = Lists.newArrayList();
+            for (final PriamInstance instance : priamInstances) {
                 // Only consider instances that are in the same availability zone but not in the auto-scale group
-                if (!deadInstance.getAvailabilityZone().equals(amazonConfiguration.getAvailabilityZone())
-                        || asgInstanceIDs.contains(deadInstance.getInstanceId())) {
-                    // This instance isn't really dead.
-                    continue;
+                if (instance.getAvailabilityZone().equals(amazonConfiguration.getAvailabilityZone())
+                        && !asgInstanceIDs.contains(instance.getInstanceId())) {
+                    // *Clang* Bring out your dead!
+                    deadInstances.add(instance);
                 }
-
-                // If we're here, it means we had a record in our instance registry pointing to something in our same availability zone, but that isn't
-                // a current part of our ASG.  This would normally mean the node has died.
-
-                logger.info("Found dead instance {} with token {} - trying to grab its slot.", deadInstance.getInstanceId(), deadInstance.getToken());
-                PriamInstance newInstance = instanceRegistry.acquireSlotId(deadInstance.getId(), deadInstance.getInstanceId(), cassandraConfiguration.getClusterName(),
-                        amazonConfiguration.getInstanceID(), amazonConfiguration.getPrivateHostName(), amazonConfiguration.getPrivateIP(), amazonConfiguration.getAvailabilityZone(),
-                        deadInstance.getVolumes(), deadInstance.getToken());
-                if (newInstance != null) {
-                    isReplace = true;
-                    replacedIp = deadInstance.getHostIP();
-                    return newInstance;
-                }
-
-                // failed to acquire the slot . . throw an exception so that we retry the operation
-                logger.info("New instance {} failed to acquire slot {}", amazonConfiguration.getInstanceID(), deadInstance.getId());
-                throw new Exception("Failed to acquire token");
             }
-            return null;
+
+            // No such instances available; return and try something else
+            if (deadInstances.isEmpty()) {
+                return null;
+            }
+
+            // At this point we have at least one slot with associated with an invalid instance. Unfortunately, deadInstances will be a sorted list - if every new instance tries to grab the first
+            // entry on it then they'll all be contending for the same slot. We have mechanisms in place to ensure that this doesn't create an outright error condition, but it's still very
+            // inefficient, as servers may have to retry multiple times before they can successfully claim a slot. To reduce this contention, we have each instance select an available deadInstance at
+            // random, allowing for more than one instance to succeed on its first pass.
+            String newInstanceId = amazonConfiguration.getInstanceID();
+            int newInstanceHash = Math.abs(newInstanceId.hashCode());
+            int randomIndex = (newInstanceHash % deadInstances.size());
+            PriamInstance deadInstance = deadInstances.get(randomIndex);
+
+            logger.info("Found dead instance {} with token {} - trying to grab its slot.", deadInstance.getInstanceId(), deadInstance.getToken());
+            PriamInstance newInstance = instanceRegistry.acquireSlotId(deadInstance.getId(), deadInstance.getInstanceId(), cassandraConfiguration.getClusterName(),
+                    newInstanceId, amazonConfiguration.getPrivateHostName(), amazonConfiguration.getPrivateIP(), amazonConfiguration.getAvailabilityZone(),
+                    deadInstance.getVolumes(), deadInstance.getToken());
+            if (newInstance != null) {
+                isReplace = true;
+                replacedIp = deadInstance.getHostIP();
+                return newInstance;
+            }
+
+            // Failed to acquire the slot . . throw an exception so that we retry the operation
+            logger.info("New instance {} failed to acquire slot {}", newInstanceId, deadInstance.getId());
+            throw new Exception("Failed to acquire token");
         }
 
         public void forEachExecution() {
