@@ -129,7 +129,7 @@ public class InstanceIdentity {
                 }
 
                 // failed to acquire the slot . . throw an exception so that we retry the operation
-                logger.info("New instance {} failed to acquire slot {}", newInstance.getInstanceId(), deadInstance.getId());
+                logger.info("New instance {} failed to acquire slot {}", amazonConfiguration.getInstanceID(), deadInstance.getId());
                 throw new Exception("Failed to acquire token");
             }
             return null;

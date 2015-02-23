@@ -1,12 +1,19 @@
 package com.netflix.priam.identity;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.netflix.priam.utils.ThreadSleeper;
 import com.netflix.priam.utils.TokenManager;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 public class InstanceIdentityTest extends InstanceTestUtils {
 
@@ -51,6 +58,44 @@ public class InstanceIdentityTest extends InstanceTestUtils {
         identity = createInstanceIdentity("az2", "fakeinstancex");
         int hash = TokenManager.regionOffset(amazonConfiguration.getRegionName());
         assertEquals(1, identity.getInstance().getId() - hash);
+    }
+
+    @Test
+    public void testDeadInstanceContention() throws Exception {
+        createInstances();
+        instances.remove("fakeinstance4");
+        instances.remove("fakeinstance5");
+        instances.add("fakeinstancex0");
+        instances.add("fakeinstancex1");
+
+        sleeper = new ThreadSleeper();
+
+        final PriamInstance[] priamInstances = new PriamInstance[3];
+        final List<Future<PriamInstance>> scheduledFutures = Lists.newArrayList();
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        for (int i = 0; i < 2; ++i) {
+            final Integer threadId = new Integer(i);
+            scheduledFutures.add(executorService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        InstanceIdentity threadIdentity = createInstanceIdentity("az2", "fakeinstancex" + threadId);
+                        priamInstances[threadId] = threadIdentity.getInstance();
+                    } catch (Exception e) {
+                        assertTrue(false);
+                    }
+                }
+            }, priamInstances[2]));
+        }
+
+        // wait for our tasks to complete
+        for (Future future : scheduledFutures) {
+            future.get();
+        }
+
+        assertNotEquals(priamInstances[0], null);
+        assertNotEquals(priamInstances[1], null);
+        assertNotEquals(priamInstances[0].getId(), priamInstances[1].getId());
     }
 
     @Test
