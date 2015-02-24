@@ -14,6 +14,6 @@ public class TestAmazonConfiguration extends AmazonConfiguration {
         setUsableAvailabilityZones(Arrays.asList("az1", "az2", "az3"));
         setPrivateHostName(instanceId);
         setSecurityGroupName(clusterName);
-        setPrivateIP(null);
+        setPrivateIP("fakeIp");
     }
 }

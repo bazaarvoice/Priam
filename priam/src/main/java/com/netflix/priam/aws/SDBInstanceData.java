@@ -131,6 +131,7 @@ public class SDBInstanceData {
         String allQuery = getAllQuery(app);
         do {
             SelectRequest request = new SelectRequest(allQuery);
+            request.setConsistentRead(true);
             request.setNextToken(nextToken);
             SelectResult result = simpleDBClient.select(request);
             nextToken = result.getNextToken();

@@ -139,8 +139,11 @@ public class InstanceIdentity {
                     newInstanceId, amazonConfiguration.getPrivateHostName(), amazonConfiguration.getPrivateIP(), amazonConfiguration.getAvailabilityZone(),
                     deadInstance.getVolumes(), deadInstance.getToken());
             if (newInstance != null) {
-                isReplace = true;
-                replacedIp = deadInstance.getHostIP();
+                // Flag the instance we replaced (if we replaced an actual functioning instance and not a placeholder)
+                if (!deadInstance.getInstanceId().equals(PriamInstance.NEW_INSTANCE_PLACEHOLDER_ID)) {
+                    isReplace = true;
+                    replacedIp = deadInstance.getHostIP();
+                }
                 return newInstance;
             }
 

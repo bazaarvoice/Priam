@@ -89,7 +89,7 @@ public class DoubleRing {
             String token = tokenManager.createToken(newSlot, newRingSize, amazonConfiguration.getRegionName());
             instanceRegistry.create(priamInstance.getApp(),
                     regionOffsetHash + newSlot,
-                    "new_slot",
+                    PriamInstance.NEW_INSTANCE_PLACEHOLDER_ID,
                     amazonConfiguration.getPrivateHostName(),
                     amazonConfiguration.getPrivateIP(),
                     priamInstance.getAvailabilityZone(),
