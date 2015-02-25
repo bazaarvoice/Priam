@@ -56,7 +56,8 @@ public class InstanceIdentity {
 
     @Inject
     public InstanceIdentity(CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration,
-                            IPriamInstanceRegistry instanceRegistry, IMembership membership, TokenManager tokenManager, Sleeper sleeper) throws Exception {
+                            IPriamInstanceRegistry instanceRegistry, IMembership membership, TokenManager tokenManager, Sleeper sleeper)
+            throws Exception {
         this.instanceRegistry = instanceRegistry;
         this.membership = membership;
         this.cassandraConfiguration = cassandraConfiguration;
@@ -70,7 +71,8 @@ public class InstanceIdentity {
         return myInstance;
     }
 
-    public void init() throws Exception {
+    public void init()
+            throws Exception {
         // try to grab the token which was already assigned
         myInstance = new GetOwnToken().call();
 
@@ -89,7 +91,8 @@ public class InstanceIdentity {
 
     public class GetOwnToken extends RetryableCallable<PriamInstance> {
         @Override
-        public PriamInstance retriableCall() throws Exception {
+        public PriamInstance retriableCall()
+                throws Exception {
             // Look to see if an instance with the same instanceID is already part of the cluster.  If so, use it.
             for (PriamInstance ins : instanceRegistry.getAllIds(cassandraConfiguration.getClusterName())) {
                 logger.debug("Iterating through the hosts: {}", ins.getInstanceId());
@@ -103,13 +106,15 @@ public class InstanceIdentity {
 
     public class GetDeadToken extends RetryableCallable<PriamInstance> {
         @Override
-        public PriamInstance retriableCall() throws Exception {
+        public PriamInstance retriableCall()
+                throws Exception {
             List<PriamInstance> priamInstances = instanceRegistry.getAllIds(cassandraConfiguration.getClusterName());
             List<String> asgInstanceIDs = membership.getAutoScaleGroupMembership();
             // Sleep random interval - 10 to 15 sec
             sleeper.sleep(new Random().nextInt(5000) + 10000);
 
             // Build a list of "dead" instances that we might replace (those that are in our availability zone but not associated with an instance active in our ASG)
+            boolean containsHealthyNode = false;
             List<PriamInstance> deadInstances = Lists.newArrayList();
             for (final PriamInstance instance : priamInstances) {
                 // Only consider instances that are in the same availability zone but not in the auto-scale group
@@ -117,12 +122,19 @@ public class InstanceIdentity {
                         && !asgInstanceIDs.contains(instance.getInstanceId())) {
                     // *Clang* Bring out your dead!
                     deadInstances.add(instance);
+                } else {
+                    containsHealthyNode = true;
                 }
             }
 
             // No such instances available; return and try something else
             if (deadInstances.isEmpty()) {
                 return null;
+            }
+
+            if (containsHealthyNode == false) {
+                logger.error("!! Attempting to replace dead tokens in a cluster where no healthy nodes exist. Cassandra is likely to deadlock at startup. Consider cleaning SimpleDB data " +
+                        "for this cluster");
             }
 
             // At this point we have at least one slot with associated with an invalid instance. Unfortunately, deadInstances will be a sorted list - if every new instance tries to grab the first
@@ -164,7 +176,8 @@ public class InstanceIdentity {
         }
 
         @Override
-        public PriamInstance retriableCall() throws Exception {
+        public PriamInstance retriableCall()
+                throws Exception {
             logger.info("Generating my own and new token");
             // Sleep random interval - up to 15 sec
             sleeper.sleep(new Random().nextInt(15000));
@@ -273,7 +286,8 @@ public class InstanceIdentity {
      * moving a server to a new token or else the move may be reverted if/when the server is replaced and the
      * replacement assigns the old token from SimpleDB.
      */
-    public void updateToken() throws Exception {
+    public void updateToken()
+            throws Exception {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         myInstance.setToken(tokenManager.sanitizeToken(nodetool.getTokens().get(0)));
         instanceRegistry.update(myInstance);
