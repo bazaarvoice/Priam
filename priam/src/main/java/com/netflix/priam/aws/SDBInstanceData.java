@@ -215,7 +215,7 @@ public class SDBInstanceData {
     private List<ReplaceableAttribute> createAttributesToRegister(PriamInstance instance) {
         instance.setUpdatetime(new Date().getTime());
         List<ReplaceableAttribute> attrs = new ArrayList<>();
-        attrs.add(new ReplaceableAttribute(Attributes.INSTANCE_ID, instance.getInstanceId(), false));
+        attrs.add(new ReplaceableAttribute(Attributes.INSTANCE_ID, instance.getInstanceId(), true));
         attrs.add(new ReplaceableAttribute(Attributes.TOKEN, instance.getToken(), true));
         attrs.add(new ReplaceableAttribute(Attributes.APP_ID, instance.getApp(), true));
         attrs.add(new ReplaceableAttribute(Attributes.ID, Integer.toString(instance.getId()), true));
