@@ -67,7 +67,7 @@ public class SDBInstanceRegistry implements IPriamInstanceRegistry {
             dao.registerInstance(ins, expectedInstanceId);
             // only return a result if we successfully overwrote the previous value; otherwise return null
             PriamInstance storedInstance = dao.getInstance(ins.getApp(), ins.getId(), true);
-            if (storedInstance.getInstanceId() == ins.getInstanceId()) {
+            if (storedInstance.getInstanceId().equals(ins.getInstanceId())) {
                 return ins;
             } else {
                 return null;
