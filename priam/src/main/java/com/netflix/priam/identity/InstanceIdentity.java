@@ -117,11 +117,12 @@ public class InstanceIdentity {
             boolean containsHealthyNode = false;
             List<PriamInstance> deadInstances = Lists.newArrayList();
             for (final PriamInstance instance : priamInstances) {
-                // Only consider instances that are in the same availability zone but not in the auto-scale group
-                if (instance.getAvailabilityZone().equals(amazonConfiguration.getAvailabilityZone())
-                        && !asgInstanceIDs.contains(instance.getInstanceId())) {
-                    // *Clang* Bring out your dead!
-                    deadInstances.add(instance);
+                // Consider replacing instances that are in the same availability zone but not in the auto-scale group
+                if (!asgInstanceIDs.contains(instance.getInstanceId())) {
+                    if (instance.getAvailabilityZone().equals(amazonConfiguration.getAvailabilityZone())) {
+                        // *Clang* Bring out your dead!
+                        deadInstances.add(instance);
+                    }
                 } else {
                     containsHealthyNode = true;
                 }
