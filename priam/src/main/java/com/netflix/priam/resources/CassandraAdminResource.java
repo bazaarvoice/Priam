@@ -21,12 +21,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.net.HostAndPort;
 import com.google.inject.Inject;
 import com.netflix.priam.ICassandraProcess;
 import com.netflix.priam.PriamServer;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
-import com.netflix.priam.dropwizard.Port;
 import com.netflix.priam.utils.JMXConnectionException;
 import com.netflix.priam.utils.JMXNodeTool;
 import com.sun.jersey.api.client.Client;
@@ -79,13 +79,13 @@ public class CassandraAdminResource {
 
     @Inject
     public CassandraAdminResource(PriamServer priamServer, CassandraConfiguration cassandraConfiguration,
-                                  PriamConfiguration priamConfiguration, ICassandraProcess cassProcess, Client jersey, @Port Integer port) {
+                                  PriamConfiguration priamConfiguration, ICassandraProcess cassProcess, Client jersey, HostAndPort hostAndPort) {
         this.priamServer = priamServer;
         this.cassandraConfiguration = cassandraConfiguration;
         this.priamConfiguration = priamConfiguration;
         this.cassProcess = cassProcess;
         this.jersey = jersey;
-        this.port = port;
+        this.port = hostAndPort.getPort();
     }
 
     private JMXNodeTool getNodeTool() {

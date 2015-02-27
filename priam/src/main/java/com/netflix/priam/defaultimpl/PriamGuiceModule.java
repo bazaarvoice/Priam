@@ -19,6 +19,9 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
+import com.google.common.net.HostAndPort;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
@@ -30,7 +33,6 @@ import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.config.MonitoringConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
 import com.netflix.priam.config.ZooKeeperConfiguration;
-import com.netflix.priam.dropwizard.Port;
 import com.netflix.priam.dropwizard.managers.ServiceRegistryManager;
 import com.netflix.priam.identity.IMembership;
 import com.netflix.priam.identity.IPriamInstanceRegistry;
@@ -48,8 +50,11 @@ import io.dropwizard.server.SimpleServerFactory;
 import io.dropwizard.setup.Environment;
 import org.apache.curator.framework.CuratorFramework;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class PriamGuiceModule extends AbstractModule {
     private final PriamConfiguration priamConfiguration;
@@ -104,8 +109,7 @@ public class PriamGuiceModule extends AbstractModule {
 
     @Provides
     @Singleton
-    @Port
-    Integer providePort(PriamConfiguration configuration) {
+    HostAndPort providePort(PriamConfiguration configuration) {
         ServerFactory serverFactory = configuration.getServerFactory();
 
         // Our method for obtaining connector factories from the server factory varies depending on the latter's type
@@ -118,15 +122,22 @@ public class PriamGuiceModule extends AbstractModule {
             throw new IllegalStateException("Encountered an unexpected ServerFactory type");
         }
 
-        // find the first connector that matches and return its port information (in practice there should
+        // Find the first connector that matches and return its port information (in practice there should
         // be one, and just one, match)
-        for (ConnectorFactory connector : connectorFactories) {
-            if (connector.getClass().isAssignableFrom(HttpConnectorFactory.class)) {
-                HttpConnectorFactory httpConnectorFactory = ((HttpConnectorFactory) connector);
-                return httpConnectorFactory.getPort();
-            }
-        }
+        try {
+            HttpConnectorFactory httpConnectorFactory = (HttpConnectorFactory) Iterables.find(connectorFactories, Predicates.instanceOf(HttpConnectorFactory.class));
 
-        throw new IllegalStateException("Did not find a valid HttpConnector for the server");
+            String host = httpConnectorFactory.getBindHost();
+            if (host == null) {
+                host = InetAddress.getLocalHost().getHostAddress();
+            }
+
+            int port = httpConnectorFactory.getPort();
+            return HostAndPort.fromParts(host, port);
+        } catch(UnknownHostException ex) {
+            throw new IllegalStateException("Unable to determine the local host address for the server", ex);
+        } catch(NoSuchElementException ex) {
+            throw new IllegalStateException("Did not find a valid HttpConnector for the server", ex);
+        }
     }
 }

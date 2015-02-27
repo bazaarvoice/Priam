@@ -3,10 +3,10 @@ package com.netflix.priam.dropwizard.managers;
 import com.bazaarvoice.badger.api.BadgerRegistration;
 import com.bazaarvoice.badger.api.BadgerRegistrationBuilder;
 import com.google.common.base.Optional;
+import com.google.common.net.HostAndPort;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.netflix.priam.config.MonitoringConfiguration;
-import com.netflix.priam.dropwizard.Port;
 import io.dropwizard.lifecycle.Managed;
 import org.apache.curator.framework.CuratorFramework;
 
@@ -25,10 +25,10 @@ public class ServiceMonitorManager implements Managed {
     @Inject
     public ServiceMonitorManager(MonitoringConfiguration monitoringConfiguration,
                                  Optional<CuratorFramework> curator,
-                                 @Port Integer port) {
+                                 HostAndPort hostAndPort) {
         this.monitoringConfiguration = monitoringConfiguration;
         this.curator = curator.orNull();
-        this.port = port;
+        this.port = hostAndPort.getPort();
     }
 
     @Override

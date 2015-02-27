@@ -17,7 +17,6 @@ import com.google.inject.Singleton;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
-import com.netflix.priam.dropwizard.Port;
 import com.netflix.priam.utils.JMXNodeTool;
 import io.dropwizard.lifecycle.Managed;
 import org.apache.cassandra.utils.FBUtilities;
@@ -61,13 +60,13 @@ public class ServiceRegistryManager implements Managed {
                                   CassandraConfiguration casConfiguration,
                                   AmazonConfiguration awsConfiguration,
                                   Optional<CuratorFramework> zkConnection,
-                                  @Port Integer port,
+                                  HostAndPort hostAndPort,
                                   MetricRegistry metricRegistry) {
         this.priamConfiguration = priamConfiguration;
         this.casConfiguration = casConfiguration;
         this.awsConfiguration = awsConfiguration;
         this.zkConnection = zkConnection;
-        this.port = port;
+        this.port = hostAndPort.getPort();
         this.metricRegistry = metricRegistry;
 
         String nameFormat = "ServiceRegistryManager-%d";
