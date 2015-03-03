@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.net.HostAndPort;
 import com.google.inject.Inject;
 import com.netflix.priam.ICassandraProcess;
 import com.netflix.priam.PriamServer;
@@ -74,15 +75,17 @@ public class CassandraAdminResource {
     private final PriamConfiguration priamConfiguration;
     private final ICassandraProcess cassProcess;
     private final Client jersey;
+    private final Integer port;
 
     @Inject
     public CassandraAdminResource(PriamServer priamServer, CassandraConfiguration cassandraConfiguration,
-                                  PriamConfiguration priamConfiguration, ICassandraProcess cassProcess, Client jersey) {
+                                  PriamConfiguration priamConfiguration, ICassandraProcess cassProcess, Client jersey, HostAndPort hostAndPort) {
         this.priamServer = priamServer;
         this.cassandraConfiguration = cassandraConfiguration;
         this.priamConfiguration = priamConfiguration;
         this.cassProcess = cassProcess;
         this.jersey = jersey;
+        this.port = hostAndPort.getPort();
     }
 
     private JMXNodeTool getNodeTool() {
@@ -170,8 +173,7 @@ public class CassandraAdminResource {
                     Map<String, Object> nodeResponse = endpointsPendingHints();
                     fullNodeInfo.putAll(nodeResponse);
                 } else {
-                    String url = String.format("http://%s:%s/v1/cassadmin/hints/node", endpoint,
-                            priamConfiguration.getHttpConfiguration().getPort());
+                    String url = String.format("http://%s:%s/v1/cassadmin/hints/node", endpoint, port);
                     Map<String, Object> nodeResponse = jersey.resource(url)
                             .get(new GenericType<Map<String, Object>>() {
                             });

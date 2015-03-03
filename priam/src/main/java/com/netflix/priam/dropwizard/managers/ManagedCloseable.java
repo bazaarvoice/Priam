@@ -1,7 +1,7 @@
 package com.netflix.priam.dropwizard.managers;
 
 import com.google.common.io.Closeables;
-import com.yammer.dropwizard.lifecycle.Managed;
+import io.dropwizard.lifecycle.Managed;
 
 import java.io.Closeable;
 

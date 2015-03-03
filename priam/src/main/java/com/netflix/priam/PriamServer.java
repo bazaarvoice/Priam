@@ -7,7 +7,7 @@ import com.netflix.priam.identity.InstanceIdentity;
 import com.netflix.priam.noderepair.NodeRepair;
 import com.netflix.priam.scheduler.PriamScheduler;
 import com.netflix.priam.utils.TuneCassandra;
-import com.yammer.dropwizard.lifecycle.Managed;
+import io.dropwizard.lifecycle.Managed;
 
 /**
  * Start all tasks here - Property update task - Node repair

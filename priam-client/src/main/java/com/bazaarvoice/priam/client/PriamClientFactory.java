@@ -3,6 +3,7 @@ package com.bazaarvoice.priam.client;
 import com.bazaarvoice.ostrich.ServiceEndPoint;
 import com.bazaarvoice.ostrich.ServiceFactory;
 import com.bazaarvoice.ostrich.pool.ServicePoolBuilder;
+import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
@@ -14,14 +15,14 @@ import com.sun.jersey.client.apache4.ApacheHttpClient4;
 import com.sun.jersey.client.apache4.ApacheHttpClient4Handler;
 import com.sun.jersey.client.apache4.config.ApacheHttpClient4Config;
 import com.sun.jersey.client.apache4.config.DefaultApacheHttpClient4Config;
-import com.yammer.dropwizard.client.HttpClientBuilder;
-import com.yammer.dropwizard.client.HttpClientConfiguration;
-import com.yammer.dropwizard.jersey.JacksonMessageBodyProvider;
-import com.yammer.dropwizard.json.ObjectMapperFactory;
-import com.yammer.dropwizard.util.Duration;
-import com.yammer.dropwizard.validation.Validator;
+import io.dropwizard.client.HttpClientBuilder;
+import io.dropwizard.client.HttpClientConfiguration;
+import io.dropwizard.jackson.Jackson;
+import io.dropwizard.jersey.jackson.JacksonMessageBodyProvider;
+import io.dropwizard.util.Duration;
 import org.apache.http.client.HttpClient;
 
+import javax.validation.Validation;
 import java.net.URI;
 import java.util.Map;
 
@@ -29,10 +30,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class PriamClientFactory implements ServiceFactory<PriamCassAdmin> {
 
-    public static PriamClientFactory forCluster(String clusterName) {
+    public static PriamClientFactory forCluster(String clusterName, MetricRegistry metricRegistry) {
         HttpClientConfiguration httpClientConfiguration = new HttpClientConfiguration();
         httpClientConfiguration.setKeepAlive(Duration.seconds(1));
-        return new PriamClientFactory(clusterName, createDefaultJerseyClient(httpClientConfiguration));
+        return new PriamClientFactory(clusterName, createDefaultJerseyClient(httpClientConfiguration, metricRegistry, clusterName));
     }
 
     /**
@@ -43,8 +44,8 @@ public class PriamClientFactory implements ServiceFactory<PriamCassAdmin> {
         return new PriamClientFactory(clusterName, client);
     }
 
-    public static PriamClientFactory forClusterAndHttpConfiguration(String clusterName, HttpClientConfiguration configuration) {
-        return new PriamClientFactory(clusterName, createDefaultJerseyClient(configuration));
+    public static PriamClientFactory forClusterAndHttpConfiguration(String clusterName, HttpClientConfiguration configuration, MetricRegistry metricRegistry) {
+        return new PriamClientFactory(clusterName, createDefaultJerseyClient(configuration, metricRegistry, clusterName));
     }
 
     private final String _clusterName;
@@ -55,17 +56,21 @@ public class PriamClientFactory implements ServiceFactory<PriamCassAdmin> {
         _jerseyClient = jerseyClient;
     }
 
-    private static ApacheHttpClient4 createDefaultJerseyClient(HttpClientConfiguration configuration) {
-        HttpClient httpClient = new HttpClientBuilder().using(configuration).build();
+    private static ApacheHttpClient4 createDefaultJerseyClient(HttpClientConfiguration configuration, MetricRegistry metricRegistry, String clusterName) {
+        HttpClient httpClient = new HttpClientBuilder(metricRegistry).using(configuration).build(getServiceName(clusterName));
         ApacheHttpClient4Handler handler = new ApacheHttpClient4Handler(httpClient, null, true);
         ApacheHttpClient4Config config = new DefaultApacheHttpClient4Config();
-        config.getSingletons().add(new JacksonMessageBodyProvider(new ObjectMapperFactory().build(), new Validator()));
+        config.getSingletons().add(new JacksonMessageBodyProvider(Jackson.newObjectMapper(), Validation.buildDefaultValidatorFactory().getValidator()));
         return new ApacheHttpClient4(handler, config);
     }
 
     @Override
     public String getServiceName() {
-        return _clusterName + "-cassandra";
+        return getServiceName(_clusterName);
+    }
+
+    private static String getServiceName(String clusterName) {
+        return clusterName + "-cassandra";
     }
 
     @Override

@@ -88,9 +88,13 @@ backup:
   commitLogBackupEnabled: false                     # true if commit log backup is enabled
 
 # Configure the HTTP server that listens for inbound requests
-http:
-  port: 9090
-  adminPort: 9091
+server:
+  applicationConnectors:
+    - type: http
+      port: 9090
+  adminConnectors:
+    - type: http
+      port: 9091
 
 zooKeeper:
   enabled: false                     # Whether or not ZooKeeper registration is enabled.

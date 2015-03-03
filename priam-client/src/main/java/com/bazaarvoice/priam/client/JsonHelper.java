@@ -1,12 +1,12 @@
 package com.bazaarvoice.priam.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.yammer.dropwizard.json.ObjectMapperFactory;
+import io.dropwizard.jackson.Jackson;
 
 import java.io.IOException;
 
 class JsonHelper {
-    private static final ObjectMapper JSON = new ObjectMapperFactory().build();
+    private static final ObjectMapper JSON = Jackson.newObjectMapper();
 
     static <T> T fromJson(String string, Class<T> type) {
         try {

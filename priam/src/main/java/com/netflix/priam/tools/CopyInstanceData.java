@@ -5,8 +5,8 @@ import com.google.common.collect.Ordering;
 import com.netflix.priam.aws.SDBInstanceData;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.identity.PriamInstance;
-import com.yammer.dropwizard.cli.Command;
-import com.yammer.dropwizard.config.Bootstrap;
+import io.dropwizard.cli.Command;
+import io.dropwizard.setup.Bootstrap;
 import net.sourceforge.argparse4j.inf.Namespace;
 import net.sourceforge.argparse4j.inf.Subparser;
 
