@@ -29,6 +29,9 @@ public class CassandraConfiguration {
     private String cassHome;
 
     @JsonProperty
+    private String yamlLocation;
+
+    @JsonProperty
     private String cassStartScript;
 
     @JsonProperty
@@ -183,7 +186,8 @@ public class CassandraConfiguration {
     }
 
     public String getYamlLocation() {
-        return cassHome + "/conf/cassandra.yaml";
+        // Use a sensible default for the YAML location unless our configuration specifically overrides it
+        return Objects.firstNonNull(yamlLocation, cassHome + "/conf/cassandra.yaml");
     }
 
     public String getCassStartScript() {
@@ -380,6 +384,10 @@ public class CassandraConfiguration {
 
     public void setCassHome(String cassHome) {
         this.cassHome = cassHome;
+    }
+
+    public void setYamlLocation(String yamlLocation) {
+        this.yamlLocation = yamlLocation;
     }
 
     public void setCassStartScript(String cassStartScript) {

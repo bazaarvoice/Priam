@@ -47,6 +47,9 @@ public class PriamConfiguration extends Configuration {
     @JsonProperty
     private int jvmMutexPort = 8086;
 
+    @JsonProperty
+    private boolean isLocalInstance = false;
+
     public CassandraConfiguration getCassandraConfiguration() {
         return cassandra;
     }
@@ -77,5 +80,9 @@ public class PriamConfiguration extends Configuration {
 
     public List<String> getOstrichServiceNames() {
         return ostrichServiceNames;
+    }
+
+    public boolean getIsLocalInstance() {
+        return isLocalInstance;
     }
 }

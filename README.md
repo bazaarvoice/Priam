@@ -64,6 +64,10 @@ cluster.  On a RHEL-based system, you can use the following:
     # Install Cassandra
     yum -y install apache-cassandra11
 
+Alternatively, you can just run it through brew:
+
+    brew install cassandra12
+
 
 Installing and Configuring Priam
 --------------------------------
@@ -79,11 +83,12 @@ setting you'll want to change is the "cassandra.clusterName" property, although 
 
 Change the Cassandra startup script's (/usr/sbin/cassandra) main class:
 
-    $ sed -i '' 's/org.apache.cassandra.thrift.CassandraDaemon/com.netflix.priam.cassandra.NFThinCassandraDaemon/g' /usr/sbin/cassandra
+    $ sed -i '' 's/org.apache.cassandra.service.CassandraDaemon/com.netflix.priam.cassandra.NFThinCassandraDaemon/g' /usr/sbin/cassandra
 
 AWS Account Setup
 -----------------
-There are a few things that need to be set up in your AWS account in order to use Priam before it can be started.
+There are a few things that need to be set up in your AWS account in order to use Priam before it can be started (these steps can be skipped
+if you are just running locally).
 
 * S3Bucket
   - Unless you changed the "backup.s3BucketName" property in the priam.yaml, you'll need an s3 bucket called "cassandra-archive" in your
@@ -154,6 +159,8 @@ You want to start priam with the same user that is ordinarily configured to star
     sudo su - cassandra
     cd /usr/share/cassandra
     java -jar priam-x.y-SNAPSHOT.jar server priam.yaml
+
+If you are running locally you should use priam_local.yaml instead.
 
 Cassandra Administration
 ========================
