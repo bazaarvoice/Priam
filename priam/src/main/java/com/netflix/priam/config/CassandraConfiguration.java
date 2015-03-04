@@ -186,7 +186,8 @@ public class CassandraConfiguration {
     }
 
     public String getYamlLocation() {
-        return yamlLocation;
+        // Use a sensible default for the YAML location unless our configuration specifically overrides it
+        return Objects.firstNonNull(yamlLocation, cassHome + "/conf/cassandra.yaml");
     }
 
     public String getCassStartScript() {

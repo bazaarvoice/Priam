@@ -7,7 +7,6 @@ cassandra:
   endpointSnitch: "org.apache.cassandra.locator.Ec2Snitch"  # Snitch to be used in cassandra.yaml
                                                             # Needs to be changed in conjunction with multiRegionEnabled
   cassHome: "/etc/cassandra"                  # Path to the home dir of Cassandra
-  yamlLocation: "/etc/cassandra/conf/cassandra.yaml" # Path to Cassandra's YAML configuration
   cassStartScript: "/etc/init.d/cassandra start"  # Path to Cassandra startup script
   cassStopScript: "/etc/init.d/cassandra stop"    # Path to Cassandra stop script
   clusterName: "local_default"                # Cluster name (or App) name
