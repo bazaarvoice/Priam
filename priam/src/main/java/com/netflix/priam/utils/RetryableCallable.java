@@ -18,6 +18,8 @@ package com.netflix.priam.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 
@@ -67,7 +69,10 @@ public abstract class RetryableCallable<T> implements Callable<T> {
                     throw e;
                 }
                 if (logErrors) {
+                    StringWriter stringWriter = new StringWriter();
+                    e.printStackTrace(new PrintWriter(stringWriter, true));
                     logger.error("Retry #{} for: {}", retry, e.getMessage());
+                    logger.error("Details: " + stringWriter.getBuffer().toString());
                 }
                 Thread.sleep(waitTime);
             } finally {

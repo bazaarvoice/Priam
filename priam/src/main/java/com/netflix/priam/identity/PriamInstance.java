@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class PriamInstance implements Serializable, Comparable<PriamInstance> {
+    public static final String NEW_INSTANCE_PLACEHOLDER_ID = "new_slot";
+
     private static final long serialVersionUID = 5606412386974488659L;
     private String hostname;
     private long updatetime;
