@@ -36,7 +36,8 @@ public class FakePriamInstanceRegistry implements IPriamInstanceRegistry {
 
     @Override
     public PriamInstance acquireSlotId(int slotId, String expectedInstanceId, String app, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String token) {
-        // we can acquire the slot if 1.) the expected instance ID is null and the slot ID does not currently exist or 2.) the expected instance ID is valid, the slot exists, and the values match
+        // We can acquire the slot if 1.) the expected instance ID is null and the slot ID does not currently exist or
+        // 2.) the expected instance ID is valid, the slot exists, and the values match
         boolean canAcquire = (expectedInstanceId == null && !instances.containsKey(slotId)) ||
                 (expectedInstanceId != null && instances.containsKey(slotId) && instances.get(slotId).getInstanceId() == expectedInstanceId);
         if (canAcquire) {

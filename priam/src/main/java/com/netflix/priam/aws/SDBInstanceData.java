@@ -113,7 +113,7 @@ public class SDBInstanceData {
      * @param consistentRead  Whether to require strong consistency on the read
      * @return the node with the given {@code id}, or {@code null} if no such node exists
      */
-    public PriamInstance getInstance(String app, int id,  boolean consistentRead) {
+    public PriamInstance getInstance(String app, int id, boolean consistentRead) {
         AmazonSimpleDB simpleDBClient = getSimpleDBClient();
         SelectRequest request = new SelectRequest(getInstanceQuery(app, id));
         request.setConsistentRead(consistentRead);
@@ -133,7 +133,7 @@ public class SDBInstanceData {
      * @return the set of all instances in the given {@code app}
      */
     public Set<PriamInstance> getAllIds(String app) {
-        return getAllIds(app, false);
+        return getAllIds(app, true);
     }
 
     /**

@@ -74,7 +74,8 @@ public class InstanceIdentity {
         // try to grab the token which was already assigned
         myInstance = new GetOwnToken().call();
 
-        // If no token has already been assigned to this instance, grab a token that belonged to an instance that is no longer present
+        // If no token has already been assigned to this instance, grab a token that belonged to an instance that is no
+        // longer present
         if (null == myInstance) {
             myInstance = new GetDeadToken().call();
         }
@@ -114,13 +115,15 @@ public class InstanceIdentity {
             List<PriamInstance> deadInstances = Lists.newArrayList();
             for (final PriamInstance instance : priamInstances) {
                 if (!asgInstanceIDs.contains(instance.getInstanceId())) {
-                    // The provided instance was not found in our ASG - it's dead, just do an additional check to see if it's in our availability zone (in which case we are eligible to replace it)
+                    // The provided instance was not found in our ASG - it's dead, just do an additional check to see if
+                    // it's in our availability zone (in which case we are eligible to replace it)
                     if (instance.getAvailabilityZone().equals(amazonConfiguration.getAvailabilityZone())) {
                         // *Clang* Bring out your dead!
                         deadInstances.add(instance);
                     }
                 } else {
-                    // Flag whether there is a healthy node present in our ASG (it doesn't matter if it's in our availability zone or not)
+                    // Flag whether there is a healthy node present in our ASG (it doesn't matter if it's in our
+                    // availability zone or not)
                     healthyNodePresent = true;
                 }
             }
@@ -130,17 +133,20 @@ public class InstanceIdentity {
                 return null;
             }
 
-            // Log an error message if our auto-scale group doesn't have any active nodes. At this point we're doomed to fail, but instead of getting cute and trying to repair the state on our own,
-            // we alert the engineer so that they can fix the underlying issue.
+            // Log an error message if our auto-scale group doesn't have any active nodes. At this point we're doomed to
+            // fail, but instead of getting cute and trying to repair the state on our own, we alert the engineer so
+            // that they can fix the underlying issue.
             if (healthyNodePresent == false) {
                 logger.error("Attempting to replace dead tokens in a cluster where no healthy nodes exist. Cassandra is likely to deadlock at startup. Consider clearing the SimpleDB data " +
                         "for this cluster");
             }
 
-            // At this point we have at least one slot associated with an invalid instance. Unfortunately, deadInstances will be a sorted list, and if every new instance tries to grab the first
-            // entry on it then they'll all be contending for the same slot. We have mechanisms in place to ensure that this doesn't create an outright error condition, but it's still very
-            // inefficient, as servers may have to retry multiple times before they can successfully claim a slot. To reduce this contention, we have each new instance select an available deadInstance
-            // slot at random, allowing for more than one instance to succeed on its first try.
+            // At this point we have at least one slot associated with an invalid instance. Unfortunately, deadInstances
+            // will be a sorted list, and if every new instance tries to grab the first entry on it then they'll all be
+            // contending for the same slot. We have mechanisms in place to ensure that this doesn't create an outright
+            // error condition, but it's still very inefficient, as servers may have to retry multiple times before they
+            // can successfully claim a slot. To reduce this contention, we have each new instance select an available
+            // deadInstance slot at random, allowing for more than one instance to succeed on its first try.
             String newInstanceId = amazonConfiguration.getInstanceID();
             int newInstanceHash = Math.abs(newInstanceId.hashCode());
             int randomIndex = (newInstanceHash % deadInstances.size());
@@ -151,7 +157,8 @@ public class InstanceIdentity {
                     newInstanceId, amazonConfiguration.getPrivateHostName(), amazonConfiguration.getPrivateIP(), amazonConfiguration.getAvailabilityZone(),
                     deadInstance.getVolumes(), deadInstance.getToken());
             if (newInstance != null) {
-                // We succeeded! Flag the instance we replaced (if we replaced an actual functioning instance and not just a placeholder instance, such as those populated by /double_ring).
+                // We succeeded! Flag the instance we replaced (if we replaced an actual functioning instance and not
+                // just a placeholder instance, such as those populated by /double_ring).
                 if (!deadInstance.getInstanceId().equals(PriamInstance.NEW_INSTANCE_PLACEHOLDER_ID)) {
                     isReplace = true;
                     replacedIp = deadInstance.getHostIP();
@@ -222,7 +229,9 @@ public class InstanceIdentity {
             logger.info("Trying to createToken with slot {} with rac count {} with rac membership size {} with dc {}",
                     mySlot, membership.getUsableAvailabilityZones(), membership.getAvailabilityZoneMembershipSize(), amazonConfiguration.getRegionName());
             String token = tokenManager.createToken(mySlot, membership.getUsableAvailabilityZones(), membership.getAvailabilityZoneMembershipSize(), amazonConfiguration.getRegionName());
-            return instanceRegistry.create(cassandraConfiguration.getClusterName(), mySlot + hash, amazonConfiguration.getInstanceID(), amazonConfiguration.getPrivateHostName(), amazonConfiguration.getPrivateIP(), amazonConfiguration.getAvailabilityZone(), null, token);
+            return instanceRegistry.create(cassandraConfiguration.getClusterName(), mySlot + hash,
+                    amazonConfiguration.getInstanceID(), amazonConfiguration.getPrivateHostName(),
+                    amazonConfiguration.getPrivateIP(), amazonConfiguration.getAvailabilityZone(), null, token);
         }
 
         public void forEachExecution() {
@@ -258,7 +267,8 @@ public class InstanceIdentity {
             seeds.add(instancesByAvailabilityZoneMultiMap.get(loc).get(0).getHostIP());
         }
 
-        // Remove this node from the seed list so Cassandra auto-bootstrap will kick in.  Unless this is the only node in the cluster.
+        // Remove this node from the seed list so Cassandra auto-bootstrap will kick in.  Unless this is the only node
+        // in the cluster.
         if (seeds.size() > 1) {
             seeds.remove(myInstance.getHostIP());
         }
