@@ -57,7 +57,8 @@ public class StandardTuner implements CassandraTuner {
         put(map, "data_file_directories", ImmutableList.of(cassandraConfiguration.getDataLocation()));
         put(map, "incremental_backups", backupConfiguration.isIncrementalBackupEnabledForCassandra());
         put(map, "endpoint_snitch", cassandraConfiguration.getEndpointSnitch());
-        put(map, "in_memory_compaction_limit_in_mb", cassandraConfiguration.getInMemoryCompactionLimitMB());
+        // in_memory_compaction_limit_in_mb is removed in C* 2.2.4
+        //put(map, "in_memory_compaction_limit_in_mb", cassandraConfiguration.getInMemoryCompactionLimitMB());
         put(map, "compaction_throughput_mb_per_sec", cassandraConfiguration.getCompactionThroughputMBPerSec());
         put(map, "partitioner", derivePartitioner(map.get("partitioner").toString(), cassandraConfiguration.getPartitioner()));
 
