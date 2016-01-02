@@ -18,9 +18,9 @@ package com.netflix.priam.resources;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 import com.google.inject.Inject;
 import com.netflix.priam.ICassandraProcess;
@@ -31,10 +31,11 @@ import com.netflix.priam.utils.JMXConnectionException;
 import com.netflix.priam.utils.JMXNodeTool;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.GenericType;
-import org.apache.cassandra.concurrent.JMXEnabledThreadPoolExecutorMBean;
-import org.apache.cassandra.db.ColumnFamilyStoreMBean;
+import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.db.compaction.CompactionManagerMBean;
-import org.apache.cassandra.net.MessagingServiceMBean;
+import org.apache.cassandra.streaming.ProgressInfo;
+import org.apache.cassandra.streaming.SessionInfo;
+import org.apache.cassandra.streaming.StreamState;
 import org.apache.cassandra.utils.EstimatedHistogram;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -49,10 +50,8 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.net.InetAddress;
 import java.text.DecimalFormat;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -275,23 +274,30 @@ public class CassandraAdminResource {
     @GET
     @Path("/tpstats")
     public Response tpstats() throws Exception {
-        JMXNodeTool nodetool = getNodeTool();
-        Iterator<Map.Entry<String, JMXEnabledThreadPoolExecutorMBean>> threads = nodetool.getThreadPoolMBeanProxies();
-        List<Map<String, Object>> threadPoolArray = Lists.newArrayList();
-        while (threads.hasNext()) {
-            Entry<String, JMXEnabledThreadPoolExecutorMBean> thread = threads.next();
-            JMXEnabledThreadPoolExecutorMBean threadPoolProxy = thread.getValue();
-            Map<String, Object> tpObj = Maps.newLinkedHashMap();  // "Pool Name", "Active",
-            // "Pending", "Completed",
-            // "Blocked", "All time blocked"
-            tpObj.put("pool name", thread.getKey());
-            tpObj.put("active", threadPoolProxy.getActiveCount());
-            tpObj.put("pending", threadPoolProxy.getPendingTasks());
-            tpObj.put("completed", threadPoolProxy.getCompletedTasks());
-            tpObj.put("blocked", threadPoolProxy.getCurrentlyBlockedTasks());
-            tpObj.put("total blocked", threadPoolProxy.getTotalBlockedTasks());
+        final JMXNodeTool nodetool = getNodeTool();
+        final Iterable<Stage> stages = Stage.jmxEnabledStages();
+        final List<Map<String, Object>> threadPoolArray = Lists.newArrayList();
+        final ImmutableMap<String, String> metricNames = ImmutableMap.<String, String>builder()
+            .put("ActiveTasks", "active")
+            .put("PendingTasks", "pending")
+            .put("CompletedTasks", "completed")
+            .put("TotalBlockedTasks", "total blocked")
+            .put("CurrentlyBlockedTasks", "blocked")
+            .put("MaxPoolSize", "max size")
+            .build();
+
+        for (final Stage stage : stages) {
+            final Map<String, Object> tpObj = Maps.newLinkedHashMap();
+            tpObj.put("pool name", stage.getJmxName());
+
+            for (final Entry<String, String> metricName : metricNames.entrySet()) {
+                final Object tpStat = nodetool.getThreadPoolMetric(stage, metricName.getKey());
+                tpObj.put(metricName.getValue(), tpStat);
+            }
+
             threadPoolArray.add(tpObj);
         }
+
         Map<String, Object> droppedMsgs = Maps.newLinkedHashMap();
         for (Entry<String, Integer> entry : nodetool.getDroppedMessages().entrySet()) {
             droppedMsgs.put(entry.getKey(), entry.getValue());
@@ -310,7 +316,7 @@ public class CassandraAdminResource {
         JMXNodeTool nodetool = getNodeTool();
         Map<String, Object> rootObj = Maps.newLinkedHashMap();
         CompactionManagerMBean cm = nodetool.getCompactionManagerProxy();
-        rootObj.put("pending tasks", cm.getPendingTasks());
+        rootObj.put("pending tasks", cm.getCompactions());
         List<Map<String, Object>> compStats = Lists.newArrayList();
         for (Map<String, String> c : cm.getCompactions()) {
             Map<String, Object> cObj = Maps.newLinkedHashMap();
@@ -408,88 +414,26 @@ public class CassandraAdminResource {
 
     @GET
     @Path("/netstats")
-    public Response netstats(@QueryParam("host") String hostname) throws Exception {
+    public Response netstats() throws Exception {
         JMXNodeTool nodetool = getNodeTool();
         Map<String, Object> rootObj = Maps.newLinkedHashMap();
         rootObj.put("mode", nodetool.getOperationMode());
-        final InetAddress addr = (hostname == null) ? null : InetAddress.getByName(hostname);
 
         // Collect Sending Netstats
-        Set<InetAddress> hosts = (addr == null) ? nodetool.getStreamDestinations() : ImmutableSet.of(addr);
-        if (hosts.size() == 0) {
-            rootObj.put("sending", "Not sending any streams.");
-        }
-        Map<String, Object> hostSendStats = Maps.newLinkedHashMap();
-        for (InetAddress host : hosts) {
-            try {
-                List<String> files = nodetool.getFilesDestinedFor(host);
-                if (files.size() > 0) {
-                    List<String> fObj = Lists.newArrayList();
-                    for (String file : files) {
-                        fObj.add(file);
-                    }
-                    hostSendStats.put(host.getHostAddress(), fObj);
-                }
-            } catch (IOException ex) {
-                hostSendStats.put(host.getHostAddress(), "Error retrieving file data");
+        Set<StreamState> netstats = nodetool.getStreamStatus();
+
+        for (StreamState streamState : netstats) {
+            final Set<SessionInfo> streamSessions = streamState.sessions;
+            for (SessionInfo streamSession : streamSessions) {
+                final Collection<ProgressInfo> sendingFiles = streamSession.getSendingFiles();
+                final Collection<ProgressInfo> receivingFiles = streamSession.getReceivingFiles();
+                final String connectingHost = streamSession.connecting.getHostName();
+                final Set<Collection<ProgressInfo>> streams = rootObj.containsKey(connectingHost) ? (Set<Collection<ProgressInfo>>) rootObj.get(connectingHost) : Sets.<Collection<ProgressInfo>>newHashSet();
+                streams.add(sendingFiles);
+                streams.add(receivingFiles);
+                rootObj.put(connectingHost, streams);
             }
         }
-        rootObj.put("hosts sending", hostSendStats);
-
-        // Collect Receiving Netstats
-        hosts = addr == null ? nodetool.getStreamSources() : ImmutableSet.of(addr);
-        if (hosts.size() == 0) {
-            rootObj.put("receiving", "Not receiving any streams.");
-        }
-        Map<String, Object> hostRecvStats = Maps.newLinkedHashMap();
-        for (InetAddress host : hosts) {
-            try {
-                List<String> files = nodetool.getIncomingFiles(host);
-                if (files.size() > 0) {
-                    List<String> fObj = Lists.newArrayList();
-                    for (String file : files) {
-                        fObj.add(file);
-                    }
-                    hostRecvStats.put(host.getHostAddress(), fObj);
-                }
-            } catch (IOException ex) {
-                hostRecvStats.put(host.getHostAddress(), "Error retrieving file data");
-            }
-        }
-        rootObj.put("hosts receiving", hostRecvStats);
-
-        // Collect Command Activity
-        MessagingServiceMBean ms = nodetool.msProxy;
-        int pending;
-        long completed;
-        pending = 0;
-        for (int n : ms.getCommandPendingTasks().values()) {
-            pending += n;
-        }
-        completed = 0;
-        for (long n : ms.getCommandCompletedTasks().values()) {
-            completed += n;
-        }
-        Map<String, Object> cObj = Maps.newLinkedHashMap();
-        cObj.put("active", "n/a");
-        cObj.put("pending", pending);
-        cObj.put("completed", completed);
-        rootObj.put("commands", cObj);
-
-        // Collect Response Activity
-        pending = 0;
-        for (int n : ms.getResponsePendingTasks().values()) {
-            pending += n;
-        }
-        completed = 0;
-        for (long n : ms.getResponseCompletedTasks().values()) {
-            completed += n;
-        }
-        Map<String, Object> rObj = Maps.newLinkedHashMap();
-        rObj.put("active", "n/a");
-        rObj.put("pending", pending);
-        rObj.put("completed", completed);
-        rootObj.put("responses", rObj);
 
         return Response.ok(rootObj, MediaType.APPLICATION_JSON).build();
     }
@@ -514,9 +458,9 @@ public class CassandraAdminResource {
             cfs = cfnames.split(",");
         }
         if (cfs == null) {
-            nodetool.scrub(false, keyspaces);
+            nodetool.scrub(false, false, false, keyspaces);
         } else {
-            nodetool.scrub(false, keyspaces, cfs);
+            nodetool.scrub(false, false, false, keyspaces, cfs);
         }
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
     }
@@ -530,16 +474,14 @@ public class CassandraAdminResource {
             return Response.status(400).entity("Missing keyspace/cfname in request").build();
         }
 
-        ColumnFamilyStoreMBean store = nodetool.getCfsProxy(keyspace, cfname);
-
         // default is 90 offsets
         long[] offsets = new EstimatedHistogram().getBucketOffsets();
 
-        long[] recentReadLatencyHistMicros = store.getRecentReadLatencyHistogramMicros();
-        long[] recentWriteLatencyHistMicros = store.getRecentWriteLatencyHistogramMicros();
-        long[] recentSSTablesPerReadHist = store.getRecentSSTablesPerReadHistogram();
-        long[] estimatedRowSizeHist = store.getEstimatedRowSizeHistogram();
-        long[] estimatedColumnCountHist = store.getEstimatedColumnCountHistogram();
+        Object readLatency = nodetool.getColumnFamilyMetric(keyspace, cfname, "ReadLatency");
+        Object writeLatency = nodetool.getColumnFamilyMetric(keyspace, cfname, "WriteLatency");
+        Object ssTablesPerReadHist = nodetool.getColumnFamilyMetric(keyspace, cfname, "SSTablesPerReadHistogram");
+        Object estimatedRowSizeHist = nodetool.getColumnFamilyMetric(keyspace, cfname, "EstimatedRowSizeHistogram");
+        Object estimatedColumnCountHist = nodetool.getColumnFamilyMetric(keyspace, cfname, "EstimatedColumnCountHistogram");
 
         Map<String, Object> rootObj = Maps.newLinkedHashMap();
         List<String> columns = ImmutableList.of("offset", "sstables", "write latency", "read latency", "row size", "column count");
@@ -548,11 +490,11 @@ public class CassandraAdminResource {
         for (int i = 0; i < offsets.length; i++) {
             List<Object> row = Lists.newArrayList();
             row.add(offsets[i]);
-            row.add(i < recentSSTablesPerReadHist.length ? recentSSTablesPerReadHist[i] : "");
-            row.add(i < recentWriteLatencyHistMicros.length ? recentWriteLatencyHistMicros[i] : "");
-            row.add(i < recentReadLatencyHistMicros.length ? recentReadLatencyHistMicros[i] : "");
-            row.add(i < estimatedRowSizeHist.length ? estimatedRowSizeHist[i] : "");
-            row.add(i < estimatedColumnCountHist.length ? estimatedColumnCountHist[i] : "");
+            row.add(readLatency);
+            row.add(writeLatency);
+            row.add(ssTablesPerReadHist);
+            row.add(estimatedRowSizeHist);
+            row.add(estimatedColumnCountHist);
             values.add(row);
         }
         rootObj.put("values", values);
