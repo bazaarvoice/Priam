@@ -27,7 +27,8 @@ import java.lang.instrument.Instrumentation;
 public class PriamStartupAgent {
     public static String REPLACED_ADDRESS_MIN_VER = "1.2.11";
 //    public static String REPLACED_ADDRESS_FIRST_BOOT_MIN_VER = "1.2.17";
-    public static String REPLACED_ADDRESS_FIRST_BOOT_MIN_VER = "2.0.9";
+//    public static String REPLACED_ADDRESS_FIRST_BOOT_MIN_VER = "2.0.9";
+    public static String REPLACED_ADDRESS_FIRST_BOOT_MIN_VER = "2.2.4";
 
     public static void premain(String agentArgs, Instrumentation inst) {
         PriamStartupAgent agent = new PriamStartupAgent();
