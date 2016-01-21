@@ -3,7 +3,7 @@ package com.netflix.priam.utils;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
-import org.apache.cassandra.dht.BytesToken;
+import org.apache.cassandra.dht.ByteOrderedPartitioner.BytesToken;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.utils.Hex;
 import org.junit.Test;
@@ -209,17 +209,17 @@ public class BOPTokenManagerTest {
 
         int h1 = TokenManager.regionOffset("vijay");
         int h2 = TokenManager.regionOffset("vijay2");
-        Token<byte[]> t1 = tokenManager.initialToken(100, 10, h1);
-        Token<byte[]> t2 = tokenManager.initialToken(100, 10, h2);
+        Token t1 = tokenManager.initialToken(100, 10, h1);
+        Token t2 = tokenManager.initialToken(100, 10, h2);
 
-        BigInteger tokenDistance = new BigInteger(1, t1.token).subtract(new BigInteger(1, t2.token));
+        BigInteger tokenDistance = new BigInteger(1, (byte[]) t1.getTokenValue()).subtract(new BigInteger(1, (byte[]) t2.getTokenValue()));
         long hashDifference = h1 - h2;
 
         assertEquals(BigInteger.valueOf(hashDifference), tokenDistance);
 
-        Token<byte[]> t3 = tokenManager.initialToken(100, 99, h1);
-        Token<byte[]> t4 = tokenManager.initialToken(100, 99, h2);
-        tokenDistance = new BigInteger(1, t3.token).subtract(new BigInteger(1, t4.token));
+        Token t3 = tokenManager.initialToken(100, 99, h1);
+        Token t4 = tokenManager.initialToken(100, 99, h2);
+        tokenDistance = new BigInteger(1, (byte[]) t3.getTokenValue()).subtract(new BigInteger(1, (byte[]) t4.getTokenValue()));
 
         assertEquals(BigInteger.valueOf(hashDifference), tokenDistance);
     }
