@@ -421,8 +421,6 @@ public class CassandraAdminResource {
 
         // Collect Sending Netstats
         Set<StreamState> netstats = nodetool.getStreamStatus();
-        final Map<String, Object> hostSendStats = Maps.newLinkedHashMap();
-        final Map<String, Object> hostRecvStats = Maps.newLinkedHashMap();
 
         for (StreamState streamState : netstats) {
             final Set<SessionInfo> streamSessions = streamState.sessions;
