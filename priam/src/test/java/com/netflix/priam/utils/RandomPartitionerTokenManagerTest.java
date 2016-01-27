@@ -2,7 +2,7 @@ package com.netflix.priam.utils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
-import org.apache.cassandra.dht.RandomPartitioner.BigIntegerToken;
+import org.apache.cassandra.dht.BigIntegerToken;
 import org.apache.cassandra.dht.RandomPartitioner;
 import org.junit.Test;
 
