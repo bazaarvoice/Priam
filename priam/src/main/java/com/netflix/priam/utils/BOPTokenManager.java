@@ -19,7 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.Ordering;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
-import org.apache.cassandra.dht.ByteOrderedPartitioner.BytesToken;
+import org.apache.cassandra.dht.BytesToken;
 import org.apache.cassandra.dht.Token;
 
 import java.math.BigInteger;
@@ -74,8 +74,8 @@ public class BOPTokenManager extends TokenManager {
         // assumption with the ByteOrderedPartitioner, but that's why everyone is discouraged from using it.
 
         // Subdivide between the min and max using tokenLength bytes of precision.
-        BigInteger min = new BigInteger(1, (byte[]) minimumToken.getTokenValue());
-        BigInteger max = new BigInteger(1, (byte[]) maximumToken.getTokenValue());
+        BigInteger min = new BigInteger(1, (byte[]) minimumToken.token);
+        BigInteger max = new BigInteger(1, (byte[]) maximumToken.token);
         BigInteger range = max.subtract(min);
 
         BigInteger value = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s

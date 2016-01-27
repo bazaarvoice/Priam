@@ -272,7 +272,7 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
 
     public void compact() throws IOException, ExecutionException, InterruptedException {
         for (String keyspace : getKeyspaces()) {
-            forceKeyspaceCompaction(false, keyspace);
+            forceKeyspaceCompaction(keyspace);
         }
     }
 
@@ -288,7 +288,7 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
             "primaryRange", String.valueOf(primaryRange),
             "dataCenters", getDataCenter()
         );
-        repairAsync(System.out, keyspace, options);
+        forceKeyspaceRepair(keyspace, isSequential, localDataCenterOnly);
     }
 
     public void cleanup() throws IOException, ExecutionException, InterruptedException {
