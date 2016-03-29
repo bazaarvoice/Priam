@@ -1,19 +1,13 @@
 package com.netflix.priam.identity;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import com.netflix.priam.utils.ThreadSleeper;
 import com.netflix.priam.utils.TokenManager;
 import org.junit.Test;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class InstanceIdentityTest extends InstanceTestUtils {
@@ -69,11 +63,7 @@ public class InstanceIdentityTest extends InstanceTestUtils {
     public void testGetSeeds() throws Exception {
         createInstances();
         identity = createInstanceIdentity("az1", "fakeinstancex");
-        assertEquals(2, identity.getSeeds().size());
-        assertFalse(identity.isReplace());
-
-        identity = createInstanceIdentity("az1", "fakeinstance1");
-        assertEquals(2, identity.getSeeds().size());
+        assertEquals(3, identity.getSeeds().size());
         assertFalse(identity.isReplace());
     }
 

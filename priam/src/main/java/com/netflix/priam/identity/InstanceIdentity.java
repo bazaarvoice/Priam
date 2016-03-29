@@ -267,12 +267,6 @@ public class InstanceIdentity {
             seeds.add(instancesByAvailabilityZoneMultiMap.get(loc).get(0).getHostIP());
         }
 
-        // Remove this node from the seed list so Cassandra auto-bootstrap will kick in.  Unless this is the only node
-        // in the cluster.
-        if (seeds.size() > 1) {
-            seeds.remove(myInstance.getHostIP());
-        }
-
         return seeds;
     }
 
