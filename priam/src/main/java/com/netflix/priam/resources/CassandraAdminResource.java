@@ -415,9 +415,9 @@ public class CassandraAdminResource {
             cfs = cfnames.split(",");
         }
         if (cfs == null) {
-            nodetool.scrub(false, false, keyspaces);
+            nodetool.scrub(false, false, false, keyspaces);
         } else {
-            nodetool.scrub(false, false, keyspaces, cfs);
+            nodetool.scrub(false, false, false, keyspaces, cfs);
         }
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
     }
