@@ -77,6 +77,11 @@ public class StandardTuner implements CassandraTuner {
         put(map, "rpc_server_type", cassandraConfiguration.getRpcServerType());
         put(map, "index_interval", cassandraConfiguration.getIndexInterval());  // Removed in Cassandra 2.1
 
+        put(map, "read_request_timeout_in_ms", cassandraConfiguration.getReadRequestTimeoutInMs());
+        put(map, "range_request_timeout_in_ms", cassandraConfiguration.getRangeRequestTimeoutInMs());
+        put(map, "write_request_timeout_in_ms", cassandraConfiguration.getWriteRequestTimeoutInMs());
+        put(map, "request_timeout_in_ms", cassandraConfiguration.getRequestTimeoutInMs());
+
         List<Map<String, Object>> seedp = get(map, "seed_provider");
         Map<String, Object> m = seedp.get(0);
         put(m, "class_name", seedProvider);
