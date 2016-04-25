@@ -89,6 +89,18 @@ public class CassandraConfiguration {
     private long hintedHandoffThrottleKB;
 
     @JsonProperty
+    private long readRequestTimeoutInMs = 10000L;
+
+    @JsonProperty
+    private long rangeRequestTimeoutInMs = 10000L;
+
+    @JsonProperty
+    private long writeRequestTimeoutInMs = 10000L;
+
+    @JsonProperty
+    private long requestTimeoutInMs = 10000L;
+
+    @JsonProperty
     private long maxHintWindowMS;
 
     @JsonProperty
@@ -556,5 +568,21 @@ public class CassandraConfiguration {
 
     public void setExtraConfigParams(Map<String, String> extraConfigParams) {
         this.extraConfigParams = extraConfigParams;
+    }
+
+    public long getReadRequestTimeoutInMs() {
+        return readRequestTimeoutInMs;
+    }
+
+    public long getRangeRequestTimeoutInMs() {
+        return rangeRequestTimeoutInMs;
+    }
+
+    public long getWriteRequestTimeoutInMs() {
+        return writeRequestTimeoutInMs;
+    }
+
+    public long getRequestTimeoutInMs() {
+        return requestTimeoutInMs;
     }
 }
