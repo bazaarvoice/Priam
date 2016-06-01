@@ -56,6 +56,8 @@ public class StandardTuner implements CassandraTuner {
         put(map, "commitlog_directory", cassandraConfiguration.getCommitLogLocation());
         put(map, "data_file_directories", ImmutableList.of(cassandraConfiguration.getDataLocation()));
         put(map, "incremental_backups", backupConfiguration.isIncrementalBackupEnabledForCassandra());
+        put(map, "tombstone_warn_threshold", cassandraConfiguration.getTombstonesWarningThreshold());
+        put(map, "tombstone_failure_threshold", cassandraConfiguration.getTombstonesFailureThreshold());
         put(map, "endpoint_snitch", cassandraConfiguration.getEndpointSnitch());
         put(map, "compaction_throughput_mb_per_sec", cassandraConfiguration.getCompactionThroughputMBPerSec());
         put(map, "partitioner", derivePartitioner(map.get("partitioner").toString(), cassandraConfiguration.getPartitioner()));
