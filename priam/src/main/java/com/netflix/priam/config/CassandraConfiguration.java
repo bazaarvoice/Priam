@@ -101,6 +101,12 @@ public class CassandraConfiguration {
     private long requestTimeoutInMs = 10000L;
 
     @JsonProperty
+    private Integer tombstonesWarningThreshold = 1000;
+
+    @JsonProperty
+    private Integer tombstonesFailureThreshold = 100000;
+
+    @JsonProperty
     private long maxHintWindowMS;
 
     @JsonProperty
@@ -584,5 +590,21 @@ public class CassandraConfiguration {
 
     public long getRequestTimeoutInMs() {
         return requestTimeoutInMs;
+    }
+
+    public Integer getTombstonesWarningThreshold() {
+        return tombstonesWarningThreshold;
+    }
+
+    public void setTombstonesWarningThreshold(Integer tombstonesWarningThreshold) {
+        this.tombstonesWarningThreshold = tombstonesWarningThreshold;
+    }
+
+    public Integer getTombstonesFailureThreshold() {
+        return tombstonesFailureThreshold;
+    }
+
+    public void setTombstonesFailureThreshold(Integer tombstonesFailureThreshold) {
+        this.tombstonesFailureThreshold = tombstonesFailureThreshold;
     }
 }
