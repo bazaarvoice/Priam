@@ -15,6 +15,7 @@
  */
 package com.netflix.priam.identity;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -42,13 +43,14 @@ import static com.google.common.base.Preconditions.checkState;
 @Singleton
 public class InstanceIdentity {
     private static final Logger logger = LoggerFactory.getLogger(InstanceIdentity.class);
-    private final ListMultimap<String, PriamInstance> instancesByAvailabilityZoneMultiMap = ArrayListMultimap.create();
+    private final ListMultimap<LocationAZPair, PriamInstance> instancesByLocationAndAZMultiMap = ArrayListMultimap.create();
     private final IPriamInstanceRegistry instanceRegistry;
     private final IMembership membership;
     private final CassandraConfiguration cassandraConfiguration;
     private final AmazonConfiguration amazonConfiguration;
     private final TokenManager tokenManager;
     private final Sleeper sleeper;
+    private final Location location;
 
     private PriamInstance myInstance;
     private boolean isReplace = false;
@@ -56,13 +58,15 @@ public class InstanceIdentity {
 
     @Inject
     public InstanceIdentity(CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration,
-                            IPriamInstanceRegistry instanceRegistry, IMembership membership, TokenManager tokenManager, Sleeper sleeper) throws Exception {
+                            IPriamInstanceRegistry instanceRegistry, IMembership membership, TokenManager tokenManager,
+                            Sleeper sleeper, Location location) throws Exception {
         this.instanceRegistry = instanceRegistry;
         this.membership = membership;
         this.cassandraConfiguration = cassandraConfiguration;
         this.amazonConfiguration = amazonConfiguration;
         this.tokenManager = tokenManager;
         this.sleeper = sleeper;
+        this.location = location;
         init();
     }
 
@@ -105,7 +109,8 @@ public class InstanceIdentity {
     public class GetDeadToken extends RetryableCallable<PriamInstance> {
         @Override
         public PriamInstance retriableCall() throws Exception {
-            List<PriamInstance> priamInstances = instanceRegistry.getAllIds(cassandraConfiguration.getClusterName());
+            // Get all instances and filter out those which are not in the local ring
+            List<PriamInstance> priamInstances = filteredRemote(instanceRegistry.getAllIds(cassandraConfiguration.getClusterName()));
             List<String> asgInstanceIDs = membership.getAutoScaleGroupMembership();
             // Sleep random interval - 10 to 15 sec
             sleeper.sleep(new Random().nextInt(5000) + 10000);
@@ -172,7 +177,7 @@ public class InstanceIdentity {
         }
 
         public void forEachExecution() {
-            populateInstancesByAvailabilityZoneMultiMap();
+            populateInstanceByLocationAndAZMultiMap();
         }
     }
 
@@ -188,7 +193,7 @@ public class InstanceIdentity {
             // Sleep random interval - up to 15 sec
             sleeper.sleep(new Random().nextInt(15000));
 
-            int hash = TokenManager.regionOffset(amazonConfiguration.getRegionName());
+            int hash = TokenManager.locationOffset(location);
 
             // Use this hash so that the nodes are spread far away from the other regions.
             // A PriamInstance's id is the same as it's owning region's hash + an index counter.  This is
@@ -200,7 +205,7 @@ public class InstanceIdentity {
             // - and so on...
             // Iterate over all nodes in the cluster in the same availability zone and find the max "id"
             int max = hash;
-            for (PriamInstance priamInstance : instanceRegistry.getAllIds(cassandraConfiguration.getClusterName())) {
+            for (PriamInstance priamInstance : filteredRemote(instanceRegistry.getAllIds(cassandraConfiguration.getClusterName()))) {
                 if (priamInstance.getAvailabilityZone().equals(amazonConfiguration.getAvailabilityZone())
                         && (priamInstance.getId() > max)) {
                     max = priamInstance.getId();
@@ -217,8 +222,8 @@ public class InstanceIdentity {
 
             int maxSlot = max - hash;
             int mySlot;
-            if (hash == max && instancesByAvailabilityZoneMultiMap.get(amazonConfiguration.getAvailabilityZone()).size() == 0) {
-                // This is the first instance in the region and first instance in its availability zone.
+            if (hash == max && instancesByLocationAndAZMultiMap.get(new LocationAZPair(location, amazonConfiguration.getAvailabilityZone())).size() == 0) {
+                // This is the first instance in the location and first instance in its availability zone.
                 int idx = amazonConfiguration.getUsableAvailabilityZones().indexOf(amazonConfiguration.getAvailabilityZone());
                 checkState(idx >= 0, "Zone %s is not in usable availability zones: %s", amazonConfiguration.getAvailabilityZone(), amazonConfiguration.getUsableAvailabilityZones());
                 mySlot = idx + maxSlot;
@@ -227,32 +232,32 @@ public class InstanceIdentity {
             }
 
             logger.info("Trying to createToken with slot {} with rac count {} with rac membership size {} with dc {}",
-                    mySlot, membership.getUsableAvailabilityZones(), membership.getAvailabilityZoneMembershipSize(), amazonConfiguration.getRegionName());
-            String token = tokenManager.createToken(mySlot, membership.getUsableAvailabilityZones(), membership.getAvailabilityZoneMembershipSize(), amazonConfiguration.getRegionName());
+                    mySlot, membership.getUsableAvailabilityZones(), membership.getAvailabilityZoneMembershipSize(), location);
+            String token = tokenManager.createToken(mySlot, membership.getUsableAvailabilityZones(), membership.getAvailabilityZoneMembershipSize(), location);
             return instanceRegistry.create(cassandraConfiguration.getClusterName(), mySlot + hash,
                     amazonConfiguration.getInstanceID(), amazonConfiguration.getPrivateHostName(),
                     amazonConfiguration.getPrivateIP(), amazonConfiguration.getAvailabilityZone(), null, token);
         }
 
         public void forEachExecution() {
-            populateInstancesByAvailabilityZoneMultiMap();
+            populateInstanceByLocationAndAZMultiMap();
         }
     }
 
-    private void populateInstancesByAvailabilityZoneMultiMap() {
-        instancesByAvailabilityZoneMultiMap.clear();
+    private void populateInstanceByLocationAndAZMultiMap() {
+        instancesByLocationAndAZMultiMap.clear();
         for (PriamInstance ins : instanceRegistry.getAllIds(cassandraConfiguration.getClusterName())) {
-            instancesByAvailabilityZoneMultiMap.put(ins.getAvailabilityZone(), ins);
+            instancesByLocationAndAZMultiMap.put(new LocationAZPair(ins.getLocation(), ins.getAvailabilityZone()), ins);
         }
     }
 
     public List<String> getSeeds() {
-        populateInstancesByAvailabilityZoneMultiMap();
+        populateInstanceByLocationAndAZMultiMap();
         List<String> seeds = new LinkedList<>();
         // Handle single zone deployment
         if (amazonConfiguration.getUsableAvailabilityZones().size() == 1) {
             // Return empty list if all nodes are not up
-            List<PriamInstance> priamInstances = instancesByAvailabilityZoneMultiMap.get(myInstance.getAvailabilityZone());
+            List<PriamInstance> priamInstances = instancesByLocationAndAZMultiMap.get(new LocationAZPair(myInstance.getLocation(), myInstance.getAvailabilityZone()));
             if (membership.getAvailabilityZoneMembershipSize() != priamInstances.size()) {
                 return seeds;
             }
@@ -261,10 +266,10 @@ public class InstanceIdentity {
                 seeds.add(priamInstances.get(1).getHostIP());
             }
         }
-        logger.info("Retrieved seeds. My IP: {}, AZ-To-Instance-MultiMap: {}", myInstance.getHostIP(), instancesByAvailabilityZoneMultiMap);
+        logger.info("Retrieved seeds. My IP: {}, AZ-To-Instance-MultiMap: {}", myInstance.getHostIP(), instancesByLocationAndAZMultiMap);
 
-        for (String loc : instancesByAvailabilityZoneMultiMap.keySet()) {
-            seeds.add(instancesByAvailabilityZoneMultiMap.get(loc).get(0).getHostIP());
+        for (LocationAZPair loc : instancesByLocationAndAZMultiMap.keySet()) {
+            seeds.add(instancesByLocationAndAZMultiMap.get(loc).get(0).getHostIP());
         }
 
         // Remove this node from the seed list so Cassandra auto-bootstrap will kick in.  Unless this is the only node
@@ -277,8 +282,11 @@ public class InstanceIdentity {
     }
 
     public boolean isSeed() {
-        populateInstancesByAvailabilityZoneMultiMap();
-        String seedHostIPForAvailabilityZone = instancesByAvailabilityZoneMultiMap.get(myInstance.getAvailabilityZone()).get(0).getHostIP();
+        populateInstanceByLocationAndAZMultiMap();
+        String seedHostIPForAvailabilityZone = instancesByLocationAndAZMultiMap
+                .get(new LocationAZPair(myInstance.getLocation(), myInstance.getAvailabilityZone()))
+                .get(0)
+                .getHostIP();
         return myInstance.getHostIP().equals(seedHostIPForAvailabilityZone);
     }
 
@@ -299,5 +307,41 @@ public class InstanceIdentity {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         myInstance.setToken(tokenManager.sanitizeToken(nodetool.getTokens().get(0)));
         instanceRegistry.update(myInstance);
+    }
+
+    // filter other DC's
+    private List<PriamInstance> filteredRemote(List<PriamInstance> priamInstances) {
+        List<PriamInstance> local = Lists.newArrayList();
+        for (PriamInstance priamInstance : priamInstances) {
+            if (priamInstance.getLocation().equals(location)) {
+                local.add(priamInstance);
+            }
+        }
+        return local;
+    }
+
+    /**
+     * Simple class for maintaining the pair of (location, availability zone), which can be used for grouping
+     * instances in the same ring by availability zone.
+     */
+    private final class LocationAZPair {
+        final Location location;
+        final String availabilityZone;
+
+        public LocationAZPair(Location location, String availabilityZone) {
+            this.location = location;
+            this.availabilityZone = availabilityZone;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            LocationAZPair other = (LocationAZPair) o;
+            return location.equals(other.location) && availabilityZone.equals(other.availabilityZone);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(location, availabilityZone);
+        }
     }
 }

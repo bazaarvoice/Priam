@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.google.inject.Inject;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.identity.IPriamInstanceRegistry;
+import com.netflix.priam.identity.Location;
 import com.netflix.priam.identity.PriamInstance;
 
 import java.util.ArrayList;
@@ -12,11 +13,11 @@ import java.util.Map;
 
 public class FakePriamInstanceRegistry implements IPriamInstanceRegistry {
     private final Map<Integer, PriamInstance> instances = Maps.newHashMap();
-    private final AmazonConfiguration config;
+    private final Location location;
 
     @Inject
-    public FakePriamInstanceRegistry(AmazonConfiguration config) {
-        this.config = config;
+    public FakePriamInstanceRegistry(Location location) {
+        this.location = location;
     }
 
     @Override
@@ -49,7 +50,7 @@ public class FakePriamInstanceRegistry implements IPriamInstanceRegistry {
             ins.setInstanceId(instanceID);
             ins.setToken(token);
             ins.setVolumes(volumes);
-            ins.setRegionName(config.getRegionName());
+            ins.setLocation(location);
 
             instances.put(slotId, ins);
             return ins;

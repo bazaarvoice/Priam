@@ -21,6 +21,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.identity.IPriamInstanceRegistry;
+import com.netflix.priam.identity.Location;
 import com.netflix.priam.identity.PriamInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,12 +37,12 @@ import java.util.Map;
 public class SDBInstanceRegistry implements IPriamInstanceRegistry {
     private static final Logger logger = LoggerFactory.getLogger(SDBInstanceRegistry.class);
 
-    private final AmazonConfiguration amazonConfiguration;
+    private final Location location;
     private final SDBInstanceData dao;
 
     @Inject
-    public SDBInstanceRegistry(AmazonConfiguration amazonConfiguration, SDBInstanceData dao) {
-        this.amazonConfiguration = amazonConfiguration;
+    public SDBInstanceRegistry(Location location, SDBInstanceData dao) {
+        this.location = location;
         this.dao = dao;
     }
 
@@ -63,7 +64,7 @@ public class SDBInstanceRegistry implements IPriamInstanceRegistry {
     @Override
     public PriamInstance acquireSlotId(int slotId, String expectedInstanceId, String app, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String token) {
         try {
-            PriamInstance ins = PriamInstance.from(app, slotId, instanceID, hostname, ip, rac, volumes, token, amazonConfiguration.getRegionName());
+            PriamInstance ins = PriamInstance.from(app, slotId, instanceID, hostname, ip, rac, volumes, token, location);
             dao.registerInstance(ins, expectedInstanceId);
             // Only return a result if we successfully overwrote the previous value; otherwise return null to indicate failure
             PriamInstance storedInstance = dao.getInstance(ins.getApp(), ins.getId(), true);

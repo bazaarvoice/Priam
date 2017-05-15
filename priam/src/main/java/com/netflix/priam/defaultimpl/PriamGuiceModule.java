@@ -34,8 +34,10 @@ import com.netflix.priam.config.MonitoringConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
 import com.netflix.priam.config.ZooKeeperConfiguration;
 import com.netflix.priam.dropwizard.managers.ServiceRegistryManager;
+import com.netflix.priam.identity.ConfigFileLocation;
 import com.netflix.priam.identity.IMembership;
 import com.netflix.priam.identity.IPriamInstanceRegistry;
+import com.netflix.priam.identity.Location;
 import com.netflix.priam.local.LocalMembership;
 import com.netflix.priam.utils.Sleeper;
 import com.netflix.priam.utils.ThreadSleeper;
@@ -84,6 +86,7 @@ public class PriamGuiceModule extends AbstractModule {
         }
         bind(AWSCredentialsProvider.class).to(DefaultAWSCredentialsProviderChain.class).asEagerSingleton();
 
+        bind(Location.class).to(ConfigFileLocation.class).asEagerSingleton();
         bind(TokenManager.class).toProvider(TokenManagerProvider.class);
         bind(Sleeper.class).to(ThreadSleeper.class).asEagerSingleton();
 
