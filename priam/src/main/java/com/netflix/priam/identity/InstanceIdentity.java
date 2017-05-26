@@ -335,6 +335,12 @@ public class InstanceIdentity {
 
         @Override
         public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (!(o instanceof LocationAZPair)) {
+                return false;
+            }
             LocationAZPair other = (LocationAZPair) o;
             return location.equals(other.location) && availabilityZone.equals(other.availabilityZone);
         }

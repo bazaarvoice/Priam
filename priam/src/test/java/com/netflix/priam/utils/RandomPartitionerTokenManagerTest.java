@@ -3,6 +3,7 @@ package com.netflix.priam.utils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.netflix.priam.identity.Location;
+import com.netflix.priam.identity.SimpleLocation;
 import org.apache.cassandra.dht.BigIntegerToken;
 import org.apache.cassandra.dht.RandomPartitioner;
 import org.junit.Test;
@@ -148,16 +149,23 @@ public class RandomPartitionerTokenManagerTest {
     }
 
     @Test
-    public void regionOffset() {
+    public void testLocationOffset() {
         String allRegions = "us-west-2,us-east,us-west,eu-east,eu-west,ap-northeast,ap-southeast";
+        String dcSuffixes = ",-dev,-qa,-prod";
 
         for (String region1 : allRegions.split(",")) {
             for (String region2 : allRegions.split(",")) {
-                if (region1.equals(region2)) {
-                    continue;
+                for (String dcSuffix1 : dcSuffixes.split(",")) {
+                    for (String dcSuffix2: dcSuffixes.split(",")) {
+                        if (region1.equals(region2) && dcSuffix1.equals(dcSuffix2)) {
+                            continue;
+                        }
+                        Location loc1 = new SimpleLocation(region1, dcSuffix1);
+                        Location loc2 = new SimpleLocation(region2, dcSuffix2);
+                        assertFalse("Difference seems to be low",
+                                Math.abs(TokenManager.locationOffset(loc1) - TokenManager.locationOffset(loc2)) < 100);
+                    }
                 }
-                assertFalse("Difference seems to be low",
-                        Math.abs(TokenManager.locationOffset(Location.from(region1)) - TokenManager.locationOffset(Location.from(region2))) < 100);
             }
         }
     }

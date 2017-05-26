@@ -213,7 +213,7 @@ public class StandardTuner implements CassandraTuner {
         if (Strings.isNullOrEmpty(dcSuffix)) {
             properties.remove("dc_suffix");
         } else {
-            properties.put("dc_suffix", "_" + dcSuffix);
+            properties.put("dc_suffix", dcSuffix);
         }
 
         if (logger.isInfoEnabled()) {
