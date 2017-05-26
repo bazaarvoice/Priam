@@ -20,12 +20,12 @@ public class PriamInstance implements Serializable, Comparable<PriamInstance> {
     private String instanceId;
     private String availabilityZone;
     private String hostIp;
-    private String regionName;
+    private Location location;
     private String token;
     //Handles Storage objects
     private Map<String, Object> volumes;
 
-    public static PriamInstance from(String app, int id, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String token, String regionName) {
+    public static PriamInstance from(String app, int id, String instanceID, String hostname, String ip, String rac, Map<String, Object> volumes, String token, Location location) {
         Map<String, Object> v = (volumes == null) ? new HashMap<String, Object>() : volumes;
         PriamInstance ins = new PriamInstance();
         ins.setApp(app);
@@ -34,7 +34,7 @@ public class PriamInstance implements Serializable, Comparable<PriamInstance> {
         ins.setHostIP(ip);
         ins.setId(id);
         ins.setInstanceId(instanceID);
-        ins.setRegionName(regionName);
+        ins.setLocation(location);
         ins.setToken(token);
         ins.setVolumes(v);
         return ins;
@@ -113,16 +113,16 @@ public class PriamInstance implements Serializable, Comparable<PriamInstance> {
     @Override
     public String toString() {
         return String.format("Hostname: %s, InstanceId: %s, APP_NAME: %s, RAC: %s, Location: %s, Id: %s, Token: %s, Updated: %s",
-                getHostName(), getInstanceId(), getApp(), getAvailabilityZone(), getRegionName(), getId(), getToken(),
+                getHostName(), getInstanceId(), getApp(), getAvailabilityZone(), getLocation(), getId(), getToken(),
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(getUpdatetime()));
     }
 
-    public String getRegionName() {
-        return regionName;
+    public Location getLocation() {
+        return location;
     }
 
-    public void setRegionName(String regionName) {
-        this.regionName = regionName;
+    public void setLocation(Location location) {
+        this.location = location;
     }
 
     public long getUpdatetime() {

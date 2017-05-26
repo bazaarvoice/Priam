@@ -15,6 +15,8 @@
  */
 package com.netflix.priam.utils;
 
+import com.netflix.priam.identity.Location;
+
 import java.util.List;
 
 public abstract class TokenManager {
@@ -24,13 +26,13 @@ public abstract class TokenManager {
      * @param mySlot                         -- Slot where this instance has to be.
      * @param availabilityZones              -- The number of AvailabilityZones
      * @param availabilityZoneMembershipSize -- number of members in the availabilityZone
-     * @param region                         -- name of the DC where it this token is created.
+     * @param location                       -- location where this token is created.
      */
-    public String createToken(int mySlot, int availabilityZones, int availabilityZoneMembershipSize, String region) {
-        return createToken(mySlot, availabilityZones * availabilityZoneMembershipSize, region);
+    public String createToken(int mySlot, int availabilityZones, int availabilityZoneMembershipSize, Location location) {
+        return createToken(mySlot, availabilityZones * availabilityZoneMembershipSize, location);
     }
 
-    public abstract String createToken(int mySlot, int totalCount, String region);
+    public abstract String createToken(int mySlot, int totalCount, Location location);
 
     public abstract String findClosestToken(String tokenToSearch, List<String> tokenList);
 
@@ -40,9 +42,9 @@ public abstract class TokenManager {
     public abstract String sanitizeToken(String jmxTokenString);
 
     /**
-     * Create an offset to add to token values by hashing the region name.
+     * Create an offset to add to token values by hashing the location.
      */
-    public static int regionOffset(String region) {
-        return Math.abs(region.hashCode());
+    public static int locationOffset(Location location) {
+        return Math.abs(location.hashCode());
     }
 }

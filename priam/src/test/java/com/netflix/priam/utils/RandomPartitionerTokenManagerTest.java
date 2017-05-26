@@ -2,6 +2,8 @@ package com.netflix.priam.utils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+import com.netflix.priam.identity.Location;
+import com.netflix.priam.identity.SimpleLocation;
 import org.apache.cassandra.dht.BigIntegerToken;
 import org.apache.cassandra.dht.RandomPartitioner;
 import org.junit.Test;
@@ -63,9 +65,9 @@ public class RandomPartitionerTokenManagerTest {
     public void createToken() {
         assertEquals(MAXIMUM_TOKEN.divide(BigInteger.valueOf(8 * 32))
                         .multiply(BigInteger.TEN)
-                        .add(BigInteger.valueOf(TokenManager.regionOffset("region")))
+                        .add(BigInteger.valueOf(TokenManager.locationOffset(Location.from("region"))))
                         .toString(),
-                tokenManager.createToken(10, 8, 32, "region"));
+                tokenManager.createToken(10, 8, 32, Location.from("region")));
     }
 
     /*
@@ -73,19 +75,21 @@ public class RandomPartitionerTokenManagerTest {
     @Test
     public void createToken_typical() {
         // 6 node clusters should have 6 tokens distributed evenly from 0 to 2^127 (exclusive) + region offset
-        assertEquals("1808575600", tokenManager.createToken(0, 3, 2, "us-east-1"));
-        assertEquals("28356863910078205288614550621122593221", tokenManager.createToken(1, 3, 2, "us-east-1"));
-        assertEquals("56713727820156410577229101240436610842", tokenManager.createToken(2, 3, 2, "us-east-1"));
-        assertEquals("85070591730234615865843651859750628463", tokenManager.createToken(3, 3, 2, "us-east-1"));
-        assertEquals("113427455640312821154458202479064646084", tokenManager.createToken(4, 3, 2, "us-east-1"));
-        assertEquals("141784319550391026443072753098378663705", tokenManager.createToken(5, 3, 2, "us-east-1"));
+        Location usEast1 = Location.from("us-east-1");
+        assertEquals("1808575600", tokenManager.createToken(0, 3, 2, usEast1));
+        assertEquals("28356863910078205288614550621122593221", tokenManager.createToken(1, 3, 2, usEast1));
+        assertEquals("56713727820156410577229101240436610842", tokenManager.createToken(2, 3, 2, usEast1));
+        assertEquals("85070591730234615865843651859750628463", tokenManager.createToken(3, 3, 2, usEast1));
+        assertEquals("113427455640312821154458202479064646084", tokenManager.createToken(4, 3, 2, usEast1));
+        assertEquals("141784319550391026443072753098378663705", tokenManager.createToken(5, 3, 2, usEast1));
 
-        assertEquals("372748112", tokenManager.createToken(0, 3, 2, "eu-west-1"));
-        assertEquals("28356863910078205288614550619686765733", tokenManager.createToken(1, 3, 2, "eu-west-1"));
-        assertEquals("56713727820156410577229101239000783354", tokenManager.createToken(2, 3, 2, "eu-west-1"));
-        assertEquals("85070591730234615865843651858314800975", tokenManager.createToken(3, 3, 2, "eu-west-1"));
-        assertEquals("113427455640312821154458202477628818596", tokenManager.createToken(4, 3, 2, "eu-west-1"));
-        assertEquals("141784319550391026443072753096942836217", tokenManager.createToken(5, 3, 2, "eu-west-1"));
+        Location euWest1 = Location.from("eu-west-1");
+        assertEquals("372748112", tokenManager.createToken(0, 3, 2, euWest1));
+        assertEquals("28356863910078205288614550619686765733", tokenManager.createToken(1, 3, 2, euWest1));
+        assertEquals("56713727820156410577229101239000783354", tokenManager.createToken(2, 3, 2, euWest1));
+        assertEquals("85070591730234615865843651858314800975", tokenManager.createToken(3, 3, 2, euWest1));
+        assertEquals("113427455640312821154458202477628818596", tokenManager.createToken(4, 3, 2, euWest1));
+        assertEquals("141784319550391026443072753096942836217", tokenManager.createToken(5, 3, 2, euWest1));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -145,24 +149,31 @@ public class RandomPartitionerTokenManagerTest {
     }
 
     @Test
-    public void regionOffset() {
+    public void testLocationOffset() {
         String allRegions = "us-west-2,us-east,us-west,eu-east,eu-west,ap-northeast,ap-southeast";
+        String dcSuffixes = ",-dev,-qa,-prod";
 
         for (String region1 : allRegions.split(",")) {
             for (String region2 : allRegions.split(",")) {
-                if (region1.equals(region2)) {
-                    continue;
+                for (String dcSuffix1 : dcSuffixes.split(",")) {
+                    for (String dcSuffix2: dcSuffixes.split(",")) {
+                        if (region1.equals(region2) && dcSuffix1.equals(dcSuffix2)) {
+                            continue;
+                        }
+                        Location loc1 = new SimpleLocation(region1, dcSuffix1);
+                        Location loc2 = new SimpleLocation(region2, dcSuffix2);
+                        assertFalse("Difference seems to be low",
+                                Math.abs(TokenManager.locationOffset(loc1) - TokenManager.locationOffset(loc2)) < 100);
+                    }
                 }
-                assertFalse("Difference seems to be low",
-                        Math.abs(TokenManager.regionOffset(region1) - TokenManager.regionOffset(region2)) < 100);
             }
         }
     }
 
     @Test
     public void testMultiToken() {
-        int h1 = TokenManager.regionOffset("vijay");
-        int h2 = TokenManager.regionOffset("vijay2");
+        int h1 = TokenManager.locationOffset(Location.from("vijay"));
+        int h2 = TokenManager.locationOffset(Location.from("vijay2"));
         BigInteger t1 = tokenManager.initialToken(100, 10, h1);
         BigInteger t2 = tokenManager.initialToken(100, 10, h2);
 

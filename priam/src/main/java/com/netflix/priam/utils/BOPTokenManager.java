@@ -18,6 +18,7 @@ package com.netflix.priam.utils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.Ordering;
+import com.netflix.priam.identity.Location;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.BytesToken;
 import org.apache.cassandra.dht.Token;
@@ -92,8 +93,8 @@ public class BOPTokenManager extends TokenManager {
     }
 
     @Override
-    public String createToken(int mySlot, int totalCount, String region) {
-        return partitioner.getTokenFactory().toString(initialToken(totalCount, mySlot, regionOffset(region)));
+    public String createToken(int mySlot, int totalCount, Location location) {
+        return partitioner.getTokenFactory().toString(initialToken(totalCount, mySlot, locationOffset(location)));
     }
 
     @Override

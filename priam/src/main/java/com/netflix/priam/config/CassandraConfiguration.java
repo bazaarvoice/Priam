@@ -41,6 +41,9 @@ public class CassandraConfiguration {
     private String clusterName;
 
     @JsonProperty
+    private String dataCenterSuffix;
+
+    @JsonProperty
     private String dataLocation;
 
     @JsonProperty
@@ -218,6 +221,10 @@ public class CassandraConfiguration {
 
     public String getClusterName() {
         return clusterName;
+    }
+
+    public String getDataCenterSuffix() {
+        return dataCenterSuffix;
     }
 
     public String getDataLocation() {
@@ -418,6 +425,10 @@ public class CassandraConfiguration {
 
     public void setClusterName(String clusterName) {
         this.clusterName = clusterName;
+    }
+
+    public void setDataCenterSuffix(String dataCenterSuffix) {
+        this.dataCenterSuffix = dataCenterSuffix;
     }
 
     public void setDataLocation(String dataLocation) {
