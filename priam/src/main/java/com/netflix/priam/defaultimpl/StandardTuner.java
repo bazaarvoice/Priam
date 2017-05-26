@@ -6,6 +6,7 @@ import com.google.inject.Inject;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.utils.CassandraTuner;
+import org.apache.cassandra.locator.SnitchProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
@@ -15,8 +16,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -100,6 +104,8 @@ public class StandardTuner implements CassandraTuner {
         yaml.dump(map, new FileWriter(yamlFile));
 
         configureCommitLogBackups();
+
+        writeCassandraSnitchProperties();
     }
 
     /**
@@ -185,6 +191,46 @@ public class StandardTuner implements CassandraTuner {
             String cassVal = entry.getValue();
             logger.info("Updating yaml: CassKey[{}], Val[{}]", cassKey, cassVal);
             put(map, cassKey, cassVal);
+        }
+    }
+
+    private void writeCassandraSnitchProperties() {
+        String rackdcPropFileName = cassandraConfiguration.getCassHome() + "/conf/" + SnitchProperties.RACKDC_PROPERTY_FILENAME;
+        File rackdcPropFile = new File(rackdcPropFileName);
+        Properties properties = new Properties();
+
+        // Read the existing properties, if any.
+        if (rackdcPropFile.exists()) {
+            try (Reader reader = new FileReader(rackdcPropFile)) {
+                properties.load(reader);
+            } catch (Exception e) {
+                throw new RuntimeException("Unable to read " + SnitchProperties.RACKDC_PROPERTY_FILENAME, e);
+            }
+        }
+
+        // Set the "dc_suffix" property if there is one configured
+        String dcSuffix = cassandraConfiguration.getDataCenterSuffix();
+        if (Strings.isNullOrEmpty(dcSuffix)) {
+            properties.remove("dc_suffix");
+        } else {
+            properties.put("dc_suffix", dcSuffix);
+        }
+
+        if (logger.isInfoEnabled()) {
+            if (properties.isEmpty()) {
+                logger.info("Updating {}: no properties", SnitchProperties.RACKDC_PROPERTY_FILENAME);
+            } else {
+                for (Map.Entry entry : properties.entrySet()) {
+                    logger.info("Updating {}: {}={}", SnitchProperties.RACKDC_PROPERTY_FILENAME, entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        // Write the updated properties back
+        try (Writer writer = new FileWriter(rackdcPropFile)) {
+            properties.store(writer, "");
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to write " + SnitchProperties.RACKDC_PROPERTY_FILENAME, e);
         }
     }
 

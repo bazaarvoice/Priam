@@ -20,6 +20,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import com.netflix.priam.identity.Location;
 
 import java.math.BigInteger;
 import java.util.List;
@@ -71,8 +72,8 @@ public class BigIntegerTokenManager extends TokenManager {
     }
 
     @Override
-    public String createToken(int mySlot, int totalCount, String region) {
-        return initialToken(totalCount, mySlot, regionOffset(region)).toString();
+    public String createToken(int mySlot, int totalCount, Location location) {
+        return initialToken(totalCount, mySlot, locationOffset(location)).toString();
     }
 
     @Override
