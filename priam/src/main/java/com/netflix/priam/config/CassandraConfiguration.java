@@ -2,6 +2,7 @@ package com.netflix.priam.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 
 import java.util.Map;
@@ -177,6 +178,11 @@ public class CassandraConfiguration {
 
     @JsonProperty
     private Map<String, String> extraConfigParams;
+
+    // Amazon Resource Name (ARN) for SimpleDB Role Assumption.
+    // If this is set STSAssumeRoleSessionCredentialsProvider is used instead of the default DefaultAWSCredentialsProviderChain for the simpleDB access.
+    @JsonProperty
+    private Optional<String> sdbRoleAssumptionArn = Optional.absent();
 
     public String getPartitioner() {
         return partitioner;
@@ -617,5 +623,13 @@ public class CassandraConfiguration {
 
     public void setTombstonesFailureThreshold(Integer tombstonesFailureThreshold) {
         this.tombstonesFailureThreshold = tombstonesFailureThreshold;
+    }
+
+    public Optional<String> getSdbRoleAssumptionArn() {
+        return sdbRoleAssumptionArn;
+    }
+
+    public void setSdbRoleAssumptionArn(Optional<String> sdbRoleAssumptionArn) {
+        this.sdbRoleAssumptionArn = sdbRoleAssumptionArn;
     }
 }

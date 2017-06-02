@@ -17,7 +17,9 @@ package com.netflix.priam.defaultimpl;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.codahale.metrics.MetricRegistry;
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -25,8 +27,12 @@ import com.google.common.net.HostAndPort;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.google.inject.TypeLiteral;
+import com.google.inject.name.Named;
+import com.google.inject.name.Names;
 import com.netflix.priam.aws.AWSMembership;
 import com.netflix.priam.aws.SDBInstanceRegistry;
+import com.netflix.priam.aws.auth.SDBCredentialProvider;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
@@ -84,6 +90,8 @@ public class PriamGuiceModule extends AbstractModule {
         } else {
             bind(IMembership.class).to(AWSMembership.class).asEagerSingleton();
         }
+
+        bind(new TypeLiteral<Optional<String>>(){}).annotatedWith(Names.named("awsRoleAssumptionARN")).toInstance(priamConfiguration.getCassandraConfiguration().getSdbRoleAssumptionArn());
         bind(AWSCredentialsProvider.class).to(DefaultAWSCredentialsProviderChain.class).asEagerSingleton();
 
         bind(Location.class).to(ConfigFileLocation.class).asEagerSingleton();
@@ -146,6 +154,19 @@ public class PriamGuiceModule extends AbstractModule {
             throw new IllegalStateException("Unable to determine the local host address for the server", ex);
         } catch(NoSuchElementException ex) {
             throw new IllegalStateException("Did not find a valid HttpConnector for the server", ex);
+        }
+    }
+
+    @Provides
+    @Singleton
+    @SDBCredentialProvider
+    AWSCredentialsProvider provideAWSCredentialsProvider(AWSCredentialsProvider defaultAWSCredentialsProvider, @Named("awsRoleAssumptionARN") Optional<String> awsRoleAssumptionARN) {
+        if (awsRoleAssumptionARN.isPresent()) {
+            return new STSAssumeRoleSessionCredentialsProvider(defaultAWSCredentialsProvider, awsRoleAssumptionARN.get(),
+                    Joiner.on('-').skipNulls().join("AwsRoleAssumptionSession", priamConfiguration.getCassandraConfiguration().getClusterName(),
+                            priamConfiguration.getCassandraConfiguration().getDataCenterSuffix(), System.currentTimeMillis()));
+        } else {
+            return defaultAWSCredentialsProvider;
         }
     }
 }
