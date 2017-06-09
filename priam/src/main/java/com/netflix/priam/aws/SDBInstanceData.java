@@ -32,6 +32,7 @@ import com.amazonaws.services.simpledb.model.SelectResult;
 import com.amazonaws.services.simpledb.model.UpdateCondition;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.netflix.priam.aws.auth.SDBCredentialProvider;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.identity.Location;
 import com.netflix.priam.identity.PriamInstance;
@@ -63,13 +64,13 @@ public class SDBInstanceData {
         public final static String HOSTNAME = "hostname";
     }
 
-    private final AWSCredentialsProvider provider;
+    private final AWSCredentialsProvider sdbCredentialProvider;
     private final Region sdbRegion;
     private final String sdbDomain;
 
     @Inject
-    public SDBInstanceData(AWSCredentialsProvider provider, AmazonConfiguration amazonConfiguration) {
-        this.provider = provider;
+    public SDBInstanceData(@SDBCredentialProvider AWSCredentialsProvider sdbCredentialProvider,  AmazonConfiguration amazonConfiguration) {
+        this.sdbCredentialProvider = sdbCredentialProvider;
         this.sdbRegion = RegionUtils.getRegion(amazonConfiguration.getSimpleDbRegion());
         this.sdbDomain = amazonConfiguration.getSimpleDbDomain();
 
@@ -292,8 +293,9 @@ public class SDBInstanceData {
 
     private AmazonSimpleDB getSimpleDBClient() {
         //Create per request
-        AmazonSimpleDB client = new AmazonSimpleDBClient(provider);
+        AmazonSimpleDB client = new AmazonSimpleDBClient(sdbCredentialProvider);
         client.setRegion(sdbRegion);
         return client;
     }
+
 }
