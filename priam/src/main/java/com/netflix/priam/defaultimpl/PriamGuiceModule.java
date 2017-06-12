@@ -79,7 +79,6 @@ public class PriamGuiceModule extends AbstractModule {
         // Configuration bindings
         bind(PriamConfiguration.class).toInstance(priamConfiguration);
         bind(CassandraConfiguration.class).toInstance(priamConfiguration.getCassandraConfiguration());
-        bind(AmazonConfiguration.class).toInstance(priamConfiguration.getAmazonConfiguration());
         bind(BackupConfiguration.class).toInstance(priamConfiguration.getBackupConfiguration());
         bind(ZooKeeperConfiguration.class).toInstance(priamConfiguration.getZooKeeperConfiguration());
         bind(MonitoringConfiguration.class).toInstance(priamConfiguration.getMonitoringConfiguration());
@@ -100,6 +99,14 @@ public class PriamGuiceModule extends AbstractModule {
 
         bind(ServiceRegistryManager.class).asEagerSingleton();
         bind(MetricRegistry.class).toInstance(environment.metrics());
+    }
+
+    @Provides
+    @Singleton
+    AmazonConfiguration provideAmazonConfiguration(AWSCredentialsProvider credentialsProvider) {
+        AmazonConfiguration amazonConfiguration = priamConfiguration.getAmazonConfiguration();
+        amazonConfiguration.discoverConfiguration(credentialsProvider);
+        return amazonConfiguration;
     }
 
     @Provides
@@ -160,11 +167,12 @@ public class PriamGuiceModule extends AbstractModule {
     @Provides
     @Singleton
     @SDBCredentialProvider
-    AWSCredentialsProvider provideAWSCredentialsProvider(AWSCredentialsProvider defaultAWSCredentialsProvider, @Named("awsRoleAssumptionARN") Optional<String> awsRoleAssumptionARN) {
+    AWSCredentialsProvider provideAWSCredentialsProvider(AWSCredentialsProvider defaultAWSCredentialsProvider,
+                                                         AmazonConfiguration amazonConfiguration,
+                                                         @Named("awsRoleAssumptionARN") Optional<String> awsRoleAssumptionARN) {
         if (awsRoleAssumptionARN.isPresent()) {
             return new STSAssumeRoleSessionCredentialsProvider(defaultAWSCredentialsProvider, awsRoleAssumptionARN.get(),
-                    Joiner.on('-').skipNulls().join("AwsRoleAssumptionSession", priamConfiguration.getCassandraConfiguration().getClusterName(),
-                            priamConfiguration.getCassandraConfiguration().getDataCenterSuffix(), System.currentTimeMillis()));
+                    "Session-" + amazonConfiguration.getPrivateIP());
         } else {
             return defaultAWSCredentialsProvider;
         }
