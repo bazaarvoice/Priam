@@ -49,8 +49,6 @@ public class PriamService extends Application<PriamConfiguration> {
 
         Injector injector = Guice.createInjector(new PriamGuiceModule(config, environment));
         try {
-            config.getAmazonConfiguration().discoverConfiguration(injector.getInstance(AWSCredentialsProvider.class));
-
             environment.lifecycle().manage(injector.getInstance(PriamServer.class));
             environment.lifecycle().manage(injector.getInstance(ServiceRegistryManager.class));
             environment.lifecycle().manage(injector.getInstance(ServiceMonitorManager.class));
