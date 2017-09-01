@@ -1,5 +1,7 @@
 package com.netflix.priam.defaultimpl;
 
+import com.datastax.driver.core.VersionNumber;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
@@ -12,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -39,7 +42,7 @@ public class StandardTuner implements CassandraTuner {
     }
 
     @Override
-    public void writeAllProperties(String yamlLocation, String hostIp, String seedProvider) throws IOException {
+    public void writeAllProperties(String yamlLocation, String hostIp, String seedProvider, @Nullable VersionNumber cassandraVersion) throws IOException {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         Yaml yaml = new Yaml(options);
@@ -94,6 +97,7 @@ public class StandardTuner implements CassandraTuner {
 
         configureSecurity(map);
         configureGlobalCaches(cassandraConfiguration, map);
+        configureBatchSizes(cassandraConfiguration, map, cassandraVersion);
 
         //force to 1 until vnodes are properly supported
         put(map, "num_tokens", 1);
@@ -162,6 +166,16 @@ public class StandardTuner implements CassandraTuner {
         File commitLogProperties = new File(cassandraConfiguration.getCassHome() + CL_BACKUP_PROPS_FILE);
         try (FileOutputStream fos = new FileOutputStream(commitLogProperties)) {
             props.store(fos, "cassandra commit log archive props, as written by priam");
+        }
+    }
+
+    private void configureBatchSizes(CassandraConfiguration cassandraConfiguration, Map<String, Object> yaml, @Nullable VersionNumber cassandraVersion) {
+        put(yaml, "batch_size_warn_threshold_in_kb", cassandraConfiguration.getBatchSizeFailureThresholdInKb());
+
+        // Failure threshold is only supported starting in 2.2.  Don't configure if the version number is known to be
+        // prior to that.
+        if (cassandraVersion == null || cassandraVersion.compareTo(VersionNumber.parse("2.2")) >= 0) {
+            put(yaml, "batch_size_fail_threshold_in_kb", cassandraConfiguration.getBatchSizeFailureThresholdInKb());
         }
     }
 

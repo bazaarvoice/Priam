@@ -9,6 +9,7 @@ cassandra:
   cassHome: "/etc/cassandra"                  # Path to the home dir of Cassandra
   cassStartScript: "/etc/init.d/cassandra start"  # Path to Cassandra startup script
   cassStopScript: "/etc/init.d/cassandra stop"    # Path to Cassandra stop script
+  cassVersionScript: "/usr/sbin/cassandra -v"     # Path to Cassandra version script
   clusterName: "local_default"                # Cluster name (or App) name
   dataLocation: "/var/lib/cassandra/data"     # Location of the local data dir
   sslStoragePort: 7102                        # Cassandra storage/cluster SSL communication port
