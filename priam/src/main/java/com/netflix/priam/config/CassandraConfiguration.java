@@ -39,6 +39,9 @@ public class CassandraConfiguration {
     private String cassStopScript;
 
     @JsonProperty
+    private String cassVersionScript;
+
+    @JsonProperty
     private String clusterName;
 
     @JsonProperty
@@ -177,6 +180,12 @@ public class CassandraConfiguration {
     private int nodeRepairMutexAcquireTimeOut;
 
     @JsonProperty
+    private Integer batchSizeWarningThresholdInKb;
+
+    @JsonProperty
+    private Integer batchSizeFailureThresholdInKb;
+
+    @JsonProperty
     private Map<String, String> extraConfigParams;
 
     // Amazon Resource Name (ARN) for SimpleDB Role Assumption.
@@ -223,6 +232,10 @@ public class CassandraConfiguration {
 
     public String getCassStopScript() {
         return cassStopScript;
+    }
+
+    public String getCassVersionScript() {
+        return cassVersionScript;
     }
 
     public String getClusterName() {
@@ -383,6 +396,14 @@ public class CassandraConfiguration {
 
     public int getNodeRepairMutexAcquireTimeOut() {
         return nodeRepairMutexAcquireTimeOut;
+    }
+
+    public Integer getBatchSizeWarningThresholdInKb() {
+        return batchSizeWarningThresholdInKb;
+    }
+
+    public Integer getBatchSizeFailureThresholdInKb() {
+        return batchSizeFailureThresholdInKb;
     }
 
     public Map<String, String> getExtraConfigParams() {
@@ -631,5 +652,13 @@ public class CassandraConfiguration {
 
     public void setSdbRoleAssumptionArn(Optional<String> sdbRoleAssumptionArn) {
         this.sdbRoleAssumptionArn = sdbRoleAssumptionArn;
+    }
+
+    public void setBatchSizeWarningThresholdInKb(Integer batchSizeWarningThresholdInKb) {
+        this.batchSizeWarningThresholdInKb = batchSizeWarningThresholdInKb;
+    }
+
+    public void setBatchSizeFailureThresholdInKb(Integer batchSizeFailureThresholdInKb) {
+        this.batchSizeFailureThresholdInKb = batchSizeFailureThresholdInKb;
     }
 }
