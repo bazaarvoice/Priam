@@ -170,12 +170,22 @@ public class StandardTuner implements CassandraTuner {
     }
 
     private void configureBatchSizes(CassandraConfiguration cassandraConfiguration, Map<String, Object> yaml, @Nullable VersionNumber cassandraVersion) {
-        put(yaml, "batch_size_warn_threshold_in_kb", cassandraConfiguration.getBatchSizeFailureThresholdInKb());
+        put(yaml, "batch_size_warn_threshold_in_kb", cassandraConfiguration.getBatchSizeWarningThresholdInKb());
 
         // Failure threshold is only supported starting in 2.2.  Don't configure if the version number is known to be
         // prior to that.
-        if (cassandraVersion == null || cassandraVersion.compareTo(VersionNumber.parse("2.2")) >= 0) {
-            put(yaml, "batch_size_fail_threshold_in_kb", cassandraConfiguration.getBatchSizeFailureThresholdInKb());
+        Integer batchSizeFailureThresholdInKb = cassandraConfiguration.getBatchSizeFailureThresholdInKb();
+        if (batchSizeFailureThresholdInKb != null) {
+            if (cassandraVersion == null) {
+                logger.warn("Batch size failure threshold has been set to {} but the Cassandra version could not be confirmed. " +
+                        "If Cassandra version is not 2.2+ this will cause a configuration error.", batchSizeFailureThresholdInKb);
+            }
+            if (cassandraVersion != null && cassandraVersion.compareTo(VersionNumber.parse("2.2")) < 0) {
+                logger.info("Batch size failure threshold has been set to {} but Cassandra version {} does not support this" +
+                        "option.  Ignoring value.", batchSizeFailureThresholdInKb, cassandraVersion);
+            } else {
+                put(yaml, "batch_size_fail_threshold_in_kb", cassandraConfiguration.getBatchSizeFailureThresholdInKb());
+            }
         }
     }
 

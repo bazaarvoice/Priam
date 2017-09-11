@@ -8,6 +8,7 @@ import com.google.inject.Singleton;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.scheduler.Task;
+import org.apache.cassandra.tools.NodeProbe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +61,24 @@ public class TuneCassandra extends Task {
         return "tunecassandra-trigger";
     }
 
+    /**
+     * Normally Priam can introspect Cassandra to determine the version number, see {@link NodeProbe#getReleaseVersion()}.
+     * However, certain configuration parameters in <code>cassandra.yaml</code> are only valid for certain Cassandra
+     * versions, and it is useful to know beforehand what the Cassandra version is to avoid configuring unsupported
+     * parameters.  This creates a chicken-and-egg problem since Cassandra must be started to probe it for its version
+     * but it cannot be started without configuring it first.
+     *
+     * The solution is to provide Priam with a script which returns the Cassandra version.  Naively this could be something
+     * like <code>echo "2.2.4"</code> but ideally this would be a simple call to <code>cassandra -v</code>.  It is
+     * up to the Priam configuration to ensure this script returns a version which matches the actual version of Cassandra
+     * which will be launched.
+     *
+     * The version script is not required, but without it Priam will be unable to validate whether the configuration file
+     * it produces is consistent with the Cassandra version being configured.
+     * 
+     * @param cassVersionScript Executable script which will output the Cassandra version to stdout
+     * @return The version number, or null if no script was provided or the script failed.
+     */
     @Nullable
     private static VersionNumber getCassandraVersionNumber(String cassVersionScript) {
         if (cassVersionScript == null) {
