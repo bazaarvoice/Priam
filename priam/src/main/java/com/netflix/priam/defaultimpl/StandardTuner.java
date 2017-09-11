@@ -184,7 +184,7 @@ public class StandardTuner implements CassandraTuner {
                 logger.info("Batch size failure threshold has been set to {} but Cassandra version {} does not support this" +
                         "option.  Ignoring value.", batchSizeFailureThresholdInKb, cassandraVersion);
             } else {
-                put(yaml, "batch_size_fail_threshold_in_kb", cassandraConfiguration.getBatchSizeFailureThresholdInKb());
+                put(yaml, "batch_size_fail_threshold_in_kb", batchSizeFailureThresholdInKb);
             }
         }
     }
