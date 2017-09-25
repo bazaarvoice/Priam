@@ -26,7 +26,7 @@ public class TokenManagerProvider implements Provider<TokenManager> {
     public TokenManager get() {
         IPartitioner partitioner;
         try {
-            partitioner = FBUtilities.newPartitioner(_cassandraConfiguration.getPartitioner());
+            partitioner = FBUtilities.newPartitioner(TokenManager.clientPartitioner(_cassandraConfiguration.getPartitioner()));
         } catch (ConfigurationException e) {
             throw Throwables.propagate(e);
         }

@@ -16,6 +16,7 @@
 package com.netflix.priam.utils;
 
 import com.netflix.priam.identity.Location;
+import org.apache.cassandra.dht.ByteOrderedPartitioner;
 
 import java.util.List;
 
@@ -46,5 +47,18 @@ public abstract class TokenManager {
      */
     public static int locationOffset(Location location) {
         return Math.abs(location.hashCode());
+    }
+
+    /**
+     * From a client perspective EmoPartitioner and ByteOrderedPartitioner are effectively the same: both produce
+     * the same tokens, splits, and so on.  Rather than force all clients which require a partitioner to duplicate
+     * the ByteOrderedPartitioner implementation when EmoPartitioner is configured this method replaces EmoPartitioner
+     * with ByteOrderedPartitioner as the effective partitioner for client access.
+     */
+    public static String clientPartitioner(String partitioner) {
+        if ("com.bazaarvoice.emodb.partitioner.EmoPartitioner".equals(partitioner)) {
+            return ByteOrderedPartitioner.class.getName();
+        }
+        return partitioner;
     }
 }
