@@ -8,6 +8,7 @@ import com.google.inject.Inject;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.utils.CassandraTuner;
+import com.netflix.priam.utils.TokenManager;
 import org.apache.cassandra.locator.SnitchProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,6 +141,13 @@ public class StandardTuner implements CassandraTuner {
         if (lowerCase.contains("randomparti") || lowerCase.contains("murmur")) {
             return fromConfig;
         }
+        
+        // If both partitioners are either ByteOrderedPartitioner or EmoPartitioner than accept whichever
+        // is from the configuration file.
+        if (TokenManager.clientPartitioner(fromYaml).equals(TokenManager.clientPartitioner(fromConfig))) {
+            return fromConfig;
+        }
+
         return fromYaml;
     }
 
