@@ -63,16 +63,19 @@ public class PriamStartupAgent {
         System.setProperty("cassandra.initial_token", token);
 
         if (isReplace) {
+            VersionComparator versionComparator = new VersionComparator();
             System.out.println("Detect cassandra version : " + FBUtilities.getReleaseVersionString());
-            if (FBUtilities.getReleaseVersionString().compareTo(REPLACED_ADDRESS_MIN_VER) < 0) {
+            if (versionComparator.compare(FBUtilities.getReleaseVersionString(), REPLACED_ADDRESS_MIN_VER) < 0) {
+                System.out.println("Setting property cassandra.replace_token = " + token);
                 System.setProperty("cassandra.replace_token", token);
-            } else if (FBUtilities.getReleaseVersionString().compareTo(REPLACED_ADDRESS_FIRST_BOOT_MIN_VER) < 0) {
+            } else if (versionComparator.compare(FBUtilities.getReleaseVersionString(), REPLACED_ADDRESS_FIRST_BOOT_MIN_VER) < 0) {
+                System.out.println("Setting property cassandra.replace_address = " + replacedIp);
                 System.setProperty("cassandra.replace_address", replacedIp);
             } else {
+                System.out.println("Setting property cassandra.replace_address_first_boot = " + replacedIp);
                 System.setProperty("cassandra.replace_address_first_boot", replacedIp);
             }
         }
 
     }
-
 }
