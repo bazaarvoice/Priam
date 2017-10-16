@@ -18,7 +18,6 @@ import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
 import com.netflix.priam.utils.JMXNodeTool;
-import com.netflix.priam.utils.TokenManager;
 import io.dropwizard.lifecycle.Managed;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.curator.framework.CuratorFramework;
@@ -88,7 +87,7 @@ public class ServiceRegistryManager implements Managed {
         // Include the partitioner in the Ostrich end point data to support clients that need to know the
         // partitioner type before they connect to the ring (eg. Astyanax).
         Map<String, Object> payload = ImmutableMap.<String, Object>of(
-                "partitioner", FBUtilities.newPartitioner(TokenManager.clientPartitioner(casConfiguration.getPartitioner())).getClass().getName(),
+                "partitioner", fullPartitionerName(casConfiguration.getPartitioner()),
                 "url", priamServiceBaseURL);
         String payloadString = new ObjectMapper().writeValueAsString(payload);
 
@@ -155,5 +154,14 @@ public class ServiceRegistryManager implements Managed {
             // Ignore
         }
         Closeables.close(zkRegistry, true);
+    }
+
+    private String fullPartitionerName(String fromConfig) throws Exception {
+        if (fromConfig.contains(".")) {
+            // Class name in config is fully qualified
+            return fromConfig;
+        }
+        // Resolve the full partitioner to get its class name
+        return FBUtilities.newPartitioner(fromConfig).getClass().getName();
     }
 }
