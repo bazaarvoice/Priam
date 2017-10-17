@@ -50,16 +50,13 @@ public abstract class TokenManager {
     }
 
     /**
-     * From a client perspective an Emo partitioner implementation and ByteOrderedPartitioner are effectively the same:
-     * both produce the same tokens, splits, and so on.  Rather than force all clients which require a partitioner to
-     * duplicate the ByteOrderedPartitioner implementation when an Emo partitioner is configured this method replaces
-     * the partitioner with ByteOrderedPartitioner.
-     *
-     * Rather than checking for any particular class this method simply looks for the substring "emo" within the
-     * partitioner name and, if found, presumes it is a BOP-compatible partitioner.
+     * From a client perspective EmoPartitioner and ByteOrderedPartitioner are effectively the same: both produce
+     * the same tokens, splits, and so on.  Rather than force all clients which require a partitioner to duplicate
+     * the ByteOrderedPartitioner implementation when EmoPartitioner is configured this method replaces EmoPartitioner
+     * with ByteOrderedPartitioner as the effective partitioner for client access.
      */
     public static String clientPartitioner(String partitioner) {
-        if (partitioner.toLowerCase().contains("emo")) {
+        if ("com.bazaarvoice.emodb.partitioner.EmoPartitioner".equals(partitioner)) {
             return ByteOrderedPartitioner.class.getName();
         }
         return partitioner;
