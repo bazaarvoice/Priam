@@ -27,9 +27,12 @@ import com.netflix.priam.utils.JMXNodeTool;
 import com.netflix.priam.utils.RetryableCallable;
 import com.netflix.priam.utils.Sleeper;
 import com.netflix.priam.utils.TokenManager;
+import com.netflix.priam.volume.IVolumeMetadataManager;
+import com.netflix.priam.volume.VolumeMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -48,6 +51,7 @@ public class InstanceIdentity {
     private final IMembership membership;
     private final CassandraConfiguration cassandraConfiguration;
     private final AmazonConfiguration amazonConfiguration;
+    private final IVolumeMetadataManager volumeMetadataManager;
     private final TokenManager tokenManager;
     private final Sleeper sleeper;
     private final Location location;
@@ -55,15 +59,18 @@ public class InstanceIdentity {
     private PriamInstance myInstance;
     private boolean isReplace = false;
     private String replacedIp = "";
+    private boolean isUsingReplacedVolume;
 
     @Inject
     public InstanceIdentity(CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration,
+                            IVolumeMetadataManager volumeMetadataManager,
                             IPriamInstanceRegistry instanceRegistry, IMembership membership, TokenManager tokenManager,
                             Sleeper sleeper, Location location) throws Exception {
         this.instanceRegistry = instanceRegistry;
         this.membership = membership;
         this.cassandraConfiguration = cassandraConfiguration;
         this.amazonConfiguration = amazonConfiguration;
+        this.volumeMetadataManager = volumeMetadataManager;
         this.tokenManager = tokenManager;
         this.sleeper = sleeper;
         this.location = location;
@@ -88,6 +95,8 @@ public class InstanceIdentity {
         if (null == myInstance) {
             myInstance = new GetNewToken().call();
         }
+
+        persistVolumeMetadata();
 
         logger.info("My token: {}", myInstance.getToken());
     }
@@ -146,16 +155,86 @@ public class InstanceIdentity {
                         "for this cluster");
             }
 
-            // At this point we have at least one slot associated with an invalid instance. Unfortunately, deadInstances
-            // will be a sorted list, and if every new instance tries to grab the first entry on it then they'll all be
-            // contending for the same slot. We have mechanisms in place to ensure that this doesn't create an outright
-            // error condition, but it's still very inefficient, as servers may have to retry multiple times before they
-            // can successfully claim a slot. To reduce this contention, we have each new instance select an available
-            // deadInstance slot at random, allowing for more than one instance to succeed on its first try.
+            PriamInstance deadInstance = null;
             String newInstanceId = amazonConfiguration.getInstanceID();
-            int newInstanceHash = Math.abs(newInstanceId.hashCode());
-            int randomIndex = (newInstanceHash % deadInstances.size());
-            PriamInstance deadInstance = deadInstances.get(randomIndex);
+            boolean usingVolumeFromDeadInstance = false;
+
+            // It's possible that one of the dead instances mounted its Cassandra directory on an EBS volume and that
+            // the EBS volume has now been attached to this instance.  If that's the case then it may be possible to
+            // replace that instance without requiring a costly bootstrap from neighbors.
+            VolumeMetadata volumeMetadata = volumeMetadataManager.getVolumeMetadata();
+            if (volumeMetadata != null) {
+                // All of the following must be true in order to utilize the existing Cassandra data on volume:
+                // 1. The volume metadata must match the Cassandra cluster.
+                // 2. The volume metadata must match the availability zone.
+                // 3. The volume metadata must match one of the dead instance's token.
+
+                if (volumeMetadata.getClusterName().equals(cassandraConfiguration.getClusterName()) &&
+                        volumeMetadata.getAvailabilityZone().equals(amazonConfiguration.getAvailabilityZone())) {
+
+                    for (PriamInstance candidateDeadInstance : deadInstances) {
+                        if (volumeMetadata.getToken().equals(candidateDeadInstance.getToken())) {
+                            // It should never be the case that an existing volume was found for a new instance placeholder
+                            // from doubling the ring.  Cassandra will probably fail to start because of this, so let
+                            // someone have an idea why.
+                            if (candidateDeadInstance.getInstanceId().equals(PriamInstance.NEW_INSTANCE_PLACEHOLDER_ID)) {
+                                logger.error("Volume found with data for a new instance.  This shouldn't happen and will likely cause Cassandra to fail to start.");
+                            } else {
+                                logger.info("Volume found with data matching dead instance {}", candidateDeadInstance.getInstanceId());
+                            }
+
+                            deadInstance = candidateDeadInstance;
+                            usingVolumeFromDeadInstance = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (deadInstance == null) {
+                    // No matching dead instance was found.  In this case if there is any existing data on the volume
+                    // it is unusable and Cassandra will fail to start with the present data.  Rather than be destructive
+                    // error out and let the admin know what to do to resolve the issue.
+                    logger.error(
+                            "Cassandra unable to start with existing data on the volume from an inconsistent instance. " +
+                            "Either attach a fresh volume or delete the Cassandra data and volume metadata file.");
+                    throw exceptionWithNoRetries(new IllegalStateException("Inconsistent volume data found"));
+                }
+
+                // Check whether the EBS volume ID matches the ID in the volume metadata.  Here's why:
+                //
+                // If it matches then the expected scenario is that the dead instance was terminated, the EBS volume
+                // was detached and has now be attached to this instance.  In this case Cassandra will assume the
+                // dead instance's host ID and any hints accumulated during the downtime will be delivered to
+                // this instance, so no additional work is required to bring this instance up-to-date.
+                //
+                // If it doesn't match then this could mean one of several other scenarios, such as this volume having
+                // been created from a snapshot of the dead instance's volume.  This doesn't prevent it from joining
+                // the ring but it does mean that there may be missing data on this volume that won't be resolved
+                // naturally, even it it assumes the instance's host ID.  Don't block because of this, but send out
+                // an alert that a repair should be performed to get this volume up-to-date.
+
+                String volumeId = volumeMetadataManager.getVolumeID();
+                if (volumeId == null) {
+                    logger.warn("No volume ID was found for the current volume, so the consistency of the existing " +
+                            "Cassandra data on volume could not be verified.  Repairing this instance is strongly recommended.");
+                } else if (!volumeId.equals(volumeMetadata.getVolumeId())) {
+                    logger.warn("Volume ID from the existing volume metadata did not match, so the existing Cassandra data" +
+                            "on volume is likely stale.  Repairing this instance is strongly recommended.");
+                }
+            }
+
+            if (deadInstance == null) {
+                // At this point we have at least one slot associated with an invalid instance and either the volume is
+                // new or no EBS volume metadata was found, so choose any replaced IP.  Unfortunately, deadInstances
+                // will be a sorted list, and if every new instance tries to grab the first entry on it then they'll all be
+                // contending for the same slot. We have mechanisms in place to ensure that this doesn't create an outright
+                // error condition, but it's still very inefficient, as servers may have to retry multiple times before they
+                // can successfully claim a slot. To reduce this contention, we have each new instance select an available
+                // deadInstance slot at random, allowing for more than one instance to succeed on its first try.
+                int newInstanceHash = Math.abs(newInstanceId.hashCode());
+                int randomIndex = (newInstanceHash % deadInstances.size());
+                deadInstance = deadInstances.get(randomIndex);
+            }
 
             logger.info("Found dead instance {} with token {} - trying to grab its slot.", deadInstance.getInstanceId(), deadInstance.getToken());
             PriamInstance newInstance = instanceRegistry.acquireSlotId(deadInstance.getId(), deadInstance.getInstanceId(), cassandraConfiguration.getClusterName(),
@@ -167,6 +246,7 @@ public class InstanceIdentity {
                 if (!deadInstance.getInstanceId().equals(PriamInstance.NEW_INSTANCE_PLACEHOLDER_ID)) {
                     isReplace = true;
                     replacedIp = deadInstance.getHostIP();
+                    isUsingReplacedVolume = usingVolumeFromDeadInstance;
                 }
                 return newInstance;
             }
@@ -298,6 +378,10 @@ public class InstanceIdentity {
         return replacedIp;
     }
 
+    public boolean isUsingReplacedVolume() {
+        return isUsingReplacedVolume;
+    }
+
     /**
      * Updates the Priam instance registry (SimpleDB) with the token currently in use by Cassandra.  Call this after
      * moving a server to a new token or else the move may be reverted if/when the server is replaced and the
@@ -307,6 +391,7 @@ public class InstanceIdentity {
         JMXNodeTool nodetool = JMXNodeTool.instance(cassandraConfiguration);
         myInstance.setToken(tokenManager.sanitizeToken(nodetool.getTokens().get(0)));
         instanceRegistry.update(myInstance);
+        persistVolumeMetadata();
     }
 
     // filter other DC's
@@ -318,6 +403,20 @@ public class InstanceIdentity {
             }
         }
         return local;
+    }
+
+    private void persistVolumeMetadata() {
+        try {
+            String volumeId = volumeMetadataManager.getVolumeID();
+            volumeMetadataManager.setVolumeMetadata(
+                    new VolumeMetadata()
+                            .setVolumeId(volumeId)
+                            .setAvailabilityZone(amazonConfiguration.getAvailabilityZone())
+                            .setClusterName(cassandraConfiguration.getClusterName())
+                            .setToken(myInstance.getToken()));
+        } catch (IOException e) {
+            logger.warn("Failed to persist volume metadata", e);
+        }
     }
 
     /**
