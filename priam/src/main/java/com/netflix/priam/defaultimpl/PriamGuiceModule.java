@@ -19,7 +19,6 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
@@ -33,6 +32,8 @@ import com.google.inject.name.Names;
 import com.netflix.priam.aws.AWSMembership;
 import com.netflix.priam.aws.SDBInstanceRegistry;
 import com.netflix.priam.aws.auth.SDBCredentialProvider;
+import com.netflix.priam.volume.DefaultVolumeMetadataManager;
+import com.netflix.priam.volume.IVolumeMetadataManager;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
@@ -89,6 +90,8 @@ public class PriamGuiceModule extends AbstractModule {
         } else {
             bind(IMembership.class).to(AWSMembership.class).asEagerSingleton();
         }
+
+        bind(IVolumeMetadataManager.class).to(DefaultVolumeMetadataManager.class).asEagerSingleton();
 
         bind(new TypeLiteral<Optional<String>>(){}).annotatedWith(Names.named("awsRoleAssumptionARN")).toInstance(priamConfiguration.getCassandraConfiguration().getSdbRoleAssumptionArn());
         bind(AWSCredentialsProvider.class).to(DefaultAWSCredentialsProviderChain.class).asEagerSingleton();

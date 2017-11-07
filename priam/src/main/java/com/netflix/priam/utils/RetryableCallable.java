@@ -63,6 +63,8 @@ public abstract class RetryableCallable<T> implements Callable<T> {
                 return retriableCall();
             } catch (CancellationException e) {
                 throw e;
+            } catch (NoMoreRetriesException e) {
+                throw (Exception) e.getCause();
             } catch (Exception e) {
                 retry++;
                 if (retry == retries) {
@@ -81,7 +83,25 @@ public abstract class RetryableCallable<T> implements Callable<T> {
         }
     }
 
+    /**
+     * Helper method to raise an exception and abandon any future retries.  This method return Exception
+     * so it can be part of a <code>throw</code> statement.  This method always throws a
+     * <code>NoMoreRetriesException</code> and never returns.
+     */
+    protected Exception exceptionWithNoRetries(Exception e) throws NoMoreRetriesException {
+        throw new NoMoreRetriesException(e);
+    }
+
     public void forEachExecution() {
         // do nothing by default.
+    }
+
+    /**
+     * Encapsulating exception used to prevent retries.
+     */
+    private static class NoMoreRetriesException extends Exception {
+        public NoMoreRetriesException(Throwable cause) {
+            super(cause);
+        }
     }
 }

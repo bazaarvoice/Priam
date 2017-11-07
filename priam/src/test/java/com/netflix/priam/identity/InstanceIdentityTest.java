@@ -3,6 +3,7 @@ package com.netflix.priam.identity;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.netflix.priam.volume.VolumeMetadata;
 import com.netflix.priam.utils.TokenManager;
 import org.junit.Test;
 
@@ -127,6 +128,40 @@ public class InstanceIdentityTest extends InstanceTestUtils {
         assertFalse(identity.isReplace());
         assertEquals(identity.getReplacedIp().length(), 0);
     }
+
+    @Test
+    public void testDeadInstanceWithEBSVolume() throws Exception {
+        createInstances();
+        instances.remove("fakeinstance4");
+        volumeMetadataManager.setVolumeMetadata(
+                new VolumeMetadata()
+                        .setVolumeId("fake-volume")
+                        .setClusterName("fake-app")
+                        .setAvailabilityZone("az2")
+                        .setToken("18904575940052136859076367079545813731"));
+        identity = createInstanceIdentity("az2", "fakeinstancex");
+        int hash = TokenManager.locationOffset(location);
+        assertEquals(1, identity.getInstance().getId() - hash);
+
+        // Ensure that we are flagged as replacing the proper instance
+        assertTrue(identity.isReplace());
+        assertEquals(identity.getReplacedIp(), amazonConfiguration.getPrivateIP());
+        assertTrue(identity.isUsingReplacedVolume());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testDeadInstanceWithInconsistentEBSVolume() throws Exception {
+        createInstances();
+        instances.remove("fakeinstance4");
+        volumeMetadataManager.setVolumeMetadata(
+                new VolumeMetadata()
+                        .setVolumeId("fake-volume")
+                        .setClusterName("fake-app")
+                        .setAvailabilityZone("az2")
+                        .setToken("0001"));
+        createInstanceIdentity("az2", "fakeinstancex");
+    }
+
 
     public void printInstance(PriamInstance ins, int hash) {
         //System.out.println("ID: " + (ins.getInstanceIdentity() - hash));
