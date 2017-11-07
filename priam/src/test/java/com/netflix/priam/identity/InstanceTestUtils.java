@@ -1,11 +1,13 @@
 package com.netflix.priam.identity;
 
 import com.google.common.base.Strings;
+import com.netflix.priam.FakeVolumeMetadataManager;
 import com.netflix.priam.FakeMembership;
 import com.netflix.priam.FakePriamInstanceRegistry;
 import com.netflix.priam.TestAmazonConfiguration;
 import com.netflix.priam.TestBackupConfiguration;
 import com.netflix.priam.TestCassandraConfiguration;
+import com.netflix.priam.volume.IVolumeMetadataManager;
 import com.netflix.priam.utils.BigIntegerTokenManager;
 import com.netflix.priam.utils.FakeSleeper;
 import com.netflix.priam.utils.Sleeper;
@@ -25,6 +27,7 @@ public abstract class InstanceTestUtils {
     TestAmazonConfiguration amazonConfiguration;
     TestBackupConfiguration backupConfiguration;
     IPriamInstanceRegistry instanceRegistry;
+    IVolumeMetadataManager volumeMetadataManager;
     InstanceIdentity identity;
     TokenManager tokenManager;
     Sleeper sleeper;
@@ -48,6 +51,7 @@ public abstract class InstanceTestUtils {
         backupConfiguration = new TestBackupConfiguration();
         location = new SimpleLocation(amazonConfiguration.getRegionName(), Strings.nullToEmpty(cassandraConfiguration.getDataCenterSuffix()));
         instanceRegistry = new FakePriamInstanceRegistry(location);
+        volumeMetadataManager = new FakeVolumeMetadataManager("fake-volume");
         tokenManager = BigIntegerTokenManager.forRandomPartitioner();
         sleeper = new FakeSleeper();
     }
@@ -88,12 +92,15 @@ public abstract class InstanceTestUtils {
                 }
             }
         }
+
+        // Creating all of these instances updates the local EBS volume metadata as a side effect.  Clean it up
+        volumeMetadataManager.clearVolumeMetadata();
     }
 
     protected InstanceIdentity createInstanceIdentity(String zone, String instanceId) throws Exception {
         amazonConfiguration.setAvailabilityZone(zone);
         amazonConfiguration.setInstanceID(instanceId);
         amazonConfiguration.setPrivateHostName(instanceId);
-        return new InstanceIdentity(cassandraConfiguration, amazonConfiguration, instanceRegistry, membership, tokenManager, sleeper, location);
+        return new InstanceIdentity(cassandraConfiguration, amazonConfiguration, volumeMetadataManager, instanceRegistry, membership, tokenManager, sleeper, location);
     }
 }

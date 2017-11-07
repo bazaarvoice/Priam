@@ -55,6 +55,9 @@ public class AmazonConfiguration {
     @JsonProperty
     private String simpleDbRegion;   // Defaults to the current region.  Set explicitly for cross-dc rings.
 
+    @JsonProperty
+    private String cassandraVolumeBlockDevice;
+
     public String getAutoScaleGroupName() {
         return autoScaleGroupName;
     }
@@ -103,6 +106,10 @@ public class AmazonConfiguration {
         return StringUtils.isNotBlank(simpleDbRegion) ? simpleDbRegion : "us-east-1";
     }
 
+    public String getCassandraVolumeBlockDevice() {
+        return cassandraVolumeBlockDevice;
+    }
+
     public void setAutoScaleGroupName(String autoScaleGroupName) {
         this.autoScaleGroupName = autoScaleGroupName;
     }
@@ -147,6 +154,10 @@ public class AmazonConfiguration {
         this.simpleDbRegion = simpleDbRegion;
     }
 
+    public void setCassandraVolumeBlockDevice(String cassandraVolumeBlockDevice) {
+        this.cassandraVolumeBlockDevice = cassandraVolumeBlockDevice;
+    }
+    
     public void discoverConfiguration(AWSCredentialsProvider credentialProvider) {
         if (StringUtils.isBlank(availabilityZone)) {
             availabilityZone = EC2MetadataUtils.getAvailabilityZone();
