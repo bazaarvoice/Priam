@@ -90,6 +90,9 @@ public class CassandraConfiguration {
     private Integer memtableTotalSpaceMB;
 
     @JsonProperty
+    private Integer memtableFlushWriters;
+
+    @JsonProperty
     private Integer streamingThroughputMbps;
 
     @JsonProperty
@@ -302,6 +305,10 @@ public class CassandraConfiguration {
         return memtableTotalSpaceMB;
     }
 
+    public Integer getMemtableFlushWriters() {
+        return memtableFlushWriters;
+    }
+
     public Integer getStreamingThroughputMbps() {
         return streamingThroughputMbps;
     }
@@ -512,6 +519,10 @@ public class CassandraConfiguration {
 
     public void setMemtableTotalSpaceMB(Integer memtableTotalSpaceMB) {
         this.memtableTotalSpaceMB = memtableTotalSpaceMB;
+    }
+
+    public void setMemtableFlushWriters(Integer memTableFlushWriters) {
+        this.memtableFlushWriters = memTableFlushWriters;
     }
 
     public void setStreamingThroughputMbps(Integer streamingThroughputMbps) {
