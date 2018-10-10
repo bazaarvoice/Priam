@@ -71,6 +71,7 @@ public class StandardTuner implements CassandraTuner {
         put(map, "partitioner", derivePartitioner(map.get("partitioner").toString(), cassandraConfiguration.getPartitioner()));
 
         put(map, "memtable_total_space_in_mb", cassandraConfiguration.getMemtableTotalSpaceMB());
+        put(map, "memtable_flush_writers", cassandraConfiguration.getMemtableFlushWriters());
         put(map, "stream_throughput_outbound_megabits_per_sec", cassandraConfiguration.getStreamingThroughputMbps());
 
         put(map, "max_hint_window_in_ms", cassandraConfiguration.getMaxHintWindowMS());
