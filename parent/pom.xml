@@ -5,13 +5,13 @@
     <parent>
         <groupId>com.bazaarvoice.commons</groupId>
         <artifactId>bv-super-pom</artifactId>
-        <version>1.12</version>
+        <version>1.21</version>
         <relativePath />
     </parent>
 
     <groupId>com.bazaarvoice.priam</groupId>
     <artifactId>priam-parent</artifactId>
-    <version>2.12-SNAPSHOT</version>
+    <version>3.11.4-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Priam Parent</name>
@@ -28,7 +28,7 @@
         <connection>scm:git:git@github.com:bazaarvoice/Priam.git</connection>
         <url>scm:git:git@github.com:bazaarvoice/Priam.git</url>
         <developerConnection>scm:git:git@github.com:bazaarvoice/Priam.git</developerConnection>
-        <tag>priam-complete-1.1</tag>
+        <tag>priam-complete-3.11</tag>
     </scm>
 
     <properties>
@@ -146,7 +146,7 @@
             <dependency>
                 <groupId>org.apache.cassandra</groupId>
                 <artifactId>cassandra-all</artifactId>
-                <version>2.2.4</version>
+                <version>3.11.4</version>
                 <exclusions>
                     <!-- ignore stuff that conflicts with Dropwizard -->
                     <exclusion>
@@ -202,7 +202,7 @@
             <dependency>
                 <groupId>net.java.dev.jna</groupId>
                 <artifactId>jna</artifactId>
-                <version>3.5.2</version>
+                <version>4.4.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
@@ -232,7 +232,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.11</version>
+                <version>4.12</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>

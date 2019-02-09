@@ -296,7 +296,7 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
             if ("system".equalsIgnoreCase(keyspace)) {
                 continue; // It is an error to attempt to cleanup the system column family.
             }
-            forceKeyspaceCleanup(keyspace);
+            forceKeyspaceCleanup(0, keyspace);
         }
     }
 

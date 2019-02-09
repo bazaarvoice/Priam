@@ -220,7 +220,7 @@ public class CassandraAdminResource {
 
     @GET
     @Path("/ring")
-    public Response cassRingAllKeyspaces(@PathParam("keyspace") String keyspace) throws Exception {
+    public Response cassRingAllKeyspaces() throws Exception {
         JMXNodeTool nodetool = getNodeTool();
         logger.info("node tool ring being called");
         return Response.ok(nodetool.ring(), MediaType.APPLICATION_JSON).build();
@@ -291,7 +291,7 @@ public class CassandraAdminResource {
             tpObj.put("pool name", stage.getJmxName());
 
             for (final Entry<String, String> metricName : metricNames.entrySet()) {
-                final Object tpStat = nodetool.getThreadPoolMetric(stage, metricName.getKey());
+                final Object tpStat = nodetool.getThreadPoolMetric(stage.getJmxName(), stage.getJmxName(), metricName.getKey());
                 tpObj.put(metricName.getValue(), tpStat);
             }
 
@@ -458,9 +458,9 @@ public class CassandraAdminResource {
             cfs = cfnames.split(",");
         }
         if (cfs == null) {
-            nodetool.scrub(false, false, false, keyspaces);
+            nodetool.scrub(false, false, false, false, 0, keyspaces);
         } else {
-            nodetool.scrub(false, false, false, keyspaces, cfs);
+            nodetool.scrub(false, false, false, false, 0, keyspaces, cfs);
         }
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
     }
