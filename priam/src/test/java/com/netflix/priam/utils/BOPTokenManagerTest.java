@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.netflix.priam.identity.Location;
 import com.netflix.priam.identity.SimpleLocation;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
-import org.apache.cassandra.dht.BytesToken;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.utils.Hex;
 import org.junit.Test;
@@ -223,14 +222,14 @@ public class BOPTokenManagerTest {
         Token t1 = tokenManager.initialToken(100, 10, h1);
         Token t2 = tokenManager.initialToken(100, 10, h2);
 
-        BigInteger tokenDistance = new BigInteger(1, (byte[]) t1.token).subtract(new BigInteger(1, (byte[]) t2.token));
+        BigInteger tokenDistance = new BigInteger(1, (byte[]) t1.getTokenValue()).subtract(new BigInteger(1, (byte[]) t2.getTokenValue()));
         long hashDifference = h1 - h2;
 
         assertEquals(BigInteger.valueOf(hashDifference), tokenDistance);
 
         Token t3 = tokenManager.initialToken(100, 99, h1);
         Token t4 = tokenManager.initialToken(100, 99, h2);
-        tokenDistance = new BigInteger(1, (byte[]) t3.token).subtract(new BigInteger(1, (byte[]) t4.token));
+        tokenDistance = new BigInteger(1, (byte[]) t3.getTokenValue()).subtract(new BigInteger(1, (byte[]) t4.getTokenValue()));
 
         assertEquals(BigInteger.valueOf(hashDifference), tokenDistance);
     }
@@ -276,7 +275,7 @@ public class BOPTokenManagerTest {
         Random random = new Random();
         byte[] bytes = new byte[random.nextInt(16)];
         random.nextBytes(bytes);
-        BytesToken token = new BytesToken(bytes);
+        ByteOrderedPartitioner.BytesToken token = new ByteOrderedPartitioner.BytesToken(bytes);
 
         BOPTokenManager tokenManager = newBOPTokenManager(16);
         String string = tokenManager.sanitizeToken(token.toString());
@@ -289,7 +288,7 @@ public class BOPTokenManagerTest {
         return new BOPTokenManager(tokenLength, Strings.repeat("00", tokenLength), Strings.repeat("ff", tokenLength));
     }
 
-    private static BytesToken toToken(String string) {
-        return new BytesToken(Hex.hexToBytes(string));
+    private static ByteOrderedPartitioner.BytesToken toToken(String string) {
+        return new ByteOrderedPartitioner.BytesToken(Hex.hexToBytes(string));
     }
 }

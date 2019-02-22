@@ -272,7 +272,7 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
 
     public void compact() throws IOException, ExecutionException, InterruptedException {
         for (String keyspace : getKeyspaces()) {
-            forceKeyspaceCompaction(keyspace);
+            forceKeyspaceCompaction(false, keyspace);
         }
     }
 
@@ -284,11 +284,11 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
 
     public void repair(String keyspace, boolean isSequential, boolean localDataCenterOnly, boolean primaryRange) throws IOException {
         final Map<String, String> options = ImmutableMap.of(
-            "parallelism", isSequential ? "sequential" : "parallel",
-            "primaryRange", String.valueOf(primaryRange),
-            "dataCenters", getDataCenter()
+                "parallelism", isSequential ? "sequential" : "parallel",
+                "primaryRange", String.valueOf(primaryRange),
+                "dataCenters", getDataCenter()
         );
-        forceKeyspaceRepair(keyspace, isSequential, localDataCenterOnly);
+        repairAsync(System.out, keyspace, options);
     }
 
     public void cleanup() throws IOException, ExecutionException, InterruptedException {
@@ -296,7 +296,7 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
             if ("system".equalsIgnoreCase(keyspace)) {
                 continue; // It is an error to attempt to cleanup the system column family.
             }
-            forceKeyspaceCleanup(keyspace);
+            forceKeyspaceCleanup(0, keyspace);
         }
     }
 
