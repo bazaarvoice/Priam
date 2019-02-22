@@ -11,7 +11,7 @@
 
     <groupId>com.bazaarvoice.priam</groupId>
     <artifactId>priam-parent</artifactId>
-    <version>2.10.12-SNAPSHOT</version>
+    <version>3.11.4-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Priam Parent</name>
@@ -28,7 +28,7 @@
         <connection>scm:git:git@github.com:bazaarvoice/Priam.git</connection>
         <url>scm:git:git@github.com:bazaarvoice/Priam.git</url>
         <developerConnection>scm:git:git@github.com:bazaarvoice/Priam.git</developerConnection>
-        <tag>priam-complete-2.10.1</tag>
+        <tag>priam-complete-3.11.4</tag>
     </scm>
 
     <properties>
@@ -146,7 +146,7 @@
             <dependency>
                 <groupId>org.apache.cassandra</groupId>
                 <artifactId>cassandra-all</artifactId>
-                <version>2.0.17</version>
+                <version>3.11.4</version>
                 <exclusions>
                     <!-- ignore stuff that conflicts with Dropwizard -->
                     <exclusion>
@@ -202,7 +202,7 @@
             <dependency>
                 <groupId>net.java.dev.jna</groupId>
                 <artifactId>jna</artifactId>
-                <version>3.5.2</version>
+                <version>4.4.0</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>

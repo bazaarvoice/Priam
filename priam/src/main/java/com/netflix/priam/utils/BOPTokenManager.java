@@ -20,7 +20,6 @@ import com.google.common.base.CharMatcher;
 import com.google.common.collect.Ordering;
 import com.netflix.priam.identity.Location;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
-import org.apache.cassandra.dht.BytesToken;
 import org.apache.cassandra.dht.Token;
 
 import java.math.BigInteger;
@@ -75,8 +74,8 @@ public class BOPTokenManager extends TokenManager {
         // assumption with the ByteOrderedPartitioner, but that's why everyone is discouraged from using it.
 
         // Subdivide between the min and max using tokenLength bytes of precision.
-        BigInteger min = new BigInteger(1, (byte[]) minimumToken.token);
-        BigInteger max = new BigInteger(1, (byte[]) maximumToken.token);
+        BigInteger min = new BigInteger(1, (byte[]) minimumToken.getTokenValue());
+        BigInteger max = new BigInteger(1, (byte[]) maximumToken.getTokenValue());
         BigInteger range = max.subtract(min);
 
         BigInteger value = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s
@@ -120,7 +119,7 @@ public class BOPTokenManager extends TokenManager {
 
     private boolean lessThanMidPoint(String min, String token, String max) {
         Token.TokenFactory tf = partitioner.getTokenFactory();
-        BytesToken midpoint = partitioner.midpoint(tf.fromString(min), tf.fromString(max));
+        ByteOrderedPartitioner.BytesToken midpoint = partitioner.midpoint(tf.fromString(min), tf.fromString(max));
         return tf.fromString(token).compareTo(midpoint) < 0;
     }
 

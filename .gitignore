@@ -9,3 +9,5 @@
 *.log
 target
 tmp
+*/dependency-reduced-pom.xml
+
