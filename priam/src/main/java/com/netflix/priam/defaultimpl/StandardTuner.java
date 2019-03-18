@@ -84,6 +84,7 @@ public class StandardTuner implements CassandraTuner {
         put(map, "concurrent_reads", cassandraConfiguration.getConcurrentReads());
         put(map, "concurrent_writes", cassandraConfiguration.getConcurrentWrites());
         put(map, "concurrent_compactors", cassandraConfiguration.getConcurrentCompactors());
+        put(map, "disk_optimization_strategy", cassandraConfiguration.getDiskOptimizationStrategy());
 
         put(map, "rpc_server_type", cassandraConfiguration.getRpcServerType());
         put(map, "index_interval", cassandraConfiguration.getIndexInterval());  // Removed in Cassandra 2.1
