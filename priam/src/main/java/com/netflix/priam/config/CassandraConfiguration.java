@@ -189,6 +189,9 @@ public class CassandraConfiguration {
     private Integer batchSizeFailureThresholdInKb;
 
     @JsonProperty
+    private String diskOptimizationStrategy;
+
+    @JsonProperty
     private Map<String, String> extraConfigParams;
 
     // Amazon Resource Name (ARN) for SimpleDB Role Assumption.
@@ -383,6 +386,10 @@ public class CassandraConfiguration {
 
     public Integer getConcurrentCompactors() {
         return concurrentCompactors;
+    }
+
+    public String getDiskOptimizationStrategy() {
+        return diskOptimizationStrategy;
     }
 
     public boolean isClientSslEnabled() {
@@ -671,5 +678,9 @@ public class CassandraConfiguration {
 
     public void setBatchSizeFailureThresholdInKb(Integer batchSizeFailureThresholdInKb) {
         this.batchSizeFailureThresholdInKb = batchSizeFailureThresholdInKb;
+    }
+
+    public void setDiskOptimizationStrategy(String diskOptimizationStrategy) {
+        this.diskOptimizationStrategy = diskOptimizationStrategy;
     }
 }
