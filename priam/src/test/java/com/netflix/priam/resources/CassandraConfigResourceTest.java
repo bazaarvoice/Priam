@@ -8,8 +8,10 @@ import com.netflix.priam.identity.PriamInstance;
 import mockit.Expectations;
 import mockit.Mocked;
 import mockit.NonStrictExpectations;
+import mockit.integration.junit4.JMockit;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import javax.ws.rs.core.Response;
 import java.io.IOException;
@@ -19,6 +21,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+@RunWith(JMockit.class)
 public class CassandraConfigResourceTest {
     private
     @Mocked
@@ -34,11 +37,9 @@ public class CassandraConfigResourceTest {
     }
 
     @Test
-    public void getSeeds() throws Exception {
+    public void getSeeds(@Mocked final InstanceIdentity identity) throws Exception {
         final List<String> seeds = ImmutableList.of("seed1", "seed2", "seed3");
         new NonStrictExpectations() {
-            InstanceIdentity identity;
-
             {
                 priamServer.getInstanceIdentity();
                 result = identity;
@@ -53,11 +54,9 @@ public class CassandraConfigResourceTest {
     }
 
     @Test
-    public void getSeeds_notFound() throws Exception {
+    public void getSeeds_notFound(@Mocked final InstanceIdentity identity) throws Exception {
         final List<String> seeds = ImmutableList.of();
         new NonStrictExpectations() {
-            InstanceIdentity identity;
-
             {
                 priamServer.getInstanceIdentity();
                 result = identity;
@@ -71,10 +70,8 @@ public class CassandraConfigResourceTest {
     }
 
     @Test
-    public void getSeeds_handlesUnknownHostException() throws Exception {
+    public void getSeeds_handlesUnknownHostException(@Mocked final InstanceIdentity identity) throws Exception {
         new Expectations() {
-            InstanceIdentity identity;
-
             {
                 priamServer.getInstanceIdentity();
                 result = identity;
@@ -88,12 +85,9 @@ public class CassandraConfigResourceTest {
     }
 
     @Test
-    public void getToken() {
+    public void getToken(@Mocked final InstanceIdentity identity, @Mocked final PriamInstance instance) {
         final String token = "myToken";
         new NonStrictExpectations() {
-            InstanceIdentity identity;
-            PriamInstance instance;
-
             {
                 priamServer.getInstanceIdentity();
                 result = identity;
@@ -113,12 +107,9 @@ public class CassandraConfigResourceTest {
     }
 
     @Test
-    public void getToken_notFound() {
+    public void getToken_notFound(@Mocked final InstanceIdentity identity, @Mocked final PriamInstance instance) {
         final String token = "";
         new NonStrictExpectations() {
-            InstanceIdentity identity;
-            PriamInstance instance;
-
             {
                 priamServer.getInstanceIdentity();
                 result = identity;
@@ -134,11 +125,8 @@ public class CassandraConfigResourceTest {
     }
 
     @Test
-    public void getToken_handlesException() {
+    public void getToken_handlesException(@Mocked final InstanceIdentity identity, @Mocked final PriamInstance instance) {
         new NonStrictExpectations() {
-            InstanceIdentity identity;
-            PriamInstance instance;
-
             {
                 priamServer.getInstanceIdentity();
                 result = identity;
@@ -154,10 +142,8 @@ public class CassandraConfigResourceTest {
     }
 
     @Test
-    public void isReplaceToken() {
+    public void isReplaceToken(@Mocked final InstanceIdentity identity) {
         new NonStrictExpectations() {
-            InstanceIdentity identity;
-
             {
                 priamServer.getInstanceIdentity();
                 result = identity;
@@ -172,10 +158,8 @@ public class CassandraConfigResourceTest {
     }
 
     @Test
-    public void isReplaceToken_handlesException() {
+    public void isReplaceToken_handlesException(@Mocked final InstanceIdentity identity) {
         new Expectations() {
-            InstanceIdentity identity;
-
             {
                 priamServer.getInstanceIdentity();
                 result = identity;

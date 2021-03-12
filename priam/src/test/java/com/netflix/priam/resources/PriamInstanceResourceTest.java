@@ -6,8 +6,10 @@ import com.netflix.priam.identity.IPriamInstanceRegistry;
 import com.netflix.priam.identity.PriamInstance;
 import mockit.Expectations;
 import mockit.Mocked;
+import mockit.integration.junit4.JMockit;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
@@ -16,16 +18,16 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+@RunWith(JMockit.class)
 public class PriamInstanceResourceTest {
     private static final String APP_NAME = "myApp";
     private static final int NODE_ID = 3;
 
-    private
     @Mocked
-    CassandraConfiguration cassandraConfiguration;
-    private
+    private CassandraConfiguration cassandraConfiguration;
+
     @Mocked
-    IPriamInstanceRegistry instanceRegistry;
+    private IPriamInstanceRegistry instanceRegistry;
     private PriamInstanceResource resource;
 
     @Before
@@ -34,13 +36,8 @@ public class PriamInstanceResourceTest {
     }
 
     @Test
-    public void getInstances() {
+    public void getInstances(@Mocked final PriamInstance instance1, @Mocked final PriamInstance instance2, @Mocked final PriamInstance instance3) {
         new Expectations() {
-            PriamInstance instance1
-                    ,
-                    instance2
-                    ,
-                    instance3;
             List<PriamInstance> instances = ImmutableList.of(instance1, instance2, instance3);
 
             {
@@ -61,11 +58,9 @@ public class PriamInstanceResourceTest {
     }
 
     @Test
-    public void getInstance() {
+    public void getInstance(@Mocked final PriamInstance instance) {
         final String expected = "plain text describing the instance";
         new Expectations() {
-            PriamInstance instance;
-
             {
                 cassandraConfiguration.getClusterName();
                 result = APP_NAME;
@@ -98,7 +93,7 @@ public class PriamInstanceResourceTest {
     }
 
     @Test
-    public void createInstance() {
+    public void createInstance(@Mocked final PriamInstance instance) {
         final String instanceID = "i-abc123";
         final String hostname = "dom.com";
         final String ip = "123.123.123.123";
@@ -106,8 +101,6 @@ public class PriamInstanceResourceTest {
         final String token = "1234567890";
 
         new Expectations() {
-            PriamInstance instance;
-
             {
                 cassandraConfiguration.getClusterName();
                 result = APP_NAME;
@@ -124,10 +117,8 @@ public class PriamInstanceResourceTest {
     }
 
     @Test
-    public void deleteInstance() {
+    public void deleteInstance(@Mocked final PriamInstance instance) {
         new Expectations() {
-            PriamInstance instance;
-
             {
                 cassandraConfiguration.getClusterName();
                 result = APP_NAME;
