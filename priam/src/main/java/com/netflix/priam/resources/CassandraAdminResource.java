@@ -16,7 +16,6 @@
 package com.netflix.priam.resources;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -31,12 +30,10 @@ import com.netflix.priam.utils.JMXConnectionException;
 import com.netflix.priam.utils.JMXNodeTool;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.GenericType;
-import org.apache.cassandra.concurrent.Stage;
 import org.apache.cassandra.db.compaction.CompactionManagerMBean;
 import org.apache.cassandra.streaming.ProgressInfo;
 import org.apache.cassandra.streaming.SessionInfo;
 import org.apache.cassandra.streaming.StreamState;
-import org.apache.cassandra.utils.EstimatedHistogram;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +51,6 @@ import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -272,45 +268,6 @@ public class CassandraAdminResource {
     }
 
     @GET
-    @Path("/tpstats")
-    public Response tpstats() throws Exception {
-        final JMXNodeTool nodetool = getNodeTool();
-        final Iterable<Stage> stages = Stage.jmxEnabledStages();
-        final List<Map<String, Object>> threadPoolArray = Lists.newArrayList();
-        final ImmutableMap<String, String> metricNames = ImmutableMap.<String, String>builder()
-            .put("ActiveTasks", "active")
-            .put("PendingTasks", "pending")
-            .put("CompletedTasks", "completed")
-            .put("TotalBlockedTasks", "total blocked")
-            .put("CurrentlyBlockedTasks", "blocked")
-            .put("MaxPoolSize", "max size")
-            .build();
-
-        for (final Stage stage : stages) {
-            final Map<String, Object> tpObj = Maps.newLinkedHashMap();
-            tpObj.put("pool name", stage.getJmxName());
-
-            for (final Entry<String, String> metricName : metricNames.entrySet()) {
-                final Object tpStat = nodetool.getThreadPoolMetric(stage, metricName.getKey());
-                tpObj.put(metricName.getValue(), tpStat);
-            }
-
-            threadPoolArray.add(tpObj);
-        }
-
-        Map<String, Object> droppedMsgs = Maps.newLinkedHashMap();
-        for (Entry<String, Integer> entry : nodetool.getDroppedMessages().entrySet()) {
-            droppedMsgs.put(entry.getKey(), entry.getValue());
-        }
-
-        Map<String, Object> rootObj = Maps.newLinkedHashMap();
-        rootObj.put("thread pool", threadPoolArray);
-        rootObj.put("dropped messages", droppedMsgs);
-
-        return Response.ok(rootObj, MediaType.APPLICATION_JSON).build();
-    }
-
-    @GET
     @Path("/compactionstats")
     public Response compactionStats() throws Exception {
         JMXNodeTool nodetool = getNodeTool();
@@ -427,7 +384,7 @@ public class CassandraAdminResource {
             for (SessionInfo streamSession : streamSessions) {
                 final Collection<ProgressInfo> sendingFiles = streamSession.getSendingFiles();
                 final Collection<ProgressInfo> receivingFiles = streamSession.getReceivingFiles();
-                final String connectingHost = streamSession.connecting.getHostName();
+                final String connectingHost = streamSession.peer.getHostName();
                 final Set<Collection<ProgressInfo>> streams = rootObj.containsKey(connectingHost) ? (Set<Collection<ProgressInfo>>) rootObj.get(connectingHost) : Sets.<Collection<ProgressInfo>>newHashSet();
                 streams.add(sendingFiles);
                 streams.add(receivingFiles);
@@ -463,42 +420,6 @@ public class CassandraAdminResource {
             nodetool.scrub(false, false, false, keyspaces, cfs);
         }
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
-    }
-
-    @GET
-    @Path("/cfhistograms")
-    public Response cfhistograms(@QueryParam("keyspace") String keyspace, @QueryParam("cfname") String cfname)
-            throws Exception {
-        JMXNodeTool nodetool = getNodeTool();
-        if (StringUtils.isBlank(keyspace) || StringUtils.isBlank(cfname)) {
-            return Response.status(400).entity("Missing keyspace/cfname in request").build();
-        }
-
-        // default is 90 offsets
-        long[] offsets = new EstimatedHistogram().getBucketOffsets();
-
-        Object readLatency = nodetool.getColumnFamilyMetric(keyspace, cfname, "ReadLatency");
-        Object writeLatency = nodetool.getColumnFamilyMetric(keyspace, cfname, "WriteLatency");
-        Object ssTablesPerReadHist = nodetool.getColumnFamilyMetric(keyspace, cfname, "SSTablesPerReadHistogram");
-        Object estimatedRowSizeHist = nodetool.getColumnFamilyMetric(keyspace, cfname, "EstimatedRowSizeHistogram");
-        Object estimatedColumnCountHist = nodetool.getColumnFamilyMetric(keyspace, cfname, "EstimatedColumnCountHistogram");
-
-        Map<String, Object> rootObj = Maps.newLinkedHashMap();
-        List<String> columns = ImmutableList.of("offset", "sstables", "write latency", "read latency", "row size", "column count");
-        rootObj.put("columns", columns);
-        List<Object> values = Lists.newArrayList();
-        for (int i = 0; i < offsets.length; i++) {
-            List<Object> row = Lists.newArrayList();
-            row.add(offsets[i]);
-            row.add(readLatency);
-            row.add(writeLatency);
-            row.add(ssTablesPerReadHist);
-            row.add(estimatedRowSizeHist);
-            row.add(estimatedColumnCountHist);
-            values.add(row);
-        }
-        rootObj.put("values", values);
-        return Response.ok(rootObj, MediaType.APPLICATION_JSON).build();
     }
 
     @GET

@@ -17,6 +17,7 @@ package com.netflix.priam.defaultimpl;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
@@ -25,8 +26,14 @@ import com.google.common.net.HostAndPort;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
+import com.google.inject.TypeLiteral;
+import com.google.inject.name.Named;
+import com.google.inject.name.Names;
 import com.netflix.priam.aws.AWSMembership;
 import com.netflix.priam.aws.SDBInstanceRegistry;
+import com.netflix.priam.aws.auth.SDBCredentialProvider;
+import com.netflix.priam.volume.DefaultVolumeMetadataManager;
+import com.netflix.priam.volume.IVolumeMetadataManager;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
@@ -34,8 +41,10 @@ import com.netflix.priam.config.MonitoringConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
 import com.netflix.priam.config.ZooKeeperConfiguration;
 import com.netflix.priam.dropwizard.managers.ServiceRegistryManager;
+import com.netflix.priam.identity.ConfigFileLocation;
 import com.netflix.priam.identity.IMembership;
 import com.netflix.priam.identity.IPriamInstanceRegistry;
+import com.netflix.priam.identity.Location;
 import com.netflix.priam.local.LocalMembership;
 import com.netflix.priam.utils.Sleeper;
 import com.netflix.priam.utils.ThreadSleeper;
@@ -71,7 +80,6 @@ public class PriamGuiceModule extends AbstractModule {
         // Configuration bindings
         bind(PriamConfiguration.class).toInstance(priamConfiguration);
         bind(CassandraConfiguration.class).toInstance(priamConfiguration.getCassandraConfiguration());
-        bind(AmazonConfiguration.class).toInstance(priamConfiguration.getAmazonConfiguration());
         bind(BackupConfiguration.class).toInstance(priamConfiguration.getBackupConfiguration());
         bind(ZooKeeperConfiguration.class).toInstance(priamConfiguration.getZooKeeperConfiguration());
         bind(MonitoringConfiguration.class).toInstance(priamConfiguration.getMonitoringConfiguration());
@@ -82,13 +90,26 @@ public class PriamGuiceModule extends AbstractModule {
         } else {
             bind(IMembership.class).to(AWSMembership.class).asEagerSingleton();
         }
+
+        bind(IVolumeMetadataManager.class).to(DefaultVolumeMetadataManager.class).asEagerSingleton();
+
+        bind(new TypeLiteral<Optional<String>>(){}).annotatedWith(Names.named("awsRoleAssumptionARN")).toInstance(priamConfiguration.getCassandraConfiguration().getSdbRoleAssumptionArn());
         bind(AWSCredentialsProvider.class).to(DefaultAWSCredentialsProviderChain.class).asEagerSingleton();
 
+        bind(Location.class).to(ConfigFileLocation.class).asEagerSingleton();
         bind(TokenManager.class).toProvider(TokenManagerProvider.class);
         bind(Sleeper.class).to(ThreadSleeper.class).asEagerSingleton();
 
         bind(ServiceRegistryManager.class).asEagerSingleton();
         bind(MetricRegistry.class).toInstance(environment.metrics());
+    }
+
+    @Provides
+    @Singleton
+    AmazonConfiguration provideAmazonConfiguration(AWSCredentialsProvider credentialsProvider) {
+        AmazonConfiguration amazonConfiguration = priamConfiguration.getAmazonConfiguration();
+        amazonConfiguration.discoverConfiguration(credentialsProvider);
+        return amazonConfiguration;
     }
 
     @Provides
@@ -143,6 +164,20 @@ public class PriamGuiceModule extends AbstractModule {
             throw new IllegalStateException("Unable to determine the local host address for the server", ex);
         } catch(NoSuchElementException ex) {
             throw new IllegalStateException("Did not find a valid HttpConnector for the server", ex);
+        }
+    }
+
+    @Provides
+    @Singleton
+    @SDBCredentialProvider
+    AWSCredentialsProvider provideAWSCredentialsProvider(AWSCredentialsProvider defaultAWSCredentialsProvider,
+                                                         AmazonConfiguration amazonConfiguration,
+                                                         @Named("awsRoleAssumptionARN") Optional<String> awsRoleAssumptionARN) {
+        if (awsRoleAssumptionARN.isPresent()) {
+            return new STSAssumeRoleSessionCredentialsProvider(defaultAWSCredentialsProvider, awsRoleAssumptionARN.get(),
+                    "Session-" + amazonConfiguration.getPrivateIP());
+        } else {
+            return defaultAWSCredentialsProvider;
         }
     }
 }

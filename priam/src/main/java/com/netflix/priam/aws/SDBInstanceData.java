@@ -32,7 +32,9 @@ import com.amazonaws.services.simpledb.model.SelectResult;
 import com.amazonaws.services.simpledb.model.UpdateCondition;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import com.netflix.priam.aws.auth.SDBCredentialProvider;
 import com.netflix.priam.config.AmazonConfiguration;
+import com.netflix.priam.identity.Location;
 import com.netflix.priam.identity.PriamInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,13 +64,13 @@ public class SDBInstanceData {
         public final static String HOSTNAME = "hostname";
     }
 
-    private final AWSCredentialsProvider provider;
+    private final AWSCredentialsProvider sdbCredentialProvider;
     private final Region sdbRegion;
     private final String sdbDomain;
 
     @Inject
-    public SDBInstanceData(AWSCredentialsProvider provider, AmazonConfiguration amazonConfiguration) {
-        this.provider = provider;
+    public SDBInstanceData(@SDBCredentialProvider AWSCredentialsProvider sdbCredentialProvider,  AmazonConfiguration amazonConfiguration) {
+        this.sdbCredentialProvider = sdbCredentialProvider;
         this.sdbRegion = RegionUtils.getRegion(amazonConfiguration.getSimpleDbRegion());
         this.sdbDomain = amazonConfiguration.getSimpleDbDomain();
 
@@ -241,7 +243,7 @@ public class SDBInstanceData {
         attrs.add(new ReplaceableAttribute(Attributes.AVAILABILITY_ZONE, instance.getAvailabilityZone(), true));
         attrs.add(new ReplaceableAttribute(Attributes.ELASTIC_IP, instance.getHostIP(), true));
         attrs.add(new ReplaceableAttribute(Attributes.HOSTNAME, instance.getHostName(), true));
-        attrs.add(new ReplaceableAttribute(Attributes.LOCATION, instance.getRegionName(), true));
+        attrs.add(new ReplaceableAttribute(Attributes.LOCATION, instance.getLocation().toString(), true));
         attrs.add(new ReplaceableAttribute(Attributes.UPDATE_TS, Long.toString(instance.getUpdatetime()), true));
         return attrs;
     }
@@ -275,7 +277,7 @@ public class SDBInstanceData {
                     ins.setHost(att.getValue());
                     break;
                 case Attributes.LOCATION:
-                    ins.setRegionName(att.getValue());
+                    ins.setLocation(Location.from(att.getValue()));
                     break;
                 case Attributes.UPDATE_TS:
                     ins.setUpdatetime(Long.parseLong(att.getValue()));
@@ -291,8 +293,9 @@ public class SDBInstanceData {
 
     private AmazonSimpleDB getSimpleDBClient() {
         //Create per request
-        AmazonSimpleDB client = new AmazonSimpleDBClient(provider);
+        AmazonSimpleDB client = new AmazonSimpleDBClient(sdbCredentialProvider);
         client.setRegion(sdbRegion);
         return client;
     }
+
 }

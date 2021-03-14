@@ -2,6 +2,7 @@ package com.netflix.priam.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 
 import java.util.Map;
@@ -38,7 +39,13 @@ public class CassandraConfiguration {
     private String cassStopScript;
 
     @JsonProperty
+    private String cassVersionScript;
+
+    @JsonProperty
     private String clusterName;
+
+    @JsonProperty
+    private String dataCenterSuffix;
 
     @JsonProperty
     private String dataLocation;
@@ -83,10 +90,31 @@ public class CassandraConfiguration {
     private Integer memtableTotalSpaceMB;
 
     @JsonProperty
+    private Integer memtableFlushWriters;
+
+    @JsonProperty
     private Integer streamingThroughputMbps;
 
     @JsonProperty
     private long hintedHandoffThrottleKB;
+
+    @JsonProperty
+    private long readRequestTimeoutInMs = 10000L;
+
+    @JsonProperty
+    private long rangeRequestTimeoutInMs = 10000L;
+
+    @JsonProperty
+    private long writeRequestTimeoutInMs = 10000L;
+
+    @JsonProperty
+    private long requestTimeoutInMs = 10000L;
+
+    @JsonProperty
+    private Integer tombstonesWarningThreshold = 1000;
+
+    @JsonProperty
+    private Integer tombstonesFailureThreshold = 100000;
 
     @JsonProperty
     private long maxHintWindowMS;
@@ -155,7 +183,21 @@ public class CassandraConfiguration {
     private int nodeRepairMutexAcquireTimeOut;
 
     @JsonProperty
+    private Integer batchSizeWarningThresholdInKb;
+
+    @JsonProperty
+    private Integer batchSizeFailureThresholdInKb;
+
+    @JsonProperty
+    private String diskOptimizationStrategy;
+
+    @JsonProperty
     private Map<String, String> extraConfigParams;
+
+    // Amazon Resource Name (ARN) for SimpleDB Role Assumption.
+    // If this is set STSAssumeRoleSessionCredentialsProvider is used instead of the default DefaultAWSCredentialsProviderChain for the simpleDB access.
+    @JsonProperty
+    private Optional<String> sdbRoleAssumptionArn = Optional.absent();
 
     public String getPartitioner() {
         return partitioner;
@@ -198,8 +240,16 @@ public class CassandraConfiguration {
         return cassStopScript;
     }
 
+    public String getCassVersionScript() {
+        return cassVersionScript;
+    }
+
     public String getClusterName() {
         return clusterName;
+    }
+
+    public String getDataCenterSuffix() {
+        return dataCenterSuffix;
     }
 
     public String getDataLocation() {
@@ -256,6 +306,10 @@ public class CassandraConfiguration {
 
     public Integer getMemtableTotalSpaceMB() {
         return memtableTotalSpaceMB;
+    }
+
+    public Integer getMemtableFlushWriters() {
+        return memtableFlushWriters;
     }
 
     public Integer getStreamingThroughputMbps() {
@@ -334,6 +388,10 @@ public class CassandraConfiguration {
         return concurrentCompactors;
     }
 
+    public String getDiskOptimizationStrategy() {
+        return diskOptimizationStrategy;
+    }
+
     public boolean isClientSslEnabled() {
         return clientSslEnabled;
     }
@@ -352,6 +410,14 @@ public class CassandraConfiguration {
 
     public int getNodeRepairMutexAcquireTimeOut() {
         return nodeRepairMutexAcquireTimeOut;
+    }
+
+    public Integer getBatchSizeWarningThresholdInKb() {
+        return batchSizeWarningThresholdInKb;
+    }
+
+    public Integer getBatchSizeFailureThresholdInKb() {
+        return batchSizeFailureThresholdInKb;
     }
 
     public Map<String, String> getExtraConfigParams() {
@@ -400,6 +466,10 @@ public class CassandraConfiguration {
 
     public void setClusterName(String clusterName) {
         this.clusterName = clusterName;
+    }
+
+    public void setDataCenterSuffix(String dataCenterSuffix) {
+        this.dataCenterSuffix = dataCenterSuffix;
     }
 
     public void setDataLocation(String dataLocation) {
@@ -456,6 +526,10 @@ public class CassandraConfiguration {
 
     public void setMemtableTotalSpaceMB(Integer memtableTotalSpaceMB) {
         this.memtableTotalSpaceMB = memtableTotalSpaceMB;
+    }
+
+    public void setMemtableFlushWriters(Integer memTableFlushWriters) {
+        this.memtableFlushWriters = memTableFlushWriters;
     }
 
     public void setStreamingThroughputMbps(Integer streamingThroughputMbps) {
@@ -556,5 +630,57 @@ public class CassandraConfiguration {
 
     public void setExtraConfigParams(Map<String, String> extraConfigParams) {
         this.extraConfigParams = extraConfigParams;
+    }
+
+    public long getReadRequestTimeoutInMs() {
+        return readRequestTimeoutInMs;
+    }
+
+    public long getRangeRequestTimeoutInMs() {
+        return rangeRequestTimeoutInMs;
+    }
+
+    public long getWriteRequestTimeoutInMs() {
+        return writeRequestTimeoutInMs;
+    }
+
+    public long getRequestTimeoutInMs() {
+        return requestTimeoutInMs;
+    }
+
+    public Integer getTombstonesWarningThreshold() {
+        return tombstonesWarningThreshold;
+    }
+
+    public void setTombstonesWarningThreshold(Integer tombstonesWarningThreshold) {
+        this.tombstonesWarningThreshold = tombstonesWarningThreshold;
+    }
+
+    public Integer getTombstonesFailureThreshold() {
+        return tombstonesFailureThreshold;
+    }
+
+    public void setTombstonesFailureThreshold(Integer tombstonesFailureThreshold) {
+        this.tombstonesFailureThreshold = tombstonesFailureThreshold;
+    }
+
+    public Optional<String> getSdbRoleAssumptionArn() {
+        return sdbRoleAssumptionArn;
+    }
+
+    public void setSdbRoleAssumptionArn(Optional<String> sdbRoleAssumptionArn) {
+        this.sdbRoleAssumptionArn = sdbRoleAssumptionArn;
+    }
+
+    public void setBatchSizeWarningThresholdInKb(Integer batchSizeWarningThresholdInKb) {
+        this.batchSizeWarningThresholdInKb = batchSizeWarningThresholdInKb;
+    }
+
+    public void setBatchSizeFailureThresholdInKb(Integer batchSizeFailureThresholdInKb) {
+        this.batchSizeFailureThresholdInKb = batchSizeFailureThresholdInKb;
+    }
+
+    public void setDiskOptimizationStrategy(String diskOptimizationStrategy) {
+        this.diskOptimizationStrategy = diskOptimizationStrategy;
     }
 }

@@ -1,22 +1,30 @@
 package com.netflix.priam.defaultimpl;
 
+import com.datastax.driver.core.VersionNumber;
+import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.utils.CassandraTuner;
+import com.netflix.priam.utils.TokenManager;
+import org.apache.cassandra.locator.SnitchProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -35,7 +43,7 @@ public class StandardTuner implements CassandraTuner {
     }
 
     @Override
-    public void writeAllProperties(String yamlLocation, String hostIp, String seedProvider) throws IOException {
+    public void writeAllProperties(String yamlLocation, String hostIp, String seedProvider, @Nullable VersionNumber cassandraVersion) throws IOException {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         Yaml yaml = new Yaml(options);
@@ -56,11 +64,14 @@ public class StandardTuner implements CassandraTuner {
         put(map, "commitlog_directory", cassandraConfiguration.getCommitLogLocation());
         put(map, "data_file_directories", ImmutableList.of(cassandraConfiguration.getDataLocation()));
         put(map, "incremental_backups", backupConfiguration.isIncrementalBackupEnabledForCassandra());
+        put(map, "tombstone_warn_threshold", cassandraConfiguration.getTombstonesWarningThreshold());
+        put(map, "tombstone_failure_threshold", cassandraConfiguration.getTombstonesFailureThreshold());
         put(map, "endpoint_snitch", cassandraConfiguration.getEndpointSnitch());
         put(map, "compaction_throughput_mb_per_sec", cassandraConfiguration.getCompactionThroughputMBPerSec());
         put(map, "partitioner", derivePartitioner(map.get("partitioner").toString(), cassandraConfiguration.getPartitioner()));
 
         put(map, "memtable_total_space_in_mb", cassandraConfiguration.getMemtableTotalSpaceMB());
+        put(map, "memtable_flush_writers", cassandraConfiguration.getMemtableFlushWriters());
         put(map, "stream_throughput_outbound_megabits_per_sec", cassandraConfiguration.getStreamingThroughputMbps());
 
         put(map, "max_hint_window_in_ms", cassandraConfiguration.getMaxHintWindowMS());
@@ -73,9 +84,15 @@ public class StandardTuner implements CassandraTuner {
         put(map, "concurrent_reads", cassandraConfiguration.getConcurrentReads());
         put(map, "concurrent_writes", cassandraConfiguration.getConcurrentWrites());
         put(map, "concurrent_compactors", cassandraConfiguration.getConcurrentCompactors());
+        put(map, "disk_optimization_strategy", cassandraConfiguration.getDiskOptimizationStrategy());
 
         put(map, "rpc_server_type", cassandraConfiguration.getRpcServerType());
         put(map, "index_interval", cassandraConfiguration.getIndexInterval());  // Removed in Cassandra 2.1
+
+        put(map, "read_request_timeout_in_ms", cassandraConfiguration.getReadRequestTimeoutInMs());
+        put(map, "range_request_timeout_in_ms", cassandraConfiguration.getRangeRequestTimeoutInMs());
+        put(map, "write_request_timeout_in_ms", cassandraConfiguration.getWriteRequestTimeoutInMs());
+        put(map, "request_timeout_in_ms", cassandraConfiguration.getRequestTimeoutInMs());
 
         List<Map<String, Object>> seedp = get(map, "seed_provider");
         Map<String, Object> m = seedp.get(0);
@@ -83,6 +100,7 @@ public class StandardTuner implements CassandraTuner {
 
         configureSecurity(map);
         configureGlobalCaches(cassandraConfiguration, map);
+        configureBatchSizes(cassandraConfiguration, map, cassandraVersion);
 
         //force to 1 until vnodes are properly supported
         put(map, "num_tokens", 1);
@@ -93,6 +111,8 @@ public class StandardTuner implements CassandraTuner {
         yaml.dump(map, new FileWriter(yamlFile));
 
         configureCommitLogBackups();
+
+        writeCassandraSnitchProperties();
     }
 
     /**
@@ -123,6 +143,13 @@ public class StandardTuner implements CassandraTuner {
         if (lowerCase.contains("randomparti") || lowerCase.contains("murmur")) {
             return fromConfig;
         }
+        
+        // If both partitioners are either ByteOrderedPartitioner or EmoPartitioner than accept whichever
+        // is from the configuration file.
+        if (TokenManager.clientPartitioner(fromYaml).equals(TokenManager.clientPartitioner(fromConfig))) {
+            return fromConfig;
+        }
+
         return fromYaml;
     }
 
@@ -152,6 +179,26 @@ public class StandardTuner implements CassandraTuner {
         }
     }
 
+    private void configureBatchSizes(CassandraConfiguration cassandraConfiguration, Map<String, Object> yaml, @Nullable VersionNumber cassandraVersion) {
+        put(yaml, "batch_size_warn_threshold_in_kb", cassandraConfiguration.getBatchSizeWarningThresholdInKb());
+
+        // Failure threshold is only supported starting in 2.2.  Don't configure if the version number is known to be
+        // prior to that.
+        Integer batchSizeFailureThresholdInKb = cassandraConfiguration.getBatchSizeFailureThresholdInKb();
+        if (batchSizeFailureThresholdInKb != null) {
+            if (cassandraVersion == null) {
+                logger.warn("Batch size failure threshold has been set to {} but the Cassandra version could not be confirmed. " +
+                        "If Cassandra version is not 2.2+ this will cause a configuration error.", batchSizeFailureThresholdInKb);
+            }
+            if (cassandraVersion != null && cassandraVersion.compareTo(VersionNumber.parse("2.2")) < 0) {
+                logger.info("Batch size failure threshold has been set to {} but Cassandra version {} does not support this" +
+                        "option.  Ignoring value.", batchSizeFailureThresholdInKb, cassandraVersion);
+            } else {
+                put(yaml, "batch_size_fail_threshold_in_kb", batchSizeFailureThresholdInKb);
+            }
+        }
+    }
+
     @Override
     public void updateAutoBootstrap(String yamlFile, boolean autobootstrap) throws IOException {
         DumperOptions options = new DumperOptions();
@@ -178,6 +225,46 @@ public class StandardTuner implements CassandraTuner {
             String cassVal = entry.getValue();
             logger.info("Updating yaml: CassKey[{}], Val[{}]", cassKey, cassVal);
             put(map, cassKey, cassVal);
+        }
+    }
+
+    private void writeCassandraSnitchProperties() {
+        String rackdcPropFileName = cassandraConfiguration.getCassHome() + "/conf/" + SnitchProperties.RACKDC_PROPERTY_FILENAME;
+        File rackdcPropFile = new File(rackdcPropFileName);
+        Properties properties = new Properties();
+
+        // Read the existing properties, if any.
+        if (rackdcPropFile.exists()) {
+            try (Reader reader = new FileReader(rackdcPropFile)) {
+                properties.load(reader);
+            } catch (Exception e) {
+                throw new RuntimeException("Unable to read " + SnitchProperties.RACKDC_PROPERTY_FILENAME, e);
+            }
+        }
+
+        // Set the "dc_suffix" property if there is one configured
+        String dcSuffix = cassandraConfiguration.getDataCenterSuffix();
+        if (Strings.isNullOrEmpty(dcSuffix)) {
+            properties.remove("dc_suffix");
+        } else {
+            properties.put("dc_suffix", dcSuffix);
+        }
+
+        if (logger.isInfoEnabled()) {
+            if (properties.isEmpty()) {
+                logger.info("Updating {}: no properties", SnitchProperties.RACKDC_PROPERTY_FILENAME);
+            } else {
+                for (Map.Entry entry : properties.entrySet()) {
+                    logger.info("Updating {}: {}={}", SnitchProperties.RACKDC_PROPERTY_FILENAME, entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        // Write the updated properties back
+        try (Writer writer = new FileWriter(rackdcPropFile)) {
+            properties.store(writer, "");
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to write " + SnitchProperties.RACKDC_PROPERTY_FILENAME, e);
         }
     }
 

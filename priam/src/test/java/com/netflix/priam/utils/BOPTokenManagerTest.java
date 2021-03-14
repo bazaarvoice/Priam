@@ -2,8 +2,10 @@ package com.netflix.priam.utils;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.netflix.priam.identity.Location;
+import com.netflix.priam.identity.SimpleLocation;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
-import org.apache.cassandra.dht.ByteOrderedPartitioner.BytesToken;
+import org.apache.cassandra.dht.BytesToken;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.utils.Hex;
 import org.junit.Test;
@@ -81,9 +83,9 @@ public class BOPTokenManagerTest {
                         .add(BigInteger.ONE)
                         .divide(BigInteger.valueOf(8 * 32))
                         .multiply(BigInteger.TEN)
-                        .add(BigInteger.valueOf(TokenManager.regionOffset("region")))
+                        .add(BigInteger.valueOf(TokenManager.locationOffset(Location.from("region"))))
                         .toString(16), 32, '0'),
-                tokenManager.createToken(10, 8, 32, "region"));
+                tokenManager.createToken(10, 8, 32, Location.from("region")));
     }
 
     @Test
@@ -91,19 +93,21 @@ public class BOPTokenManagerTest {
         // 6 node clusters should have 6 tokens distributed evenly from 0 to 2^128 (exclusive) + region offset
         BOPTokenManager tokenManager = newBOPTokenManager(16);
 
-        assertEquals("0000000000000000000000006bccac70", tokenManager.createToken(0, 3, 2, "us-east-1"));
-        assertEquals("2aaaaaaaaaaaaaaaaaaaaaab1677571a", tokenManager.createToken(1, 3, 2, "us-east-1"));
-        assertEquals("555555555555555555555555c12201c4", tokenManager.createToken(2, 3, 2, "us-east-1"));
-        assertEquals("8000000000000000000000006bccac6e", tokenManager.createToken(3, 3, 2, "us-east-1"));
-        assertEquals("aaaaaaaaaaaaaaaaaaaaaaab16775718", tokenManager.createToken(4, 3, 2, "us-east-1"));
-        assertEquals("d55555555555555555555555c12201c2", tokenManager.createToken(5, 3, 2, "us-east-1"));
+        Location usEast1 = Location.from("us-east-1");
+        assertEquals("0000000000000000000000006bccac70", tokenManager.createToken(0, 3, 2, usEast1));
+        assertEquals("2aaaaaaaaaaaaaaaaaaaaaab1677571a", tokenManager.createToken(1, 3, 2, usEast1));
+        assertEquals("555555555555555555555555c12201c4", tokenManager.createToken(2, 3, 2, usEast1));
+        assertEquals("8000000000000000000000006bccac6e", tokenManager.createToken(3, 3, 2, usEast1));
+        assertEquals("aaaaaaaaaaaaaaaaaaaaaaab16775718", tokenManager.createToken(4, 3, 2, usEast1));
+        assertEquals("d55555555555555555555555c12201c2", tokenManager.createToken(5, 3, 2, usEast1));
 
-        assertEquals("0000000000000000000000001637af50", tokenManager.createToken(0, 3, 2, "eu-west-1"));
-        assertEquals("2aaaaaaaaaaaaaaaaaaaaaaac0e259fa", tokenManager.createToken(1, 3, 2, "eu-west-1"));
-        assertEquals("5555555555555555555555556b8d04a4", tokenManager.createToken(2, 3, 2, "eu-west-1"));
-        assertEquals("8000000000000000000000001637af4e", tokenManager.createToken(3, 3, 2, "eu-west-1"));
-        assertEquals("aaaaaaaaaaaaaaaaaaaaaaaac0e259f8", tokenManager.createToken(4, 3, 2, "eu-west-1"));
-        assertEquals("d555555555555555555555556b8d04a2", tokenManager.createToken(5, 3, 2, "eu-west-1"));
+        Location euWest1 = Location.from("eu-west-1");
+        assertEquals("0000000000000000000000001637af50", tokenManager.createToken(0, 3, 2, euWest1));
+        assertEquals("2aaaaaaaaaaaaaaaaaaaaaaac0e259fa", tokenManager.createToken(1, 3, 2, euWest1));
+        assertEquals("5555555555555555555555556b8d04a4", tokenManager.createToken(2, 3, 2, euWest1));
+        assertEquals("8000000000000000000000001637af4e", tokenManager.createToken(3, 3, 2, euWest1));
+        assertEquals("aaaaaaaaaaaaaaaaaaaaaaaac0e259f8", tokenManager.createToken(4, 3, 2, euWest1));
+        assertEquals("d555555555555555555555556b8d04a2", tokenManager.createToken(5, 3, 2, euWest1));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -189,16 +193,23 @@ public class BOPTokenManagerTest {
     }
 
     @Test
-    public void regionOffset() {
+    public void testLocationOffset() {
         String allRegions = "us-west-2,us-east,us-west,eu-east,eu-west,ap-northeast,ap-southeast";
+        String dcSuffixes = ",-dev,-qa,-prod";
 
         for (String region1 : allRegions.split(",")) {
             for (String region2 : allRegions.split(",")) {
-                if (region1.equals(region2)) {
-                    continue;
+                for (String dcSuffix1 : dcSuffixes.split(",")) {
+                    for (String dcSuffix2: dcSuffixes.split(",")) {
+                        if (region1.equals(region2) && dcSuffix1.equals(dcSuffix2)) {
+                            continue;
+                        }
+                        Location loc1 = new SimpleLocation(region1, dcSuffix1);
+                        Location loc2 = new SimpleLocation(region2, dcSuffix2);
+                        assertFalse("Difference seems to be low",
+                                Math.abs(TokenManager.locationOffset(loc1) - TokenManager.locationOffset(loc2)) < 100);
+                    }
                 }
-                assertFalse("Difference seems to be low",
-                        Math.abs(TokenManager.regionOffset(region1) - TokenManager.regionOffset(region2)) < 100);
             }
         }
     }
@@ -207,19 +218,19 @@ public class BOPTokenManagerTest {
     public void testMultiToken() {
         BOPTokenManager tokenManager = new BOPTokenManager(8, "0000000000000000", "ffffffffffffffff");
 
-        int h1 = TokenManager.regionOffset("vijay");
-        int h2 = TokenManager.regionOffset("vijay2");
+        int h1 = TokenManager.locationOffset(Location.from("vijay"));
+        int h2 = TokenManager.locationOffset(Location.from("vijay2"));
         Token t1 = tokenManager.initialToken(100, 10, h1);
         Token t2 = tokenManager.initialToken(100, 10, h2);
 
-        BigInteger tokenDistance = new BigInteger(1, (byte[]) t1.getTokenValue()).subtract(new BigInteger(1, (byte[]) t2.getTokenValue()));
+        BigInteger tokenDistance = new BigInteger(1, (byte[]) t1.token).subtract(new BigInteger(1, (byte[]) t2.token));
         long hashDifference = h1 - h2;
 
         assertEquals(BigInteger.valueOf(hashDifference), tokenDistance);
 
         Token t3 = tokenManager.initialToken(100, 99, h1);
         Token t4 = tokenManager.initialToken(100, 99, h2);
-        tokenDistance = new BigInteger(1, (byte[]) t3.getTokenValue()).subtract(new BigInteger(1, (byte[]) t4.getTokenValue()));
+        tokenDistance = new BigInteger(1, (byte[]) t3.token).subtract(new BigInteger(1, (byte[]) t4.token));
 
         assertEquals(BigInteger.valueOf(hashDifference), tokenDistance);
     }
@@ -250,14 +261,14 @@ public class BOPTokenManagerTest {
         BOPTokenManager tokenManager1 = new BOPTokenManager(18,
                 "555500112233445566778899aabbccddeeff",
                 "5555ffeeddccbbaa99887766554433221100");
-        assertEquals("55552ab616ccd838eefa5b111c7d49764ea4", tokenManager1.createToken(1, 3, 2, "eu-west-1"));
+        assertEquals("55552ab616ccd838eefa5b111c7d49764ea4", tokenManager1.createToken(1, 3, 2, Location.from("eu-west-1")));
 
         // Next, test with much longer min/max values.
         BOPTokenManager tokenManager2 = new BOPTokenManager(50,
                 "555500112233445566778899aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
                 "5555ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100");
         assertEquals("55552ab616ccd838eefa5b111c7d333e9f54aab616ccd838eefa5b111c7d333e9f54aab616ccd838eefa5b111c7d49764ea4",
-                tokenManager2.createToken(1, 3, 2, "eu-west-1"));
+                tokenManager2.createToken(1, 3, 2, Location.from("eu-west-1")));
     }
 
     @Test

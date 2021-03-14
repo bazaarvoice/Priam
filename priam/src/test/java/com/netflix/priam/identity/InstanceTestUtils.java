@@ -1,10 +1,13 @@
 package com.netflix.priam.identity;
 
+import com.google.common.base.Strings;
+import com.netflix.priam.FakeVolumeMetadataManager;
 import com.netflix.priam.FakeMembership;
 import com.netflix.priam.FakePriamInstanceRegistry;
 import com.netflix.priam.TestAmazonConfiguration;
 import com.netflix.priam.TestBackupConfiguration;
 import com.netflix.priam.TestCassandraConfiguration;
+import com.netflix.priam.volume.IVolumeMetadataManager;
 import com.netflix.priam.utils.BigIntegerTokenManager;
 import com.netflix.priam.utils.FakeSleeper;
 import com.netflix.priam.utils.Sleeper;
@@ -24,9 +27,11 @@ public abstract class InstanceTestUtils {
     TestAmazonConfiguration amazonConfiguration;
     TestBackupConfiguration backupConfiguration;
     IPriamInstanceRegistry instanceRegistry;
+    IVolumeMetadataManager volumeMetadataManager;
     InstanceIdentity identity;
     TokenManager tokenManager;
     Sleeper sleeper;
+    Location location;
 
     @Before
     public void setup() {
@@ -44,7 +49,9 @@ public abstract class InstanceTestUtils {
         cassandraConfiguration = new TestCassandraConfiguration("fake-app");
         amazonConfiguration = new TestAmazonConfiguration("fake-app", "fake", "az1", "fakeinstance1");
         backupConfiguration = new TestBackupConfiguration();
-        instanceRegistry = new FakePriamInstanceRegistry(amazonConfiguration);
+        location = new SimpleLocation(amazonConfiguration.getRegionName(), Strings.nullToEmpty(cassandraConfiguration.getDataCenterSuffix()));
+        instanceRegistry = new FakePriamInstanceRegistry(location);
+        volumeMetadataManager = new FakeVolumeMetadataManager("fake-volume");
         tokenManager = BigIntegerTokenManager.forRandomPartitioner();
         sleeper = new FakeSleeper();
     }
@@ -61,12 +68,39 @@ public abstract class InstanceTestUtils {
         createInstanceIdentity("az3", "fakeinstance7");
         createInstanceIdentity("az3", "fakeinstance8");
         createInstanceIdentity("az3", "fakeinstance9");
+
+        // Additionally simulate rings with the same configuration in different data centers in the same cluster with:
+        // 1) different region
+        // 2) same region, different data center suffix
+        Location altRegionLocation = new SimpleLocation("fake-remote", "");
+        Location altSuffixLocation = new SimpleLocation("fake", "alt");
+
+        for (int i=0; i < 2; i++) {
+            String azPrefix = i == 0 ? "az" : "bz";
+            Location location = i == 0 ? altRegionLocation : altSuffixLocation;
+            int slot = 0;
+            int idOffset = TokenManager.locationOffset(location);
+
+            for (int az=1; az <= 3; az++) {
+                for (int c=0; c < 3; c++) {
+                    String instanceId = "fake-nonlocal-instance-" + c + az;
+                    String azName = azPrefix + az;
+                    String token = tokenManager.createToken(slot, 3, 3, location);
+                    PriamInstance instance = PriamInstance.from("fake-app", slot + idOffset, instanceId, instanceId, instanceId, azName, null, token, location);
+                    instanceRegistry.update(instance);
+                    slot += 1;
+                }
+            }
+        }
+
+        // Creating all of these instances updates the local EBS volume metadata as a side effect.  Clean it up
+        volumeMetadataManager.clearVolumeMetadata();
     }
 
     protected InstanceIdentity createInstanceIdentity(String zone, String instanceId) throws Exception {
         amazonConfiguration.setAvailabilityZone(zone);
         amazonConfiguration.setInstanceID(instanceId);
         amazonConfiguration.setPrivateHostName(instanceId);
-        return new InstanceIdentity(cassandraConfiguration, amazonConfiguration, instanceRegistry, membership, tokenManager, sleeper);
+        return new InstanceIdentity(cassandraConfiguration, amazonConfiguration, volumeMetadataManager, instanceRegistry, membership, tokenManager, sleeper, location);
     }
 }

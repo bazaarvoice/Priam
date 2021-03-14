@@ -45,13 +45,16 @@ public class DoubleRing {
     private final AmazonConfiguration amazonConfiguration;
     private final IPriamInstanceRegistry instanceRegistry;
     private final TokenManager tokenManager;
+    private final Location location;
 
     @Inject
-    public DoubleRing(CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration, IPriamInstanceRegistry instanceRegistry, TokenManager tokenManager) {
+    public DoubleRing(CassandraConfiguration cassandraConfiguration, AmazonConfiguration amazonConfiguration, IPriamInstanceRegistry instanceRegistry,
+                      TokenManager tokenManager, Location location) {
         this.cassandraConfiguration = cassandraConfiguration;
         this.amazonConfiguration = amazonConfiguration;
         this.instanceRegistry = instanceRegistry;
         this.tokenManager = tokenManager;
+        this.location = location;
     }
 
     /**
@@ -67,15 +70,15 @@ public class DoubleRing {
             instanceRegistry.delete(priamInstance);
         }
 
-        int regionOffsetHash = TokenManager.regionOffset(amazonConfiguration.getRegionName());
+        int locationOffsetHash = TokenManager.locationOffset(location);
         int newRingSize = instancesInRegion.size() * 2;
         int numZones = amazonConfiguration.getUsableAvailabilityZones().size();
 
         for (PriamInstance priamInstance : instancesInRegion) {
             // Move an existing instance by doubling the old slot #.
-            int slot = (priamInstance.getId() - regionOffsetHash) * 2;
+            int slot = (priamInstance.getId() - locationOffsetHash) * 2;
             instanceRegistry.create(priamInstance.getApp(),
-                    regionOffsetHash + slot,
+                    locationOffsetHash + slot,
                     priamInstance.getInstanceId(),
                     priamInstance.getHostName(),
                     priamInstance.getHostIP(),
@@ -86,9 +89,9 @@ public class DoubleRing {
             // Add a new slot in the same zone, numZones away.  Because slot is even and numZones is odd the
             // new slot # will be odd and won't conflict with slot #s for existing instances.
             int newSlot = (slot + numZones) % newRingSize;
-            String token = tokenManager.createToken(newSlot, newRingSize, amazonConfiguration.getRegionName());
+            String token = tokenManager.createToken(newSlot, newRingSize, location);
             instanceRegistry.create(priamInstance.getApp(),
-                    regionOffsetHash + newSlot,
+                    locationOffsetHash + newSlot,
                     PriamInstance.NEW_INSTANCE_PLACEHOLDER_ID,
                     amazonConfiguration.getPrivateHostName(),
                     amazonConfiguration.getPrivateIP(),
@@ -102,7 +105,7 @@ public class DoubleRing {
     private List<PriamInstance> filteredRemote(List<PriamInstance> priamInstances) {
         List<PriamInstance> local = Lists.newArrayList();
         for (PriamInstance priamInstance : priamInstances) {
-            if (priamInstance.getRegionName().equals(amazonConfiguration.getRegionName())) {
+            if (priamInstance.getLocation().equals(location)) {
                 local.add(priamInstance);
             }
         }
