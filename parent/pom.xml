@@ -52,36 +52,8 @@
                 <version>${badger.version}</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>com.bazaarvoice.cabertoss</groupId>
-                        <artifactId>dropwizard</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>joda-time</groupId>
-                        <artifactId>joda-time</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-api</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.google.guava</groupId>
-                        <artifactId>guava</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.apache.curator</groupId>
-                        <artifactId>curator-framework</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.apache.zookeeper</groupId>
-                        <artifactId>zookeeper</artifactId>
-                    </exclusion>
-                    <exclusion>
                         <groupId>com.amazonaws</groupId>
                         <artifactId>aws-java-sdk</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>com.fasterxml.jackson.core</groupId>
-                        <artifactId>jackson-databind</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -170,6 +142,11 @@
                 <version>5.1.1.Final</version>
             </dependency>
             <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.10</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.cassandra</groupId>
                 <artifactId>cassandra-all</artifactId>
                 <version>2.0.17</version>
@@ -180,28 +157,12 @@
                         <artifactId>commons-logging</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>javax.servlet</groupId>
-                        <artifactId>servlet-api</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>junit</groupId>
-                        <artifactId>junit</artifactId>
-                    </exclusion>
-                    <exclusion>
                         <groupId>log4j</groupId>
                         <artifactId>log4j</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>org.mortbay.jetty</groupId>
-                        <artifactId>jetty</artifactId>
-                    </exclusion>
-                    <exclusion>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>commons-codec</groupId>
-                        <artifactId>commons-codec</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -233,7 +194,7 @@
             <dependency>
                 <groupId>net.java.dev.jna</groupId>
                 <artifactId>jna</artifactId>
-                <version>4.0.0</version>
+                <version>3.5.2</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
