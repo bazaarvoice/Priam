@@ -44,10 +44,12 @@ import java.net.UnknownHostException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 
@@ -283,12 +285,12 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
     }
 
     public void repair(String keyspace, boolean isSequential, boolean localDataCenterOnly, boolean primaryRange) throws IOException {
-        final Map<String, String> options = ImmutableMap.of(
-            "parallelism", isSequential ? "sequential" : "parallel",
-            "primaryRange", String.valueOf(primaryRange),
-            "dataCenters", getDataCenter()
-        );
-        forceKeyspaceRepair(keyspace, isSequential, localDataCenterOnly);
+        Set<String> datacenters = null;
+        if (localDataCenterOnly) {
+            datacenters = new HashSet<>();
+            datacenters.add(getDataCenter());
+        }
+        forceRepairAsync(System.out, keyspace, isSequential, datacenters, null, primaryRange, true);
     }
 
     public void cleanup() throws IOException, ExecutionException, InterruptedException {
@@ -296,7 +298,7 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
             if ("system".equalsIgnoreCase(keyspace)) {
                 continue; // It is an error to attempt to cleanup the system column family.
             }
-            forceKeyspaceCleanup(keyspace);
+            forceKeyspaceCleanup(0, keyspace);
         }
     }
 
