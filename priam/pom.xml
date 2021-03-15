@@ -66,7 +66,23 @@
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
+            <artifactId>aws-java-sdk-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-ec2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-simpledb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-autoscaling</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-sts</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -135,7 +151,7 @@
                 <configuration>
                     <argLine>
                         -Xms256m -Xmx1024m -XX:MaxPermSize=512m
-                        -javaagent:"${settings.localRepository}"/com/googlecode/jmockit/jmockit/0.999.12/jmockit-0.999.12.jar
+                        -javaagent:"${settings.localRepository}"/com/googlecode/jmockit/jmockit/1.7/jmockit-1.7.jar
                     </argLine>
                     <skipTests>${skipTests}</skipTests>
                 </configuration>

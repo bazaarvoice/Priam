@@ -63,7 +63,7 @@ public class PriamInstanceResource {
     public String getInstances() {
         StringBuilder response = new StringBuilder();
         List<PriamInstance> nodes = instanceRegistry.getAllIds(cassandraConfiguration.getClusterName());
-        for (PriamInstance node : Ordering.natural().sortedCopy(nodes)) {
+        for (PriamInstance node : nodes) {
             response.append(node.toString());
             response.append("\n");
         }
