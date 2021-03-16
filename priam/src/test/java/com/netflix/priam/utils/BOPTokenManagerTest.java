@@ -223,14 +223,14 @@ public class BOPTokenManagerTest {
         Token t1 = tokenManager.initialToken(100, 10, h1);
         Token t2 = tokenManager.initialToken(100, 10, h2);
 
-        BigInteger tokenDistance = new BigInteger(1, (byte[]) t1.token).subtract(new BigInteger(1, (byte[]) t2.token));
+        BigInteger tokenDistance = new BigInteger(1, (byte[]) t1.getTokenValue()).subtract(new BigInteger(1, (byte[]) t2.getTokenValue()));
         long hashDifference = h1 - h2;
 
         assertEquals(BigInteger.valueOf(hashDifference), tokenDistance);
 
         Token t3 = tokenManager.initialToken(100, 99, h1);
         Token t4 = tokenManager.initialToken(100, 99, h2);
-        tokenDistance = new BigInteger(1, (byte[]) t3.token).subtract(new BigInteger(1, (byte[]) t4.token));
+        tokenDistance = new BigInteger(1, (byte[]) t3.getTokenValue()).subtract(new BigInteger(1, (byte[]) t4.getTokenValue()));
 
         assertEquals(BigInteger.valueOf(hashDifference), tokenDistance);
     }
