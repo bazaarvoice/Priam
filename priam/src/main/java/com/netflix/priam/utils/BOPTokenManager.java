@@ -66,7 +66,8 @@ public class BOPTokenManager extends TokenManager {
      * @param offset   added to token
      * @return MAXIMUM_TOKEN / size * position + offset, if <= MAXIMUM_TOKEN, otherwise wrap around the MINIMUM_TOKEN
      */
-    @VisibleForTesting Token initialToken(int size, int position, int offset) {
+    @VisibleForTesting
+    Token initialToken(int size, int position, int offset) {
         checkArgument(size > 0, "size must be > 0");
         checkArgument(offset >= 0, "offset must be >= 0");
         checkArgument(position >= 0, "position must be >= 0");
@@ -75,8 +76,8 @@ public class BOPTokenManager extends TokenManager {
         // assumption with the ByteOrderedPartitioner, but that's why everyone is discouraged from using it.
 
         // Subdivide between the min and max using tokenLength bytes of precision.
-        BigInteger min = new BigInteger(1, (byte[]) minimumToken.token);
-        BigInteger max = new BigInteger(1, (byte[]) maximumToken.token);
+        BigInteger min = new BigInteger(1, (byte[]) minimumToken.getTokenValue());
+        BigInteger max = new BigInteger(1, (byte[]) maximumToken.getTokenValue());
         BigInteger range = max.subtract(min);
 
         BigInteger value = max.add(BigInteger.ONE)  // add 1 since max is inclusive, helps get the splits to round #s
@@ -124,7 +125,8 @@ public class BOPTokenManager extends TokenManager {
         return tf.fromString(token).compareTo(midpoint) < 0;
     }
 
-    @VisibleForTesting Token numberToToken(BigInteger number) {
+    @VisibleForTesting
+    Token numberToToken(BigInteger number) {
         checkArgument(number.signum() >= 0, "Token math should not yield negative numbers: %s", number);
         byte[] numberBytes = number.toByteArray();
         int numberOffset = numberBytes[0] != 0 ? 0 : 1;  // Ignore the first if it's zero ("sign byte") to ensure byte[] length <= tokenLength.

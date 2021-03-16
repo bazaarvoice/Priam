@@ -16,6 +16,7 @@
 package com.netflix.priam.resources;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -34,6 +35,7 @@ import org.apache.cassandra.db.compaction.CompactionManagerMBean;
 import org.apache.cassandra.streaming.ProgressInfo;
 import org.apache.cassandra.streaming.SessionInfo;
 import org.apache.cassandra.streaming.StreamState;
+import org.apache.cassandra.utils.EstimatedHistogram;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,8 +135,8 @@ public class CassandraAdminResource {
     public Response estimateKeys(@QueryParam("keyspaces") String keyspaces) throws Exception {
         JMXNodeTool nodetool = getNodeTool();
         Optional<Collection<String>> keyspaceCollection = StringUtils.isBlank(keyspaces) ?
-                Optional.<Collection<String>>absent() :
-                Optional.<Collection<String>>of(Lists.newArrayList(keyspaces.split(",")));
+                Optional.absent() :
+                Optional.of(Lists.newArrayList(keyspaces.split(",")));
         return Response.ok(nodetool.estimateKeys(keyspaceCollection), MediaType.APPLICATION_JSON).build();
     }
 
@@ -156,7 +158,7 @@ public class CassandraAdminResource {
             try {
                 // Is this node down?
                 if (!node.get("status").toString().equalsIgnoreCase("up")) {
-                    hintsInfo.add(ImmutableMap.<String, Object>of(
+                    hintsInfo.add(ImmutableMap.of(
                             "endpoint", endpoint,
                             "state", HintsState.UNREACHABLE));
                     continue;
@@ -180,7 +182,7 @@ public class CassandraAdminResource {
                 hintsInfo.add(fullNodeInfo);
 
             } catch (Exception e) {
-                hintsInfo.add(ImmutableMap.<String, Object>of(
+                hintsInfo.add(ImmutableMap.of(
                         "endpoint", endpoint,
                         "state", HintsState.ERROR,
                         "exception", e.toString()));
@@ -203,7 +205,7 @@ public class CassandraAdminResource {
 
     public Map<String, Object> endpointsPendingHints() throws Exception {
         JMXNodeTool nodetool = getNodeTool();
-        return ImmutableMap.<String, Object>of("totalEndpointsPendingHints", nodetool.totalEndpointsPendingHints());
+        return ImmutableMap.of("totalEndpointsPendingHints", nodetool.totalEndpointsPendingHints());
     }
 
     @GET
@@ -216,7 +218,7 @@ public class CassandraAdminResource {
 
     @GET
     @Path("/ring")
-    public Response cassRingAllKeyspaces(@PathParam("keyspace") String keyspace) throws Exception {
+    public Response cassRingAllKeyspaces() throws Exception {
         JMXNodeTool nodetool = getNodeTool();
         logger.info("node tool ring being called");
         return Response.ok(nodetool.ring(), MediaType.APPLICATION_JSON).build();
@@ -384,8 +386,8 @@ public class CassandraAdminResource {
             for (SessionInfo streamSession : streamSessions) {
                 final Collection<ProgressInfo> sendingFiles = streamSession.getSendingFiles();
                 final Collection<ProgressInfo> receivingFiles = streamSession.getReceivingFiles();
-                final String connectingHost = streamSession.peer.getHostName();
-                final Set<Collection<ProgressInfo>> streams = rootObj.containsKey(connectingHost) ? (Set<Collection<ProgressInfo>>) rootObj.get(connectingHost) : Sets.<Collection<ProgressInfo>>newHashSet();
+                final String connectingHost = streamSession.connecting.getHostName();
+                final Set<Collection<ProgressInfo>> streams = rootObj.containsKey(connectingHost) ? (Set<Collection<ProgressInfo>>) rootObj.get(connectingHost) : Sets.newHashSet();
                 streams.add(sendingFiles);
                 streams.add(receivingFiles);
                 rootObj.put(connectingHost, streams);
@@ -406,27 +408,46 @@ public class CassandraAdminResource {
     }
 
     @GET
-    @Path("/scrub")
-    public Response scrub(@QueryParam("keyspaces") String keyspaces, @QueryParam("cfnames") String cfnames)
+    @Path("/cfhistograms")
+    public Response cfhistograms(@QueryParam("keyspace") String keyspace, @QueryParam("cfname") String cfname)
             throws Exception {
         JMXNodeTool nodetool = getNodeTool();
-        String[] cfs = null;
-        if (StringUtils.isNotBlank(cfnames)) {
-            cfs = cfnames.split(",");
+        if (StringUtils.isBlank(keyspace) || StringUtils.isBlank(cfname)) {
+            return Response.status(400).entity("Missing keyspace/cfname in request").build();
         }
-        if (cfs == null) {
-            nodetool.scrub(false, false, false, keyspaces);
-        } else {
-            nodetool.scrub(false, false, false, keyspaces, cfs);
+
+        // default is 90 offsets
+        long[] offsets = new EstimatedHistogram().getBucketOffsets();
+
+        Object readLatency = nodetool.getColumnFamilyMetric(keyspace, cfname, "ReadLatency");
+        Object writeLatency = nodetool.getColumnFamilyMetric(keyspace, cfname, "WriteLatency");
+        Object ssTablesPerReadHist = nodetool.getColumnFamilyMetric(keyspace, cfname, "SSTablesPerReadHistogram");
+        Object estimatedRowSizeHist = nodetool.getColumnFamilyMetric(keyspace, cfname, "EstimatedRowSizeHistogram");
+        Object estimatedColumnCountHist = nodetool.getColumnFamilyMetric(keyspace, cfname, "EstimatedColumnCountHistogram");
+
+        Map<String, Object> rootObj = Maps.newLinkedHashMap();
+        List<String> columns = ImmutableList.of("offset", "sstables", "write latency", "read latency", "row size", "column count");
+        rootObj.put("columns", columns);
+        List<Object> values = Lists.newArrayList();
+        for (int i = 0; i < offsets.length; i++) {
+            List<Object> row = Lists.newArrayList();
+            row.add(offsets[i]);
+            row.add(readLatency);
+            row.add(writeLatency);
+            row.add(ssTablesPerReadHist);
+            row.add(estimatedRowSizeHist);
+            row.add(estimatedColumnCountHist);
+            values.add(row);
         }
-        return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
+        rootObj.put("values", values);
+        return Response.ok(rootObj, MediaType.APPLICATION_JSON).build();
     }
 
     @GET
     @Path("/drain")
     public Response cassDrain() throws Exception {
         JMXNodeTool nodetool = getNodeTool();
-        logger.debug("node tool drain being called");
+        logger.info("node tool drain being called");
         nodetool.drain();
         return Response.ok(RESULT_OK, MediaType.APPLICATION_JSON).build();
     }
