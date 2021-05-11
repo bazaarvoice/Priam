@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.netflix.priam.identity.Location;
 import com.netflix.priam.identity.SimpleLocation;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
-import org.apache.cassandra.dht.BytesToken;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.utils.Hex;
 import org.junit.Test;
@@ -113,7 +112,7 @@ public class BOPTokenManagerTest {
     @Test(expected = IllegalArgumentException.class)
     public void findClosestToken_emptyTokenList() {
         BOPTokenManager tokenManager = new BOPTokenManager(1, "00", "ff");
-        tokenManager.findClosestToken("0", Collections.<String>emptyList());
+        tokenManager.findClosestToken("0", Collections.emptyList());
     }
 
     @Test
@@ -200,7 +199,7 @@ public class BOPTokenManagerTest {
         for (String region1 : allRegions.split(",")) {
             for (String region2 : allRegions.split(",")) {
                 for (String dcSuffix1 : dcSuffixes.split(",")) {
-                    for (String dcSuffix2: dcSuffixes.split(",")) {
+                    for (String dcSuffix2 : dcSuffixes.split(",")) {
                         if (region1.equals(region2) && dcSuffix1.equals(dcSuffix2)) {
                             continue;
                         }
@@ -276,7 +275,7 @@ public class BOPTokenManagerTest {
         Random random = new Random();
         byte[] bytes = new byte[random.nextInt(16)];
         random.nextBytes(bytes);
-        BytesToken token = new BytesToken(bytes);
+        Token token = new ByteOrderedPartitioner.BytesToken(bytes);
 
         BOPTokenManager tokenManager = newBOPTokenManager(16);
         String string = tokenManager.sanitizeToken(token.toString());
@@ -289,7 +288,7 @@ public class BOPTokenManagerTest {
         return new BOPTokenManager(tokenLength, Strings.repeat("00", tokenLength), Strings.repeat("ff", tokenLength));
     }
 
-    private static BytesToken toToken(String string) {
-        return new BytesToken(Hex.hexToBytes(string));
+    private static ByteOrderedPartitioner.BytesToken toToken(String string) {
+        return new ByteOrderedPartitioner.BytesToken(Hex.hexToBytes(string));
     }
 }

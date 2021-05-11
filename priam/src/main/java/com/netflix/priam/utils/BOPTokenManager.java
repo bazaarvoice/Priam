@@ -20,7 +20,7 @@ import com.google.common.base.CharMatcher;
 import com.google.common.collect.Ordering;
 import com.netflix.priam.identity.Location;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
-import org.apache.cassandra.dht.BytesToken;
+import org.apache.cassandra.dht.ByteOrderedPartitioner.BytesToken;
 import org.apache.cassandra.dht.Token;
 
 import java.math.BigInteger;
