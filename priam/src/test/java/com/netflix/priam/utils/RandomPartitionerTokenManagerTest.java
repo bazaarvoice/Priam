@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.netflix.priam.identity.Location;
 import com.netflix.priam.identity.SimpleLocation;
-import org.apache.cassandra.dht.BigIntegerToken;
 import org.apache.cassandra.dht.RandomPartitioner;
+import org.apache.cassandra.dht.Token;
 import org.junit.Test;
 
 import java.math.BigInteger;
@@ -94,7 +94,7 @@ public class RandomPartitionerTokenManagerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void findClosestToken_emptyTokenList() {
-        tokenManager.findClosestToken("0", Collections.<String>emptyList());
+        tokenManager.findClosestToken("0", Collections.emptyList());
     }
 
     @Test
@@ -156,7 +156,7 @@ public class RandomPartitionerTokenManagerTest {
         for (String region1 : allRegions.split(",")) {
             for (String region2 : allRegions.split(",")) {
                 for (String dcSuffix1 : dcSuffixes.split(",")) {
-                    for (String dcSuffix2: dcSuffixes.split(",")) {
+                    for (String dcSuffix2 : dcSuffixes.split(",")) {
                         if (region1.equals(region2) && dcSuffix1.equals(dcSuffix2)) {
                             continue;
                         }
@@ -195,7 +195,7 @@ public class RandomPartitionerTokenManagerTest {
         byte[] bytes = new byte[random.nextInt(16)];
         random.nextBytes(bytes);
         BigInteger number = new BigInteger(1, bytes);
-        BigIntegerToken token = new BigIntegerToken(Ordering.natural().min(number, MAXIMUM_TOKEN));
+        Token token = new RandomPartitioner.BigIntegerToken(Ordering.natural().min(number, MAXIMUM_TOKEN));
 
         String string = tokenManager.sanitizeToken(token.toString());
         assertTrue(string, string.matches("[0-9]*"));

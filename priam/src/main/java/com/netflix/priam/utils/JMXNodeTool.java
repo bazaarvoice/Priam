@@ -27,6 +27,7 @@ import com.google.inject.Singleton;
 import com.netflix.priam.config.CassandraConfiguration;
 import org.apache.cassandra.db.ColumnFamilyStoreMBean;
 import org.apache.cassandra.db.HintedHandOffManagerMBean;
+import org.apache.cassandra.repair.messages.RepairOption;
 import org.apache.cassandra.tools.NodeProbe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,12 +45,11 @@ import java.net.UnknownHostException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 
@@ -126,7 +126,7 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
                 @Override
                 public JMXNodeTool retriableCall() throws Exception {
                     JMXNodeTool nodetool = new JMXNodeTool("localhost", config.getJmxPort());
-                    Field fields[] = NodeProbe.class.getDeclaredFields();
+                    Field[] fields = NodeProbe.class.getDeclaredFields();
                     for (Field field : fields) {
                         if (!field.getName().equals("mbeanServerConn")) {
                             continue;
@@ -274,7 +274,7 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
 
     public void compact() throws IOException, ExecutionException, InterruptedException {
         for (String keyspace : getKeyspaces()) {
-            forceKeyspaceCompaction(keyspace);
+            forceKeyspaceCompaction(false, keyspace);
         }
     }
 
@@ -285,12 +285,14 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
     }
 
     public void repair(String keyspace, boolean isSequential, boolean localDataCenterOnly, boolean primaryRange) throws IOException {
-        Set<String> datacenters = null;
+        Map<String, String> repairOptions = new HashMap<>();
+        repairOptions.put(RepairOption.PARALLELISM_KEY, Boolean.toString(!isSequential));
+        repairOptions.put(RepairOption.PRIMARY_RANGE_KEY, Boolean.toString(primaryRange));
         if (localDataCenterOnly) {
-            datacenters = new HashSet<>();
-            datacenters.add(getDataCenter());
+            repairOptions.put(RepairOption.DATACENTERS_KEY, getDataCenter());
         }
-        forceRepairAsync(System.out, keyspace, isSequential, datacenters, null, primaryRange, true);
+
+        repairAsync(System.out, keyspace, repairOptions);
     }
 
     public void cleanup() throws IOException, ExecutionException, InterruptedException {

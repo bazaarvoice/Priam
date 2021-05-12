@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.netflix.priam.identity.Location;
 import com.netflix.priam.identity.SimpleLocation;
-import org.apache.cassandra.dht.BigIntegerToken;
 import org.apache.cassandra.dht.RandomPartitioner;
+import org.apache.cassandra.dht.Token;
 import org.junit.Test;
 
 import java.math.BigInteger;
@@ -96,7 +96,7 @@ public class Murmur3PartitionerTokenManagerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void findClosestToken_emptyTokenList() {
-        tokenManager.findClosestToken("0", Collections.<String>emptyList());
+        tokenManager.findClosestToken("0", Collections.emptyList());
     }
 
     @Test
@@ -192,7 +192,7 @@ public class Murmur3PartitionerTokenManagerTest {
         byte[] bytes = new byte[random.nextInt(16)];
         random.nextBytes(bytes);
         BigInteger number = new BigInteger(1, bytes);
-        BigIntegerToken token = new BigIntegerToken(Ordering.natural().min(number, MAXIMUM_TOKEN));
+        Token token = new RandomPartitioner.BigIntegerToken(Ordering.natural().min(number, MAXIMUM_TOKEN));
 
         String string = tokenManager.sanitizeToken(token.toString());
         assertTrue(string, string.matches("[0-9]*"));
