@@ -1,9 +1,7 @@
 package com.netflix.priam.defaultimpl;
 
 import com.datastax.driver.core.VersionNumber;
-import com.google.common.base.Optional;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
@@ -25,6 +23,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -62,7 +61,8 @@ public class StandardTuner implements CassandraTuner {
         put(map, "auto_bootstrap", cassandraConfiguration.getAutoBootstrap());
         put(map, "saved_caches_directory", cassandraConfiguration.getCacheLocation());
         put(map, "commitlog_directory", cassandraConfiguration.getCommitLogLocation());
-        put(map, "data_file_directories", ImmutableList.of(cassandraConfiguration.getDataLocation()));
+        put(map, "hints_directory", cassandraConfiguration.getHintsLocation());
+        put(map, "data_file_directories", Arrays.asList(cassandraConfiguration.getDataFileLocation()));
         put(map, "incremental_backups", backupConfiguration.isIncrementalBackupEnabledForCassandra());
         put(map, "tombstone_warn_threshold", cassandraConfiguration.getTombstonesWarningThreshold());
         put(map, "tombstone_failure_threshold", cassandraConfiguration.getTombstonesFailureThreshold());
@@ -143,7 +143,7 @@ public class StandardTuner implements CassandraTuner {
         if (lowerCase.contains("randomparti") || lowerCase.contains("murmur")) {
             return fromConfig;
         }
-        
+
         // If both partitioners are either ByteOrderedPartitioner or EmoPartitioner than accept whichever
         // is from the configuration file.
         if (TokenManager.clientPartitioner(fromYaml).equals(TokenManager.clientPartitioner(fromConfig))) {

@@ -232,6 +232,27 @@ public class CassandraConfiguration {
         return Objects.firstNonNull(yamlLocation, cassHome + "/conf/cassandra.yaml");
     }
 
+    /**
+     * Location where all the data/logs/hints for the cassandra will sit.
+     */
+    public String getCassandraBaseDirectory() {
+        return "/var/lib/cassandra";
+    }
+
+    /**
+     * @return Location of the local data dir
+     */
+    public String getDataFileLocation() {
+        return getCassandraBaseDirectory() + "/data";
+    }
+
+    /**
+     * @return Location of the hints data directory
+     */
+    public String getHintsLocation() {
+        return getCassandraBaseDirectory() + "/hints";
+    }
+
     public String getCassStartScript() {
         return cassStartScript;
     }
