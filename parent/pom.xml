@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.bazaarvoice.commons</groupId>
         <artifactId>bv-super-pom</artifactId>
-        <version>1.12</version>
+        <version>1.19</version>
         <relativePath />
     </parent>
 
@@ -37,13 +37,13 @@
         <dropwizard.version>0.7.1</dropwizard.version>
         <jackson.version>2.7.9</jackson.version>
         <ostrich.version>1.9.3</ostrich.version>
-
-        <maven.minimum.version>3.6.3</maven.minimum.version>
-
-        <!-- maven properties recognized by the bv-super-pom -->
-        <java.minimum.version>1.8</java.minimum.version>
         <logback.version>1.2.9</logback.version>
         <slf4j.version>1.7.32</slf4j.version>
+
+        <!-- maven properties recognized by the bv-super-pom -->
+        <maven.minimum.version>3.6.3</maven.minimum.version>
+        <java.minimum.version>1.8</java.minimum.version>
+        <cassandra.version>3.11.12</cassandra.version>
     </properties>
 
     <dependencyManagement>
@@ -161,7 +161,7 @@
             <dependency>
                 <groupId>org.apache.cassandra</groupId>
                 <artifactId>cassandra-all</artifactId>
-                <version>3.11.12</version>
+                <version>${cassandra.version}</version>
                 <exclusions>
                     <!-- ignore stuff that conflicts with Dropwizard -->
                     <exclusion>
@@ -296,7 +296,7 @@
                 <plugin>
                     <groupId>com.bazaarvoice.maven.plugins</groupId>
                     <artifactId>s3repo-maven-plugin</artifactId>
-                    <version>3.1</version>
+                    <version>3.5</version>
                 </plugin>
             </plugins>
         </pluginManagement>
