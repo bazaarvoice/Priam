@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.bazaarvoice.priam</groupId>
         <artifactId>priam-parent</artifactId>
-        <version>3.0.25.2-SNAPSHOT</version>
+        <version>3.11.12.1</version>
         <relativePath>../parent/pom.xml</relativePath>
     </parent>
 
