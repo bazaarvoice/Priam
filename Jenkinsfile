@@ -23,7 +23,7 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        script {
+        withSonarQubeEnv(installationName: 'Bazaarvoice QA SonarQube') {
           sh '''mvn -e verify -Ddependency-check.skip=true -Pdocker sonar:sonar ${prKey} ${prBranch} ${prBase}'''
         }
       }
