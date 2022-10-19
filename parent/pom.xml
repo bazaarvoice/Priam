@@ -35,7 +35,7 @@
         <badger.version>0.6.70</badger.version>
         <curator-extensions.version>1.4.2</curator-extensions.version>
         <dropwizard.version>0.7.1</dropwizard.version>
-        <jackson.version>2.7.9</jackson.version>
+        <jackson.version>2.13.4.1</jackson.version>
         <ostrich.version>1.9.3</ostrich.version>
         <logback.version>1.2.9</logback.version>
         <slf4j.version>1.7.32</slf4j.version>
@@ -131,7 +131,7 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}.3</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
