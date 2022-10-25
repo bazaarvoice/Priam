@@ -39,10 +39,6 @@
         <ostrich.version>1.9.3</ostrich.version>
         <logback.version>1.2.9</logback.version>
         <slf4j.version>1.7.32</slf4j.version>
-        <sonar.projectKey>bazaarvoice_Priam</sonar.projectKey>
-        <sonar.qualitygate.wait>true</sonar.qualitygate.wait>
-        <sonar.moduleKey>${project.artifactId}</sonar.moduleKey>
-        <jacoco.version>0.8.8</jacoco.version>
         <maven-surefire-plugin.version>3.0.0-M6</maven-surefire-plugin.version>
 
         <!-- maven properties recognized by the bv-super-pom -->
@@ -357,7 +353,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
-                    <argLine>@{argLine} -Dfile.encoding=UTF-8 -Djava.awt.headless=true</argLine>
                     <excludes>
                         <!--
                             Exclude the Integration Tests; see also
@@ -366,26 +361,6 @@
                         <exclude>test/integration/**</exclude>
                     </excludes>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>${jacoco.version}</version>
-                <executions>
-                    <execution>
-                        <id>pre-unit-test</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>post-unit-test</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
