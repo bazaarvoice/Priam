@@ -50,8 +50,9 @@ public class PriamStartupAgent {
                 isReplace = Boolean.parseBoolean(DataFetcher.fetchData("http://127.0.0.1:8080/v1/cassconfig/is_replace_token"));
                 replacedIp = DataFetcher.fetchData("http://127.0.0.1:8080/v1/cassconfig/get_replaced_ip");
             } catch (Exception e) {
-                System.out.println("Failed to obtain startup data from priam, can not start yet. will retry shortly");
-                logger.error(e.toString());
+                String message = "Failed to obtain startup data from priam, can not start yet. will retry shortly";
+                System.out.println(message);
+                logger.error(message, e);
             }
 
             if (token != null && seeds != null) {
