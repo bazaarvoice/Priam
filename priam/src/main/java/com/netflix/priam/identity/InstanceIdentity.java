@@ -33,9 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -122,7 +122,7 @@ public class InstanceIdentity {
             List<PriamInstance> priamInstances = filteredRemote(instanceRegistry.getAllIds(cassandraConfiguration.getClusterName()));
             List<String> asgInstanceIDs = membership.getAutoScaleGroupMembership();
             // Sleep random interval - 10 to 15 sec
-            sleeper.sleep(new Random().nextInt(5000) + 10000);
+            sleeper.sleep(new SecureRandom().nextInt(5000) + 10000);
 
             // Build a list of dead instances that we might replace
             boolean healthyNodePresent = false;
@@ -271,7 +271,7 @@ public class InstanceIdentity {
         public PriamInstance retriableCall() throws Exception {
             logger.info("Generating my own and new token");
             // Sleep random interval - up to 15 sec
-            sleeper.sleep(new Random().nextInt(15000));
+            sleeper.sleep(new SecureRandom().nextInt(15000));
 
             int hash = TokenManager.locationOffset(location);
 

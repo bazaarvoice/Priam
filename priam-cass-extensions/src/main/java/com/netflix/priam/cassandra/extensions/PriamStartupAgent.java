@@ -16,6 +16,8 @@
 package com.netflix.priam.cassandra.extensions;
 
 import org.apache.cassandra.utils.FBUtilities;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.instrument.Instrumentation;
 
@@ -25,6 +27,8 @@ import java.lang.instrument.Instrumentation;
  * like token and seeds.
  */
 public class PriamStartupAgent {
+
+    private static final Logger logger = LoggerFactory.getLogger(PriamStartupAgent.class);
     public static String REPLACED_ADDRESS_MIN_VER = "1.2.11";
     public static String REPLACED_ADDRESS_FIRST_BOOT_MIN_VER = "2.0.9";
 
@@ -46,8 +50,9 @@ public class PriamStartupAgent {
                 isReplace = Boolean.parseBoolean(DataFetcher.fetchData("http://127.0.0.1:8080/v1/cassconfig/is_replace_token"));
                 replacedIp = DataFetcher.fetchData("http://127.0.0.1:8080/v1/cassconfig/get_replaced_ip");
             } catch (Exception e) {
-                System.out.println("Failed to obtain startup data from priam, can not start yet. will retry shortly");
-                e.printStackTrace();
+                String message = "Failed to obtain startup data from priam, can not start yet. will retry shortly";
+                System.out.println(message);
+                logger.error(message, e);
             }
 
             if (token != null && seeds != null) {
