@@ -1,0 +1,26 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: priam
+  description: 'Priam is a process/tool that runs alongside Apache Cassandra to automate the following:
+                Backup and recovery (Complete and incremental), 
+                Token management, 
+                Configuration, 
+                Support AWS environment'
+  annotations:
+    backstage.io/techdocs-ref: 'url:https://github.com/bazaarvoice/Priam/blob/3.0.x/README.md'
+  links:
+    - url: https://bazaarvoice.atlassian.net/wiki/spaces/DEV/pages/6793731414/Restore+a+Cassandra+cluster+from+backup+using+Priam
+      title: Restore a Cassandra cluster from backup using Priam
+      icon: docs
+  tags:
+    - emodb
+    - java
+    - priam
+    - dropwizard
+spec:
+  type: tools
+  system: emodb
+  lifecycle: production
+  github.com/project-slug: bazaarvoice/Priam
+  owner: data-storage
