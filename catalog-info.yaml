@@ -1,0 +1,27 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: priam
+  description: 'Priam is a process/tool that runs alongside Apache Cassandra to automate the following:
+                Backup and recovery (Complete and incremental), 
+                Token management, 
+                Configuration, 
+                Support AWS environment'
+  annotations:
+    backstage.io/techdocs-ref: 'url:https://github.com/bazaarvoice/Priam/blob/3.0.x/README.md'
+  links:
+    - url: http://netflix.github.io/Priam/
+      title: Netflix - Priam
+      icon: docs
+  tags:
+    - emodb
+    - java
+    - priam
+    - dropwizard
+    - cassandra
+spec:
+  type: tools
+  system: emodb
+  lifecycle: production
+  github.com/project-slug: bazaarvoice/Priam
+  owner: data-storage
