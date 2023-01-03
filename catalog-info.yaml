@@ -10,8 +10,8 @@ metadata:
   annotations:
     backstage.io/techdocs-ref: 'url:https://github.com/bazaarvoice/Priam/blob/3.0.x/README.md'
   links:
-    - url: https://bazaarvoice.atlassian.net/wiki/spaces/DEV/pages/6793731414/Restore+a+Cassandra+cluster+from+backup+using+Priam
-      title: Restore a Cassandra cluster from backup using Priam
+    - url: http://netflix.github.io/Priam/
+      title: Netflix - Priam
       icon: docs
   tags:
     - emodb
