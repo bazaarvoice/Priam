@@ -6,7 +6,7 @@
         <groupId>com.bazaarvoice.commons</groupId>
         <artifactId>bv-super-pom</artifactId>
         <version>1.19</version>
-        <relativePath />
+        <relativePath/>
     </parent>
 
     <groupId>com.bazaarvoice.priam</groupId>
@@ -44,7 +44,7 @@
         <!-- maven properties recognized by the bv-super-pom -->
         <maven.minimum.version>3.6.3</maven.minimum.version>
         <java.minimum.version>1.8</java.minimum.version>
-        <cassandra.version>3.11.12</cassandra.version>
+        <cassandra.version>3.11.14</cassandra.version>
     </properties>
 
     <dependencyManagement>
@@ -337,9 +337,9 @@
                                     <version>[${java.minimum.version},)</version>
                                     <message>requires ${java.minimum.version}</message>
                                 </requireJavaVersion>
-                                <dependencyConvergence />
-                                <requireUpperBoundDeps />
-                                <banDuplicatePomDependencyVersions />
+                                <dependencyConvergence/>
+                                <requireUpperBoundDeps/>
+                                <banDuplicatePomDependencyVersions/>
                             </rules>
                         </configuration>
                         <goals>
