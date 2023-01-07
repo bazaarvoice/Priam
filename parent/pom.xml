@@ -6,7 +6,7 @@
         <groupId>com.bazaarvoice.commons</groupId>
         <artifactId>bv-super-pom</artifactId>
         <version>1.19</version>
-        <relativePath />
+        <relativePath/>
     </parent>
 
     <groupId>com.bazaarvoice.priam</groupId>
@@ -36,7 +36,7 @@
         <curator-extensions.version>1.4.2</curator-extensions.version>
         <dropwizard.version>0.7.1</dropwizard.version>
         <jackson.version>2.7.9</jackson.version>
-        <ostrich.version>1.9.3</ostrich.version>
+        <ostrich.version>1.10.2</ostrich.version>
         <logback.version>1.2.9</logback.version>
         <slf4j.version>1.7.32</slf4j.version>
         <maven-surefire-plugin.version>3.0.0-M6</maven-surefire-plugin.version>
@@ -337,9 +337,9 @@
                                     <version>[${java.minimum.version},)</version>
                                     <message>requires ${java.minimum.version}</message>
                                 </requireJavaVersion>
-                                <dependencyConvergence />
-                                <requireUpperBoundDeps />
-                                <banDuplicatePomDependencyVersions />
+                                <dependencyConvergence/>
+                                <requireUpperBoundDeps/>
+                                <banDuplicatePomDependencyVersions/>
                             </rules>
                         </configuration>
                         <goals>
