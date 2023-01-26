@@ -26,7 +26,6 @@
         <module>parent</module>
         <module>priam</module>
         <module>priam-cass-extensions</module>
-        <module>priam-client</module>
         <module>yum</module>
     </modules>
 
