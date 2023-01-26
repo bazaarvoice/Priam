@@ -32,8 +32,6 @@ import com.google.inject.name.Names;
 import com.netflix.priam.aws.AWSMembership;
 import com.netflix.priam.aws.SDBInstanceRegistry;
 import com.netflix.priam.aws.auth.SDBCredentialProvider;
-import com.netflix.priam.volume.DefaultVolumeMetadataManager;
-import com.netflix.priam.volume.IVolumeMetadataManager;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.config.BackupConfiguration;
 import com.netflix.priam.config.CassandraConfiguration;
@@ -50,8 +48,8 @@ import com.netflix.priam.utils.Sleeper;
 import com.netflix.priam.utils.ThreadSleeper;
 import com.netflix.priam.utils.TokenManager;
 import com.netflix.priam.utils.TokenManagerProvider;
-import com.sun.jersey.api.client.Client;
-import io.dropwizard.client.JerseyClientBuilder;
+import com.netflix.priam.volume.DefaultVolumeMetadataManager;
+import com.netflix.priam.volume.IVolumeMetadataManager;
 import io.dropwizard.jetty.ConnectorFactory;
 import io.dropwizard.jetty.HttpConnectorFactory;
 import io.dropwizard.server.DefaultServerFactory;
@@ -122,15 +120,6 @@ public class PriamGuiceModule extends AbstractModule {
         CuratorFramework curator = zkConfiguration.newManagedCurator(environment);
         curator.start();
         return Optional.of(curator);
-    }
-
-    @Provides
-    @Singleton
-    Client provideJerseyClient(MetricRegistry metricRegistry) {
-        return new JerseyClientBuilder(metricRegistry)
-                .using(priamConfiguration.getHttpClientConfiguration())
-                .using(environment)
-                .build("priam");
     }
 
     @Provides

@@ -1,12 +1,12 @@
 /**
  * Copyright 2013 Netflix, Inc.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,22 +25,16 @@ import com.amazonaws.services.autoscaling.model.Instance;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.AuthorizeSecurityGroupIngressRequest;
-import com.amazonaws.services.ec2.model.DescribeSecurityGroupsRequest;
-import com.amazonaws.services.ec2.model.DescribeSecurityGroupsResult;
 import com.amazonaws.services.ec2.model.IpPermission;
-import com.amazonaws.services.ec2.model.RevokeSecurityGroupIngressRequest;
-import com.amazonaws.services.ec2.model.SecurityGroup;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.netflix.priam.config.AmazonConfiguration;
 import com.netflix.priam.identity.IMembership;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -117,42 +111,6 @@ public class AWSMembership implements IMembership {
                     new IpPermission().withFromPort(fromPort).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(toPort));
             client.authorizeSecurityGroupIngress(new AuthorizeSecurityGroupIngressRequest(amazonConfiguration.getSecurityGroupName(), ipPermissions));
             logger.info("Done adding ACL to: {}", StringUtils.join(listIPs, ","));
-        } finally {
-            client.shutdown();
-        }
-    }
-
-    /**
-     * Removes an IP list from the SG
-     */
-    public void removeACL(Collection<String> listIPs, int fromPort, int toPort) {
-        AmazonEC2 client = getEc2Client();
-        try {
-            List<IpPermission> ipPermissions = ImmutableList.of(
-                    new IpPermission().withFromPort(fromPort).withIpProtocol("tcp").withIpRanges(listIPs).withToPort(toPort));
-            client.revokeSecurityGroupIngress(new RevokeSecurityGroupIngressRequest(amazonConfiguration.getSecurityGroupName(), ipPermissions));
-        } finally {
-            client.shutdown();
-        }
-    }
-
-    /**
-     * List SG ACL's
-     */
-    public List<String> listACL(int from, int to) {
-        AmazonEC2 client = getEc2Client();
-        try {
-            List<String> ipPermissions = new ArrayList<>();
-            DescribeSecurityGroupsRequest req = new DescribeSecurityGroupsRequest().withGroupNames(Arrays.asList(amazonConfiguration.getSecurityGroupName()));
-            DescribeSecurityGroupsResult result = client.describeSecurityGroups(req);
-            for (SecurityGroup group : result.getSecurityGroups()) {
-                for (IpPermission perm : group.getIpPermissions()) {
-                    if (perm.getFromPort() == from && perm.getToPort() == to) {
-                        ipPermissions.addAll(perm.getIpRanges());
-                    }
-                }
-            }
-            return ipPermissions;
         } finally {
             client.shutdown();
         }
