@@ -1,7 +1,7 @@
 package com.netflix.priam.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 
@@ -212,11 +212,11 @@ public class CassandraConfiguration {
     }
 
     public String getMinimumToken() {
-        return Objects.firstNonNull(minimumToken, Strings.repeat("00", tokenLength));
+        return MoreObjects.firstNonNull(minimumToken, Strings.repeat("00", tokenLength));
     }
 
     public String getMaximumToken() {
-        return Objects.firstNonNull(maximumToken, Strings.repeat("ff", tokenLength));
+        return MoreObjects.firstNonNull(maximumToken, Strings.repeat("ff", tokenLength));
     }
 
     public String getEndpointSnitch() {
@@ -229,7 +229,7 @@ public class CassandraConfiguration {
 
     public String getYamlLocation() {
         // Use a sensible default for the YAML location unless our configuration specifically overrides it
-        return Objects.firstNonNull(yamlLocation, cassHome + "/conf/cassandra.yaml");
+        return MoreObjects.firstNonNull(yamlLocation, cassHome + "/conf/cassandra.yaml");
     }
 
     /**

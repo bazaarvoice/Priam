@@ -15,7 +15,7 @@
  */
 package com.netflix.priam.utils;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -250,9 +250,9 @@ public class JMXNodeTool extends NodeProbe implements Closeable {
                 state = "Moving";
             }
 
-            String load = Objects.firstNonNull(loadMap.get(primaryEndpoint), "?");
+            String load = MoreObjects.firstNonNull(loadMap.get(primaryEndpoint), "?");
             // TODO: ownerships is keyed by InetAddress, lookup is by String
-            String owns = new DecimalFormat("##0.00%").format(Objects.firstNonNull(ownerships.get(primaryEndpoint), 0.0F));
+            String owns = new DecimalFormat("##0.00%").format(MoreObjects.firstNonNull(ownerships.get(primaryEndpoint), 0.0F));
             ring.add(createJson(primaryEndpoint, dataCenter, rack, status, state, load, owns, token));
         }
         logger.info(ring.toString());

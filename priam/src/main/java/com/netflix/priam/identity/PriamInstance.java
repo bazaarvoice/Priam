@@ -1,6 +1,6 @@
 package com.netflix.priam.identity;
 
-import org.apache.commons.lang.builder.CompareToBuilder;
+import org.apache.commons.lang3.builder.CompareToBuilder;
 
 import java.io.Serializable;
 import java.text.SimpleDateFormat;

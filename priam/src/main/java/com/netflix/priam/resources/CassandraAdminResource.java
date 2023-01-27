@@ -29,14 +29,12 @@ import com.netflix.priam.config.CassandraConfiguration;
 import com.netflix.priam.config.PriamConfiguration;
 import com.netflix.priam.utils.JMXConnectionException;
 import com.netflix.priam.utils.JMXNodeTool;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.GenericType;
 import org.apache.cassandra.db.compaction.CompactionManagerMBean;
 import org.apache.cassandra.streaming.ProgressInfo;
 import org.apache.cassandra.streaming.SessionInfo;
 import org.apache.cassandra.streaming.StreamState;
 import org.apache.cassandra.utils.EstimatedHistogram;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,17 +69,15 @@ public class CassandraAdminResource {
     private final CassandraConfiguration cassandraConfiguration;
     private final PriamConfiguration priamConfiguration;
     private final ICassandraProcess cassProcess;
-    private final Client jersey;
     private final Integer port;
 
     @Inject
     public CassandraAdminResource(PriamServer priamServer, CassandraConfiguration cassandraConfiguration,
-                                  PriamConfiguration priamConfiguration, ICassandraProcess cassProcess, Client jersey, HostAndPort hostAndPort) {
+                                  PriamConfiguration priamConfiguration, ICassandraProcess cassProcess, HostAndPort hostAndPort) {
         this.priamServer = priamServer;
         this.cassandraConfiguration = cassandraConfiguration;
         this.priamConfiguration = priamConfiguration;
         this.cassProcess = cassProcess;
-        this.jersey = jersey;
         this.port = hostAndPort.getPort();
     }
 
@@ -146,52 +142,6 @@ public class CassandraAdminResource {
      *
      * @throws Exception
      */
-    @GET
-    @Path("/hints/ring")
-    public Response cassHintsInRing() throws Exception {
-        List<Map<String, Object>> ring = getNodeTool().ring();
-        List<Map<String, Object>> hintsInfo = Lists.newArrayList();
-        String selfIP = priamServer.getInstanceIdentity().getInstance().getHostIP();
-        for (Map<String, Object> node : ring) {
-            String endpoint = node.get("endpoint").toString();
-
-            try {
-                // Is this node down?
-                if (!node.get("status").toString().equalsIgnoreCase("up")) {
-                    hintsInfo.add(ImmutableMap.of(
-                            "endpoint", endpoint,
-                            "state", HintsState.UNREACHABLE));
-                    continue;
-                }
-
-                Map<String, Object> fullNodeInfo = Maps.newLinkedHashMap();
-                // Do not make an outbound request to yourself
-                if (endpoint.equals(selfIP)) {
-                    Map<String, Object> nodeResponse = endpointsPendingHints();
-                    fullNodeInfo.putAll(nodeResponse);
-                } else {
-                    String url = String.format("http://%s:%s/v1/cassadmin/hints/node", endpoint, port);
-                    Map<String, Object> nodeResponse = jersey.resource(url)
-                            .get(new GenericType<Map<String, Object>>() {
-                            });
-
-                    fullNodeInfo.putAll(nodeResponse);
-                }
-                fullNodeInfo.put("endpoint", endpoint);
-                fullNodeInfo.put("state", HintsState.OK);
-                hintsInfo.add(fullNodeInfo);
-
-            } catch (Exception e) {
-                hintsInfo.add(ImmutableMap.of(
-                        "endpoint", endpoint,
-                        "state", HintsState.ERROR,
-                        "exception", e.toString()));
-            }
-        }
-
-        return Response.ok(hintsInfo, MediaType.APPLICATION_JSON).build();
-    }
-
     /**
      * This method will return hints info for this node only
      *
