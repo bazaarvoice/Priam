@@ -6,12 +6,12 @@
         <groupId>com.bazaarvoice.commons</groupId>
         <artifactId>bv-super-pom</artifactId>
         <version>1.19</version>
-        <relativePath/>
+        <relativePath />
     </parent>
 
     <groupId>com.bazaarvoice.priam</groupId>
     <artifactId>priam-parent</artifactId>
-    <version>3.11.12.2-SNAPSHOT</version>
+    <version>3.11.12.2</version>
     <packaging>pom</packaging>
 
     <name>Priam Parent</name>
@@ -28,7 +28,7 @@
         <connection>scm:git:git@github.com:bazaarvoice/Priam.git</connection>
         <url>scm:git:git@github.com:bazaarvoice/Priam.git</url>
         <developerConnection>scm:git:git@github.com:bazaarvoice/Priam.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>priam-complete-3.11.12.2</tag>
     </scm>
 
     <prerequisites>
@@ -413,9 +413,9 @@
                                     <version>[${java.minimum.version},)</version>
                                     <message>requires ${java.minimum.version}</message>
                                 </requireJavaVersion>
-                                <dependencyConvergence/>
-                                <requireUpperBoundDeps/>
-                                <banDuplicatePomDependencyVersions/>
+                                <dependencyConvergence />
+                                <requireUpperBoundDeps />
+                                <banDuplicatePomDependencyVersions />
                                 <bannedDependencies>
                                     <excludes>
                                         <!-- This should not exist until DW 0.8.x+ upgrade -->
